@@ -51,3 +51,6 @@ logs/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Track the reviewed database bootstrap script
+!/database/postgresql/001_bootstrap_identity.sql
