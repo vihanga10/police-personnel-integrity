@@ -1,0 +1,53 @@
+# Confidential research data
+data/
+research-data/
+datasets/
+private-documents/
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.zip
+*.sql
+*.dump
+*.backup
+
+# Secrets and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+wallet/
+keystore/
+
+# Hyperledger-generated material
+organizations/
+crypto-config/
+channel-artifacts/
+
+# Node.js
+node_modules/
+dist/
+build/
+coverage/
+.next/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Logs and macOS
+*.log
+logs/
+.DS_Store
+
+# Editor files
+.idea/
+.vscode/*
+!.vscode/extensions.json
