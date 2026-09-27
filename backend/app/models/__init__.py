@@ -1,0 +1,41 @@
+from app.models.officer import Officer
+from app.models.officer_address_version import OfficerAddressVersion
+from app.models.officer_demographic_version import OfficerDemographicVersion
+from app.models.officer_family_relation import OfficerFamilyRelation
+from app.models.officer_name_version import OfficerNameVersion
+from app.models.officer_physical_profile_version import (
+    OfficerPhysicalProfileVersion,
+)
+from app.models.source_assertion import SourceAssertion
+from app.models.source_system import SourceSystem
+from app.models.officer_identifier_version import OfficerIdentifierVersion
+from app.models.officer_contact_version import OfficerContactVersion
+from app.models.officer_previous_employment_version import (
+    OfficerPreviousEmploymentVersion,
+)
+from app.models.officer_restricted_profile_version import (
+    OfficerRestrictedProfileVersion,
+)
+from app.models.officer_family_civil_event_version import (
+    OfficerFamilyCivilEventVersion,
+)
+from app.models.officer_next_of_kin_version import OfficerNextOfKinVersion
+from app.models.source_attestation import SourceAttestation
+
+__all__ = [
+    "Officer",
+    "OfficerAddressVersion",
+    "OfficerDemographicVersion",
+    "OfficerFamilyRelation",
+    "OfficerNameVersion",
+    "OfficerPhysicalProfileVersion",
+    "SourceAssertion",
+    "SourceSystem",
+    "OfficerIdentifierVersion",
+    "OfficerContactVersion",
+    "OfficerPreviousEmploymentVersion",
+    "OfficerRestrictedProfileVersion",
+    "OfficerFamilyCivilEventVersion",
+    "OfficerNextOfKinVersion",
+    "SourceAttestation",
+]
