@@ -54,3 +54,8 @@ logs/
 
 # Track the reviewed database bootstrap script
 !/database/postgresql/001_bootstrap_identity.sql
+
+# Local Alembic migration credentials
+/backend/.env.migration
+
+!/backend/.env.migration.example
