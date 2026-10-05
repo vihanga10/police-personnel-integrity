@@ -157,28 +157,45 @@ cannot be matched reliably, preserve the raw values and create a validation issu
 | `officer_service_information.csv` | MongoDB | `service_status_events` |
 | `officer_police_numbers.csv` | MongoDB | `police_number_intervals` |
 | `officer_duty_periods.csv` | MongoDB | `duty_periods` |
-| `officer_restrictions.csv` | MongoDB | `restriction_intervals` |
-| `restriction_overrides.csv` | MongoDB | `restriction_override_events` |
+| `officer_restrictions.csv` | MongoDB | `restriction_records` |
+| `restriction_overrides.csv` | MongoDB | `restriction_overrides` |
 | `officer_education.csv` | MongoDB | `education_records` |
-| `officer_firearms_expertise.csv` | MongoDB | `firearms_expertise_records` |
-| `good_conduct_register.csv` | MongoDB | `good_conduct_events` |
-| `bad_conduct_register.csv` | MongoDB | `bad_conduct_events` |
+| `officer_firearms_expertise.csv` | MongoDB | `firearms_assessments` |
+| `good_conduct_register.csv` | MongoDB | `good_conduct_records` |
+| `bad_conduct_register.csv` | MongoDB | `bad_conduct_records` |
 | `public_complaints.csv` | MongoDB | `complaint_records` |
 | `operations.csv` | MongoDB | `operation_records` |
 | `court_details.csv` | MongoDB | `court_records` |
+
+These collections preserve normalized source evidence with protected
+provenance. Collection names do not establish that a claim is verified.
+
+The service-information record mixes reported milestones and current-state
+snapshot claims. Its collection name does not make every field a dated
+service-status event.
+
+Reported periods and intervals retain unknown boundaries explicitly.
+Historical events, applicable restrictions and reconstructed state require
+documented temporal semantics and supporting evidence.
 
 A complaint record is not automatically evidence of misconduct, guilt or a
 restriction.
 
 ## 7. Reference dataset routing
 
-| Registered file | Treatment |
-|---|---|
-| `station_master.csv` | Station reference collection or service |
-| `sri_lanka_police_stations_sinhala.csv` | Sinhala station-name reference |
+| Registered file | Storage | Collection |
+|---|---|---|
+| `station_master.csv` | MongoDB | `station_reference_records` |
+| `sri_lanka_police_stations_sinhala.csv` | MongoDB | `station_sinhala_reference_records` |
 
 Identity records store a stable station reference instead of duplicating all
 station information.
+
+The Sinhala reference file has no station code. Links to station records
+require documented matching rules; ambiguous matches remain unresolved.
+
+A current reference snapshot does not establish historical organizational
+membership without supporting applicability evidence.
 
 ## 8. MongoDB reference example
 
