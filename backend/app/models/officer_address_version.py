@@ -81,6 +81,15 @@ class OfficerAddressVersion(Base):
             "valid_from",
             "valid_to",
         ),
+        # Prevent two replacements from superseding the same address version.
+        Index(
+            "uq_officer_address_version_predecessor",
+            "supersedes_address_version_id",
+            unique=True,
+            postgresql_where=text(
+                "supersedes_address_version_id IS NOT NULL"
+            ),
+        ),
     )
 
     address_version_id: Mapped[UUID] = mapped_column(

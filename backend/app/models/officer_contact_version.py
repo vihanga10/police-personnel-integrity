@@ -91,6 +91,15 @@ class OfficerContactVersion(Base):
             "contact_type",
             "contact_lookup_hmac",
         ),
+        # Prevent two replacements from superseding the same evidence version.
+        Index(
+            "uq_officer_contact_version_predecessor",
+            "supersedes_contact_version_id",
+            unique=True,
+            postgresql_where=text(
+            "supersedes_contact_version_id IS NOT NULL"
+            ),
+        ),
     )
 
     contact_version_id: Mapped[UUID] = mapped_column(

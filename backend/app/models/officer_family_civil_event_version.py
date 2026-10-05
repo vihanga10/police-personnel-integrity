@@ -91,6 +91,15 @@ class OfficerFamilyCivilEventVersion(Base):
             "officer_uid",
             "event_date",
         ),
+# Prevent two replacements from superseding the same evidence version.
+        Index(
+            "uq_officer_family_civil_event_version_predecessor",
+            "supersedes_civil_event_version_id",
+             unique=True,
+             postgresql_where=text(
+            "supersedes_civil_event_version_id IS NOT NULL"
+            ),
+        ),
     )
 
     civil_event_version_id: Mapped[UUID] = mapped_column(

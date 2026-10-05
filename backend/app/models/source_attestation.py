@@ -163,6 +163,15 @@ class SourceAttestation(Base):
             "ix_source_attestation_actor",
             "actor_officer_uid",
         ),
+# Prevent two replacements from superseding the same evidence version.
+        Index(
+            "uq_source_attestation_predecessor",
+            "supersedes_attestation_version_id",
+             unique=True,
+             postgresql_where=text(
+            "supersedes_attestation_version_id IS NOT NULL"
+            ),
+        ),
     )
 
     attestation_version_id: Mapped[UUID] = mapped_column(

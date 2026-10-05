@@ -78,6 +78,15 @@ class OfficerFamilyRelation(Base):
             "officer_uid",
             "relationship_type",
         ),
+        # Prevent two replacements from superseding the same evidence version.
+        Index(
+            "uq_officer_family_relation_predecessor",
+            "supersedes_family_relation_version_id",
+            unique=True,
+            postgresql_where=text(
+            "supersedes_family_relation_version_id IS NOT NULL"
+            ),
+        ),
     )
 
     family_relation_version_id: Mapped[UUID] = mapped_column(

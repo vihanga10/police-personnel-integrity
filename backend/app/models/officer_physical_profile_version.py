@@ -78,6 +78,16 @@ class OfficerPhysicalProfileVersion(Base):
             "valid_from",
             "valid_to",
         ),
+
+    # Prevent two replacements from superseding the same evidence version.
+        Index(
+            "uq_officer_physical_profile_version_predecessor",
+            "supersedes_physical_profile_version_id",
+            unique=True,
+            postgresql_where=text(
+            "supersedes_physical_profile_version_id IS NOT NULL"
+            ),
+        ),
     )
 
     physical_profile_version_id: Mapped[UUID] = mapped_column(

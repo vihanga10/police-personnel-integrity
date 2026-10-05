@@ -98,6 +98,15 @@ class OfficerIdentifierVersion(Base):
             "identifier_type",
             "identifier_lookup_hmac",
         ),
+# Prevent two replacements from superseding the same evidence version.
+        Index(
+            "uq_officer_identifier_version_predecessor",
+            "supersedes_identifier_version_id",
+             unique=True,
+             postgresql_where=text(
+            "supersedes_identifier_version_id IS NOT NULL"
+            ),
+        ),
     )
 
     identifier_version_id: Mapped[UUID] = mapped_column(

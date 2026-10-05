@@ -68,6 +68,16 @@ class OfficerNameVersion(Base):
             "valid_from",
             "valid_to",
         ),
+
+        # Prevent two replacements from superseding the same name version.
+        Index(
+            "uq_officer_name_version_predecessor",
+            "supersedes_name_version_id",
+            unique=True,
+            postgresql_where=text(
+                "supersedes_name_version_id IS NOT NULL"
+            ),
+        ),
     )
 
     name_version_id: Mapped[UUID] = mapped_column(

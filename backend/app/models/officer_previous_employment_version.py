@@ -74,6 +74,15 @@ class OfficerPreviousEmploymentVersion(Base):
             "valid_from",
             "valid_to",
         ),
+# Prevent two replacements from superseding the same evidence version.
+        Index(
+            "uq_officer_previous_employment_version_predecessor",
+            "supersedes_employment_version_id",
+             unique=True,
+             postgresql_where=text(
+            "supersedes_employment_version_id IS NOT NULL"
+            ),
+        ),
     )
 
     employment_version_id: Mapped[UUID] = mapped_column(
