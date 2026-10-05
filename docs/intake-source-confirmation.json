@@ -1,0 +1,98 @@
+{
+  "schema_version": "1.0",
+  "confirmation_id": "BATCH-RAW-001-SOURCE-CONFIRMATION-001",
+  "batch_id": "BATCH-RAW-001",
+  "archive_sha256": "32f47c60b43ee1bce8887f3dd67bc07c6a83ed4c59f2f152c7cff933d905b1f2",
+  "confirmed_on": "2026-10-05",
+  "confirmed_by": "Vihanga Madushamini",
+  "confirmation_basis": "Project owner's explicit source confirmation",
+  "scope": "Reported supplying source for each listed CSV",
+  "original_archive_modified": false,
+  "independent_custodian_verification": "NOT_ESTABLISHED",
+  "source_independence": "UNVERIFIED",
+  "source_truth": "NOT_ASSESSED",
+  "interpretation": [
+    "Preserve the original package source mapping alongside this confirmation.",
+    "Do not multiply one received value into independent source assertions.",
+    "References to another institution do not establish direct receipt from it.",
+    "This file records provenance; importer integration requires separate implementation."
+  ],
+  "files": [
+    {
+      "file_name": "_demotions_enacted.csv",
+      "reported_source_system_code": "PF_REGISTRY"
+    },
+    {
+      "file_name": "bad_conduct_register.csv",
+      "reported_source_system_code": "SRB"
+    },
+    {
+      "file_name": "court_details.csv",
+      "reported_source_system_code": "PF_REGISTRY"
+    },
+    {
+      "file_name": "good_conduct_register.csv",
+      "reported_source_system_code": "SRB"
+    },
+    {
+      "file_name": "officer_duty_periods.csv",
+      "reported_source_system_code": "SRB"
+    },
+    {
+      "file_name": "officer_education.csv",
+      "reported_source_system_code": "POLICE_HR_IS"
+    },
+    {
+      "file_name": "officer_family_details.csv",
+      "reported_source_system_code": "POLICE_HR_IS"
+    },
+    {
+      "file_name": "officer_firearms_expertise.csv",
+      "reported_source_system_code": "SRB"
+    },
+    {
+      "file_name": "officer_personal_information.csv",
+      "reported_source_system_code": "PF_REGISTRY"
+    },
+    {
+      "file_name": "officer_police_numbers.csv",
+      "reported_source_system_code": "SRB"
+    },
+    {
+      "file_name": "officer_restrictions.csv",
+      "reported_source_system_code": "SRB"
+    },
+    {
+      "file_name": "officer_service_information.csv",
+      "reported_source_system_code": "POLICE_HR_IS"
+    },
+    {
+      "file_name": "operations.csv",
+      "reported_source_system_code": "PF_REGISTRY"
+    },
+    {
+      "file_name": "promotion_history.csv",
+      "reported_source_system_code": "PF_REGISTRY"
+    },
+    {
+      "file_name": "public_complaints.csv",
+      "reported_source_system_code": "PF_REGISTRY"
+    },
+    {
+      "file_name": "restriction_overrides.csv",
+      "reported_source_system_code": "SRB"
+    },
+    {
+      "file_name": "sri_lanka_police_stations_sinhala.csv",
+      "reported_source_system_code": "POLICE_HR_IS"
+    },
+    {
+      "file_name": "station_master.csv",
+      "reported_source_system_code": "POLICE_HR_IS"
+    },
+    {
+      "file_name": "transfer_history.csv",
+      "reported_source_system_code": "PF_REGISTRY"
+    }
+  ]
+}
