@@ -5,6 +5,8 @@ from sqlalchemy import URL, create_engine, pool
 
 import app.models  # noqa: F401
 import app.staging.models  # noqa: F401
+# Register the identity-decision table for migration discovery.
+import app.staging.identity_decision  # noqa: F401
 from app.db.base import Base
 from migration_settings import MigrationSettings
 from app.db.staging_base import StagingBase
