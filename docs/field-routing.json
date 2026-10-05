@@ -1,0 +1,4089 @@
+{
+  "schema_version": "1.0",
+  "batch_id": "BATCH-RAW-001",
+  "status": "DRAFT",
+  "files": [
+    {
+      "filename": "_demotions_enacted.csv",
+      "fields": [
+        {
+          "source_column": "officer_nic_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "punishment_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "floor_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "punishment_id",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        }
+      ]
+    },
+    {
+      "filename": "bad_conduct_register.csv",
+      "fields": [
+        {
+          "source_column": "punishment_id",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "officer_nic_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "originating_complaint_id",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "detection_source",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "date_of_offence",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "charge_sheet_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "charge_sheet_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "offence_code",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "nature_of_offence",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "offence_severity",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "plea",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "inquiry_type",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "inquiry_officer_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "finding",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "punishment_imposed",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "date_of_punishment",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "punishment_notice_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "recovery_amount_rs",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "promotion_bar_until",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "interdiction_start",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "interdiction_end",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "reduction_in_rank_enacted",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "hardship_transfer_enacted",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "hardship_transfer_id",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "appeal_filed",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "appeal_authority",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "appeal_outcome",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "appeal_decision_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "legal_status",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "approving_authority",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "delegation_instrument",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        }
+      ]
+    },
+    {
+      "filename": "court_details.csv",
+      "fields": [
+        {
+          "source_column": "court_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "operation_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "complaint_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "court_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "court_type",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "court_town",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "court_province",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "case_instituted_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "crime_type_code",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "crime_type_label",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "is_major",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "appearances_to_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "case_status",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "case_outcome",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "outcome_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "participate_officers_details",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        }
+      ]
+    },
+    {
+      "filename": "good_conduct_register.csv",
+      "fields": [
+        {
+          "source_column": "good_conduct_id",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "operation_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "officer_nic_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "event_type",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "event_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "reference_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "reason",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "approving_authority",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "approving_order_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "approving_order_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "reward_voucher_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "voucher_station_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "voucher_application_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "reward_basis",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "court_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "property_value_stolen",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "property_value_recovered",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "accused_arrested",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "accused_convicted",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "date_of_conviction",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "amount_recommended_rs",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "amount_sanctioned_rs",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "amount_paid_rs",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "non_payment_reason",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "recommending_asp_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "recommending_asp_nic",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "sanctioning_tier",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "sanctioning_authority_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "sanctioning_authority_nic",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "sanction_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "payment_certified_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "co_recipient_count",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "private_informant_paid_rs",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        }
+      ]
+    },
+    {
+      "filename": "officer_duty_periods.csv",
+      "fields": [
+        {
+          "source_column": "period_id",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "officer_nic_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "date_of_entry",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "period_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "period_station_code",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "period_station_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "period_station_division",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "period_station_province",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "in_what_capacity_employed",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "period_from",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "period_to",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "period_recorded_by_authority_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "period_recorded_by_authority_nic",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_unit_type",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_station_code",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_division",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_province",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        }
+      ]
+    },
+    {
+      "filename": "officer_education.csv",
+      "fields": [
+        {
+          "source_column": "officer_nic_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "ol_school_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "ol_year",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "ol_index",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "ol_subject",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "ol_grades",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "al_school_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "al_year",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "al_index",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "al_stream",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "al_subject",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "al_grades",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "other_qualifications",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "uni_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "uni_degree_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "uni_degree_year",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "uni_index",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "uni_class",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "uni_gpa",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        }
+      ]
+    },
+    {
+      "filename": "officer_family_details.csv",
+      "fields": [
+        {
+          "source_column": "officer_nic_no",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.source_assertion",
+          "target_field": "officer_uid",
+          "transformation_rule": "Resolve NIC through protected identity lookup; never store NIC as officer_uid.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "spouse_name",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_family_relation",
+          "target_field": "related_person_name",
+          "transformation_rule": "Create a supported SPOUSE relationship; preserve supplied spelling.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "spouse_sex",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_family_relation",
+          "target_field": "related_person_gender_code",
+          "transformation_rule": "Map documented vocabulary and link to the supported spouse record.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "spouse_date_of_birth",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_family_relation",
+          "target_field": "related_person_date_of_birth",
+          "transformation_rule": "Parse documented date format; link to the supported spouse record.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "spouse_place_of_birth",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_family_relation",
+          "target_field": "related_person_place_of_birth",
+          "transformation_rule": "Preserve supplied birthplace and link to the supported spouse record.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "date_of_marriage",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_family_civil_event_version",
+          "target_field": "event_date",
+          "transformation_rule": "Create a MARRIAGE event with supported participant linkage.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "reference_Marriage_certificate",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_family_civil_event_version",
+          "target_field": "evidence_reference_ciphertext",
+          "transformation_rule": "Encrypt certificate reference for the supported MARRIAGE event.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "date_of_divorce",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_family_civil_event_version",
+          "target_field": "event_date",
+          "transformation_rule": "Create a DIVORCE event only with supported participant linkage.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "reference_divorce_certificate",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_family_civil_event_version",
+          "target_field": "evidence_reference_ciphertext",
+          "transformation_rule": "Encrypt certificate reference for the supported DIVORCE event.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "date_of_death",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.source_assertion",
+          "target_field": "asserted_value_ciphertext",
+          "transformation_rule": "Retain encrypted source claim; do not create a DEATH event until the deceased person is identified.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "reference_death_certificate",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.source_assertion",
+          "target_field": "asserted_value_ciphertext",
+          "transformation_rule": "Retain encrypted reference alongside the death claim; do not infer the deceased person.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "children_no",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.source_assertion",
+          "target_field": "asserted_value_ciphertext",
+          "transformation_rule": "Preserve reported child count; compare with parsed relationships only when lists are complete.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "childern_fullname",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_family_relation",
+          "target_field": "related_person_name",
+          "transformation_rule": "Parse using a documented multi-value format; create separate CHILD chains only when supported.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "children_age",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.source_assertion",
+          "target_field": "asserted_value_ciphertext",
+          "transformation_rule": "Preserve reported ages; do not infer birth dates or guess name-to-age pairing.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "next_of_near_relative_name",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_next_of_kin_version",
+          "target_field": "related_person_name",
+          "transformation_rule": "Preserve supplied name; link to a family record only when evidence supports it.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "next_of_relative_relationship",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_next_of_kin_version",
+          "target_field": "relationship_type",
+          "transformation_rule": "Map the documented relationship vocabulary; do not guess.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "next_of_relative_address",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_next_of_kin_version",
+          "target_field": "address_ciphertext",
+          "transformation_rule": "Encrypt address with record-specific context and key-version metadata.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "datails_entry_date",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.source_assertion",
+          "target_field": "source_recorded_at",
+          "transformation_rule": "Preserve source entry date; date-only values must not imply an evidenced exact time.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "recorded_by_signature",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.source_attestation",
+          "target_field": "signature_reference_ciphertext",
+          "transformation_rule": "Encrypt supplied signature reference; a reference does not prove signature authenticity.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "recorded_by_officer_name",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.source_attestation",
+          "target_field": "actor_name_ciphertext",
+          "transformation_rule": "Encrypt represented recorder name; name alone cannot establish officer identity.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "recorded_by_officer_nic",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.source_attestation",
+          "target_field": "actor_identifier_ciphertext",
+          "transformation_rule": "Encrypt recorder NIC; create keyed lookup and actor UID only with supported resolution.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "Certified_signed_date",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.source_attestation",
+          "target_field": "attested_on",
+          "transformation_rule": "Create a separate certification attestation; do not assign this date to the recording attestation.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "recorded_by_officer_rank",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.source_attestation",
+          "target_field": "actor_rank_asserted",
+          "transformation_rule": "Preserve recorder's asserted rank; historical authority verification remains separate.",
+          "validation_rule": "Validate target types, lengths and vocabularies; preserve missing values; flag invalid dates, unresolved identities and ambiguous participant or list associations. Retain original evidence.",
+          "review_status": "SPECIFIED"
+        }
+      ]
+    },
+    {
+      "filename": "officer_firearms_expertise.csv",
+      "fields": [
+        {
+          "source_column": "officer_nic_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "gun_record_id",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "gun_performance_year",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "gun_performance_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "gun_performance_station_code",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "gun_performance_station_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "gun_performance_division",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "gun_performance_province",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "h1_weapons_fired",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "h1_weapon_names",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "h1_weapon_rating",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "h1_total_points",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "h1_practice_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "h1_supervisor_nic",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "h1_supervisor_police_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "h1_supervisor_police_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "h1_supervisor_police_signature",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "h2_weapons_fired",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "h2_weapon_names",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "h2_weapon_rating",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "h2_total_points",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "h2_practice_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "h2_supervisor_nic",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "h2_supervisor_police_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "h2_supervisor_police_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "h2_supervisor_police_signature",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "year_total_points",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "year_rating",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "max_possible_points",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "score_percentage",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "class_of_shoot",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "annual_supervisor_nic",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "annual_supervisor_police_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "annual_supervisor_police_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "annual_supervisor_police_signature",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "record_status",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_unit_type",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_station_code",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_division",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_province",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        }
+      ]
+    },
+    {
+      "filename": "officer_personal_information.csv",
+      "fields": [
+        {
+          "source_column": "officer_nic_no",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_identifier_version",
+          "target_field": "identifier_value_ciphertext",
+          "transformation_rule": "Resolve identity; normalize NIC; encrypt; create keyed lookup; type NIC.",
+          "validation_rule": "Validate documented NIC formats; flag ambiguous identity matches.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "police_id",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_identifier_version",
+          "target_field": "identifier_value_ciphertext",
+          "transformation_rule": "Preserve as source identifier; encrypt; keyed lookup; type POLICE_ID.",
+          "validation_rule": "Validate source-specific identifier rules; do not infer identity.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "regimental_no",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_identifier_version",
+          "target_field": "identifier_value_ciphertext",
+          "transformation_rule": "Encrypt; keyed lookup; type REGIMENTAL_NUMBER.",
+          "validation_rule": "Validate documented format and supported officer linkage.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "full_name",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_name_version",
+          "target_field": "full_name",
+          "transformation_rule": "Preserve source spelling in a versioned name record.",
+          "validation_rule": "Reject blank supplied names; validate length; do not match by name alone.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "name_with_initials",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_name_version",
+          "target_field": "name_with_initials",
+          "transformation_rule": "Preserve supplied value; do not invent initials.",
+          "validation_rule": "Validate length; preserve missing values.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "father_name",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_family_relation",
+          "target_field": "related_person_name",
+          "transformation_rule": "Create supported family relation with relationship_type FATHER.",
+          "validation_rule": "Require nonblank supplied name; do not create a police identity for father.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "gender",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_demographic_version",
+          "target_field": "gender_code",
+          "transformation_rule": "Map using a versioned vocabulary; preserve original assertion.",
+          "validation_rule": "Flag unmapped values; do not guess.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "date_of_birth",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_demographic_version",
+          "target_field": "date_of_birth",
+          "transformation_rule": "Parse documented date format; preserve unknown dates.",
+          "validation_rule": "Reject invalid dates; flag dates after the documented snapshot date.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "age",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.source_assertion",
+          "target_field": "asserted_value_ciphertext",
+          "transformation_rule": "Retain reported age in encrypted assertion; calculate age separately.",
+          "validation_rule": "Validate reported numeric value; compare only with sufficient date evidence.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "place_of_birth",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_demographic_version",
+          "target_field": "place_of_birth",
+          "transformation_rule": "Preserve supplied birthplace.",
+          "validation_rule": "Validate length; preserve missing values.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "nationality",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_demographic_version",
+          "target_field": "nationality_code",
+          "transformation_rule": "Map using versioned nationality vocabulary.",
+          "validation_rule": "Flag unmapped values; retain original assertion.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "religion",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_demographic_version",
+          "target_field": "religion_code",
+          "transformation_rule": "Map using versioned vocabulary; restrict access.",
+          "validation_rule": "Flag unmapped values; do not infer missing information.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "present_address",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_address_version",
+          "target_field": "address_text",
+          "transformation_rule": "Create address version with address_type PRESENT.",
+          "validation_rule": "Validate length; do not invent effective dates.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "present_address_local_police_station_name",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_address_version",
+          "target_field": "local_station_reference",
+          "transformation_rule": "Resolve to stable station reference using reference data.",
+          "validation_rule": "Flag unknown or ambiguous station matches.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "height_cm",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_physical_profile_version",
+          "target_field": "height_cm",
+          "transformation_rule": "Parse decimal centimetres; preserve measurement date as unknown if absent.",
+          "validation_rule": "Validate numeric type and database constraints; flag implausible values.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "chest_cm",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_physical_profile_version",
+          "target_field": "chest_cm",
+          "transformation_rule": "Parse decimal centimetres; do not invent measurement date.",
+          "validation_rule": "Validate numeric type and database constraints; flag implausible values.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "blood_group",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_restricted_profile_version",
+          "target_field": "blood_group_code",
+          "transformation_rule": "Map documented blood-group vocabulary; restrict access.",
+          "validation_rule": "Flag unknown values; never infer blood group.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "identifying_marks",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_restricted_profile_version",
+          "target_field": "identifying_marks_ciphertext",
+          "transformation_rule": "Encrypt supplied description with record-specific context.",
+          "validation_rule": "Validate supplied text before encryption; preserve missing values.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "mo_remark",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_restricted_profile_version",
+          "target_field": "medical_officer_remark_ciphertext",
+          "transformation_rule": "Encrypt supplied remark; apply restricted access.",
+          "validation_rule": "Validate supplied text; do not infer medical conclusions.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "marital_status",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_demographic_version",
+          "target_field": "marital_status_code",
+          "transformation_rule": "Map versioned vocabulary; preserve source assertion.",
+          "validation_rule": "Flag unmapped values; do not invent validity dates.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "prev_employment_dept",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_previous_employment_version",
+          "target_field": "employer_department_name",
+          "transformation_rule": "Preserve supplied department in a separate employment chain.",
+          "validation_rule": "Validate length; unknown employment dates remain unknown.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "officer_email",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_contact_version",
+          "target_field": "contact_value_ciphertext",
+          "transformation_rule": "Validate then encrypt; type EMAIL; keyed lookup uses documented normalization.",
+          "validation_rule": "Validate email syntax; do not assume entire address is case-insensitive.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "officer_mobile_number",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_contact_version",
+          "target_field": "contact_value_ciphertext",
+          "transformation_rule": "Validate then encrypt; type MOBILE; preserve original assertion.",
+          "validation_rule": "Normalize with explicit country context; do not guess missing country.",
+          "review_status": "SPECIFIED"
+        },
+        {
+          "source_column": "officer_tin_number",
+          "preserve_in_protected_staging": true,
+          "destination": "postgresql.identity.officer_identifier_version",
+          "target_field": "identifier_value_ciphertext",
+          "transformation_rule": "Encrypt; keyed lookup; type TIN.",
+          "validation_rule": "Validate documented format; preserve leading zeros.",
+          "review_status": "SPECIFIED"
+        }
+      ]
+    },
+    {
+      "filename": "officer_police_numbers.csv",
+      "fields": [
+        {
+          "source_column": "police_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "officer_nic_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "number_type",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "rank_band",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "rank_band_label",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "valid_from",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "valid_to",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "issued_under",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "issue_reason",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        }
+      ]
+    },
+    {
+      "filename": "officer_restrictions.csv",
+      "fields": [
+        {
+          "source_column": "restriction_id",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "officer_nic_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restriction_category",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restriction_basis",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restriction_effect",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restriction_scope",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restricted_station_code",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restricted_station_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restricted_division",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restricted_district",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restricted_province",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restriction_reason",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "reference_paper_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restriction_start_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restriction_record_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restriction_recorded_officer_nic",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restriction_recorded_officer_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restriction_removal_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restriction_removal_record_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restriction_removed_officer_nic",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restriction_removed_officer_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restriction_status",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restriction_verifiable",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "override_recorded",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        }
+      ]
+    },
+    {
+      "filename": "officer_service_information.csv",
+      "fields": [
+        {
+          "source_column": "service_id",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "officer_nic_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "date_of_enlistment",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "daily_paid_commencement_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "pensionable_post_appointment_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "pensionable_post_confirmation_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "entry_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "recruitment_batch",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "entry_police_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_police_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "enrollment_type",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "first_posted_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "first_posted_police_station_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "first_posted_police_station_code",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "first_posted_Police_Station_division",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "first_posted_Police_Station_province",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "entry_unit_type",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "entry_unit_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_rank_category",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_unit_type",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_unit_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_unit_location",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_posted_to_unit_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_station",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_station_code",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_division",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_province",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "retirement_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "service_years",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "time_left",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "service_status",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        }
+      ]
+    },
+    {
+      "filename": "operations.csv",
+      "fields": [
+        {
+          "source_column": "operation_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "complaint_number",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "operation_type",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "crime_type_code",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "crime_type_label",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "is_major",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "risk_level",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "operation_handle_station_code",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "operation_handle_station_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "operation_handle_division",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "operation_handle_province",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "operation_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "operation_start_time",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "offence_description",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "operation_end_time",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "duration_minutes",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "location_description",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "commanding_officer_nic_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "commanding_officer_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "investigating_officers_nic_numbers",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "investigating_officers_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "field_team_size",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "supporting_unit",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "no_suspects_arrested",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "items_seized",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "seizure_value_lkr",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "weapons_recovered",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "resistance_encountered",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "officers_injured",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "operation_outcome",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "commendation_recommended",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "report_reference",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        }
+      ]
+    },
+    {
+      "filename": "promotion_history.csv",
+      "fields": [
+        {
+          "source_column": "promotion_id",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "officer_nic_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "from_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "to_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "is_same_unit",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "from_unit_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "to_unit_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "effective_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "new_unit_arrive_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "current_unit_departure_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "promotion_category",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "promotion_reason",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "regimental_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "previous_police_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "new_police_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "promotion_order_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "promotion_order_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "promotion_authority",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "promotion_authority_signed_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "RTM_CRTM",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "years_in_previous_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        }
+      ]
+    },
+    {
+      "filename": "public_complaints.csv",
+      "fields": [
+        {
+          "source_column": "complaint_id",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "intake_channel",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "date_received",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "receiving_office",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "complaint_mode",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "is_anonymous",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "complainant_id",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "complainant_district",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "complainant_type",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "complainant_gender",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "officer_nic_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "officer_nic_as_recorded",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "officer_rank_at_complaint",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "station_code",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "division",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "province",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "officers_named_count",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "allegation_code",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "allegation_category",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "allegation_description",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "incident_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "incident_place",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "linked_case_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "npc_reference_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "npc_received_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "referred_to",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "referral_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "investigating_officer_nic",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "investigating_officer_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "unit_senior_questioned_nic",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "unit_senior_questioned_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "officer_questioned",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "investigation_start_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "investigation_end_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "npc_decision",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "npc_decision_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "internal_decision",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "npc_directive",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "npc_directive_complied",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "compliance_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "complainant_informed_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "complainant_appeal_filed",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "linked_punishment_id",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "linked_transfer_id",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "linked_court_case_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "linked_hrc_reference",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "reduction_in_rank_directed",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "outcome_class",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "complaint_status",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "days_to_npc",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "days_to_decision",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "days_to_compliance",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "is_time_barred",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "escalated_to_court",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        }
+      ]
+    },
+    {
+      "filename": "restriction_overrides.csv",
+      "fields": [
+        {
+          "source_column": "override_id",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "restriction_id",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "officer_nic_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "transfer_id",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "override_reference",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "override_ground",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "override_reason",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "override_authority_nic",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "override_authority_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "override_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        }
+      ]
+    },
+    {
+      "filename": "sri_lanka_police_stations_sinhala.csv",
+      "fields": [
+        {
+          "source_column": "Province ",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "Division",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "Police Station (පොලිස් ස්ථානය)",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "Latitude",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "Longitude",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        }
+      ]
+    },
+    {
+      "filename": "station_master.csv",
+      "fields": [
+        {
+          "source_column": "station_code",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "station_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "station_name_si",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "town",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "division",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "district",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "province",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "province_of_district",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "province_matches_district",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "district_source",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "district_confidence",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "latitude",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "longitude",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        }
+      ]
+    },
+    {
+      "filename": "transfer_history.csv",
+      "fields": [
+        {
+          "source_column": "transfer_id",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "officer_nic_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "police_id_at_transfer",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "previous_police_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "new_police_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "from_station_code",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "from_station_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "from_unit_type",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "from_unit_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "from_division",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "from_province",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "from_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "to_station_code",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "to_station_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "to_unit_type",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "to_unit_name",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "to_division",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "to_province",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "to_rank",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "departure_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "effective_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "arrival_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "transfer_type",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "transfer_authority",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "transfer_order_no",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "transfer_signed_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "transfer_reason",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "transfer_reason_category",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "transfer_requested_by",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "originating_complaint_id",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "is_same_unit",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "days_in_previous_posting",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "is_cancelled",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "cancellation_ref",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        },
+        {
+          "source_column": "cancellation_date",
+          "preserve_in_protected_staging": true,
+          "destination": null,
+          "target_field": null,
+          "transformation_rule": null,
+          "validation_rule": null,
+          "review_status": "NEEDS_REVIEW"
+        }
+      ]
+    }
+  ]
+}
