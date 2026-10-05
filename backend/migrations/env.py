@@ -4,8 +4,12 @@ from alembic import context
 from sqlalchemy import URL, create_engine, pool
 
 import app.models  # noqa: F401
+import app.staging.models  # noqa: F401
 from app.db.base import Base
 from migration_settings import MigrationSettings
+from app.db.staging_base import StagingBase
+# Register staging tables in StagingBase.metadata before migration comparison.
+
 
 
 config = context.config
@@ -13,7 +17,8 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-target_metadata = Base.metadata
+# Manage identity and staging through their separate metadata collections.
+target_metadata = [Base.metadata, StagingBase.metadata]
 
 
 def get_migration_url() -> URL:
@@ -48,10 +53,10 @@ def include_object(
     reflected,
     compare_to,
 ) -> bool:
-    """Restrict generated migrations to the identity schema."""
+    """Limit migration comparisons to the two managed schemas."""
 
     if type_ == "table":
-        return object_.schema == "identity"
+        return object_.schema in {"identity", "staging"}
 
     return True
 
