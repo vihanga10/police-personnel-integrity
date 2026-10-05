@@ -7,6 +7,7 @@ import io
 import json
 import shutil
 import tempfile
+import subprocess
 from pathlib import Path
 from uuid import UUID
 from zipfile import ZipFile
@@ -19,6 +20,7 @@ from app.intake.staging_store import stage_file
 from app.security.identity_crypto import IdentityCrypto
 from database import create_identity_engine
 from settings import Settings
+from app.intake.attempt_journal import AttemptJournal
 
 
 def require(condition: bool, message: str) -> None:
@@ -49,7 +51,7 @@ def csv_rows(bundle, member, encoding, delimiter):
             yield from reader
 
 
-def run(args):
+def run(args, journal=None):
     """Validate all files before optionally importing selected files."""
     inventory, inventory_hash = read_json(args.inventory)
     receipt, receipt_hash = read_json(args.receipt)
@@ -228,6 +230,12 @@ def run(args):
                         continue
 
                     record = records[item.filename]
+                                        # Persist intent before starting the file transaction.
+                    if journal is not None:
+                        journal.record(
+                            "FILE_STARTED",
+                            filename=item.filename,
+                        )
                     print("Processing:", item.filename, flush=True)
                     result = stage_file(
                         engine,
@@ -250,6 +258,14 @@ def run(args):
                             record["delimiter"],
                         ),
                     )
+                                        # stage_file returns only after its transaction commits.
+                    if journal is not None:
+                        journal.record(
+                            "FILE_COMPLETED",
+                            filename=item.filename,
+                            row_count=result.row_count,
+                            outcome=result.outcome,
+                        )
                     # This message appears only after the file transaction commits.
                     print(
                         f"{result.outcome}: {item.filename} | "
@@ -260,6 +276,27 @@ def run(args):
                 print("Selected-file staging completed:", len(selected))
             finally:
                 engine.dispose()
+
+def run_logged(args, *, code_revision):
+    """Record the attempt lifecycle and stop if progress cannot be persisted."""
+    journal = AttemptJournal(
+        args.attempt_root,
+        batch_id=args.batch_id,
+        expected_archive_sha256=args.expected_sha256,
+        write_enabled=args.write,
+        code_revision=code_revision,
+    )
+    print("Attempt ID:", journal.attempt_id, flush=True)
+    print("Attempt directory:", journal.directory, flush=True)
+
+    try:
+        run(args, journal=journal)
+        journal.record("COMPLETED")
+    except Exception as exc:
+        # A failed journal cannot reliably accept another event.
+        if not journal.broken and not journal.finished:
+            journal.record("FAILED", error_type=type(exc).__name__)
+        raise
 
 
 def main():
@@ -274,10 +311,37 @@ def main():
     parser.add_argument("--key-file", type=Path, required=True)
     parser.add_argument("--only-file", action="append")
     parser.add_argument("--write", action="store_true")
+        # Keep attempt records in a protected directory outside the repository.
+    parser.add_argument("--attempt-root", type=Path, required=True)
     args = parser.parse_args()
 
     try:
-        run(args)
+                # Identify the committed implementation used for this attempt.
+        repo = Path(__file__).resolve().parents[3]
+        revision = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            cwd=repo,
+            text=True,
+        ).strip()
+        pending = subprocess.check_output(
+            ["git", "status", "--porcelain"],
+            cwd=repo,
+            text=True,
+        ).strip()
+        require(
+            not pending,
+            "Commit pending changes before running the recorded command.",
+        )
+
+        # Reject attempt storage inside the source repository.
+        attempt_root = args.attempt_root.resolve()
+        require(
+            not attempt_root.is_relative_to(repo),
+            "Attempt records must be outside the source repository.",
+        )
+        args.attempt_root = attempt_root
+
+        run_logged(args, code_revision=revision)
     except Exception as exc:
         # Avoid printing database parameters, source values or raw exception text.
         print(f"Intake stopped ({type(exc).__name__}).")

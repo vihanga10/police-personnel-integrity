@@ -180,3 +180,61 @@ def test_changed_inventory_blocks_write_mode(package_factory):
 
     with pytest.raises(ValueError, match="Inventory differs"):
         register_batch.run(args)
+
+def test_logged_validation_saves_terminal_event(
+    package_factory, tmp_path
+):
+    """A successful validation-only run leaves a complete attempt history."""
+    args = package_factory()
+    args.attempt_root = tmp_path / "attempts"
+
+    register_batch.run_logged(args, code_revision="b" * 40)
+
+    paths = sorted(args.attempt_root.glob("*/*.json"))
+    events = [
+        json.loads(path.read_text(encoding="utf-8")) for path in paths
+    ]
+    assert [event["event"] for event in events] == ["STARTED", "COMPLETED"]
+    assert all(event["write_enabled"] is False for event in events)
+
+
+def test_logged_preflight_failure_is_recorded(
+    package_factory, tmp_path
+):
+    """A failed preflight leaves a failure event without database access."""
+    args = package_factory()
+    args.attempt_root = tmp_path / "attempts"
+    args.write = True
+
+    with args.archive.open("ab") as stream:
+        stream.write(b"changed")
+
+    with pytest.raises(IntegrityError):
+        register_batch.run_logged(args, code_revision="b" * 40)
+
+    paths = sorted(args.attempt_root.glob("*/*.json"))
+    events = [
+        json.loads(path.read_text(encoding="utf-8")) for path in paths
+    ]
+    assert [event["event"] for event in events] == ["STARTED", "FAILED"]
+    assert events[-1]["error_type"] == "IntegrityError"
+
+
+def test_journal_start_failure_prevents_processing(
+    package_factory, tmp_path, monkeypatch
+):
+    """No intake processing may begin when STARTED cannot be persisted."""
+    args = package_factory()
+    args.attempt_root = tmp_path / "attempts"
+
+    def fail_journal(*args, **kwargs):
+        raise OSError("Simulated journal storage failure")
+
+    def forbidden_run(*args, **kwargs):
+        pytest.fail("Processing started without a persistent attempt record.")
+
+    monkeypatch.setattr(register_batch, "AttemptJournal", fail_journal)
+    monkeypatch.setattr(register_batch, "run", forbidden_run)
+
+    with pytest.raises(OSError):
+        register_batch.run_logged(args, code_revision="b" * 40)
