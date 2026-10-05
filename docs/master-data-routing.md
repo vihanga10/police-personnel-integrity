@@ -79,6 +79,7 @@ Example:
 
 ```text
 8a4fe720-806f-4dca-a410-29cf469b92c1
+```
 
 ## 4. Personal-information field routing
 
@@ -151,7 +152,7 @@ cannot be matched reliably, preserve the raw values and create a validation issu
 | Registered file | Storage | Collection |
 |---|---|---|
 | `promotion_history.csv` | MongoDB | `promotion_events` |
-| `demotion_history.csv` | MongoDB | `demotion_events` |
+| `_demotions_enacted.csv` | MongoDB | `demotion_events` |
 | `transfer_history.csv` | MongoDB | `transfer_events` |
 | `officer_service_information.csv` | MongoDB | `service_status_events` |
 | `officer_police_numbers.csv` | MongoDB | `police_number_intervals` |
