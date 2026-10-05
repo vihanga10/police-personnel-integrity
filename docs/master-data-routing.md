@@ -291,3 +291,118 @@ The routing contract is complete when:
 - SQL master data and MongoDB operational data are not duplicated without a
   documented reason.
 - Personal information is excluded from blockchain payloads.
+
+## 15. Audit-system boundary
+
+This system receives and audits personnel evidence from existing sources.
+It does not create or approve official police promotions, transfers or
+other personnel actions.
+
+Authorized users import evidence, run audits and review findings.
+A prototype correction creates a traceable evidence version; it does not
+automatically update an official source system.
+
+## 16. Sensitive fields inside operational files
+
+An operational CSV may contain officer NICs, names, contact details,
+signatures or sensitive narrative information.
+
+- Preserve the complete received row in protected staging.
+- Resolve officer identifiers inside the protected intake boundary.
+- Use opaque officer references in normalized operational documents.
+- Keep unresolved identifier evidence protected and flag it for review.
+- Do not copy readable officer NICs, names or signatures into operational
+  documents.
+- Protect restricted narratives separately with appropriate encryption
+  and access permissions.
+- Do not treat complainants or other external persons as police officers.
+
+Operational documents retain references to their supporting evidence.
+SQL identity assertions hold identity evidence; operational assertions
+require their own operational provenance representation.
+
+## 17. Records involving multiple officers
+
+Operations and court records may involve multiple officers.
+
+- Store the operation or court record once.
+- Create participant links to the relevant officer_uid values.
+- Preserve the participant's represented role and supporting evidence.
+- Use documented parsing rules for multi-value cells.
+- If identities, roles or list positions cannot be matched reliably,
+  record a validation issue rather than guessing.
+- Unresolved participants must remain visible to authorized auditors.
+
+A shared event may support commitments for several officers without
+duplicating the underlying event.
+
+## 18. Historical and calculated values
+
+Current rank, station, unit and police-number fields are snapshot claims.
+They do not establish the officer's state at an earlier date.
+
+- Preserve source effective dates and source-recording dates separately.
+- Use a documented snapshot date when supplied.
+- Keep the snapshot date unknown when it is not supplied.
+- Do not substitute import time for an unknown effective date.
+- Preserve reported age, duration and elapsed-day values as source claims.
+- Store or return backend calculations separately with their calculation
+  date and rule version.
+- Do not infer missing event history from a current snapshot alone.
+
+Transaction-time intervals use [start, end): the start is included and
+the end is excluded. Valid-time boundary rules must be documented for
+each dataset before temporal reconstruction is implemented.
+
+A missing valid end date must distinguish an explicitly open interval
+from an unknown end. It must not automatically mean "continues forever".
+
+## 19. Category coverage
+
+Each officer checkpoint records a coverage state for every defined category:
+
+| State | Meaning |
+|---|---|
+| PRESENT | The snapshot includes evidence records for this category. |
+| NONE_CONFIRMED | Supporting evidence explicitly confirms no applicable records within the declared scope. |
+| NOT_SUPPLIED | No category evidence was supplied for the declared scope. |
+| UNRESOLVED | Coverage cannot be established because evidence or linkage remains unresolved. |
+
+Coverage includes its scope, record count and evidence references.
+
+An empty collection alone does not establish NONE_CONFIRMED.
+Coverage describes the committed snapshot; it does not prove that all
+real-world records were supplied.
+
+## 20. Individual officer-root publication
+
+Each officer checkpoint has one protected root committing to the
+defined data, provenance, audit and coverage components.
+
+- Store each officer checkpoint root on the private blockchain.
+- Publish that same officer checkpoint root on the public blockchain.
+- Publish individual roots for every officer included in the checkpoint
+  set; an aggregate root does not replace this requirement.
+- Use a separate pseudonymous publication reference instead of NIC,
+  name or raw officer_uid.
+- Retain previous checkpoints and their previous-root links.
+- Track the private checkpoint reference, public transaction reference,
+  confirmation state and retry state.
+- Batch submission may reduce transaction overhead while retaining
+  every individual officer-root entry.
+- A new finding can change the audit component without changing data.
+- An evidence-backed correction creates new record versions and roots.
+
+Both-chain equality verifies the committed root. It does not prove
+that personnel information or an algorithm decision is factually true.
+
+## 21. Header normalization
+
+The header inventory preserves exact received column names.
+
+For example, the Sinhala station header "Province " maps to the
+normalized field province.
+
+Normalization must be explicit and versioned. Reject ambiguous mappings,
+including distinct received headers that map to the same target field.
+Never change the original CSV to normalize its headers.
