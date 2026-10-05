@@ -61,3 +61,34 @@ Each script ended with `ROLLBACK`, leaving no test records.
 - Implement findings, authorized review and evidence-backed corrections.
 - Build APIs and frontend workflows.
 - Run research evaluations and document measured limitations.
+
+## Controlled intake and protected staging — 2026-10-05
+
+Batch: `BATCH-RAW-001`
+
+### Verified results
+
+- Archive integrity and CSV structure checks passed for 19 files.
+- All 443 registered fields have draft routing instructions.
+- 167,865 source records were committed to encrypted PostgreSQL staging.
+- Database file metadata, per-file counts and row numbering matched the manifest.
+- The full-batch attempt contained 40 events with matching file outcomes.
+- Attempt ID: `313d7d4e-10a0-48ba-8973-ecb0fe5ce067`.
+- Reimporting the eight-row demotion file returned VERIFIED_EXISTING.
+- Backup keys successfully decrypted the eight committed demotion rows.
+- The latest reported automated suite passed 63 tests, including
+  PostgreSQL integration tests.
+
+### Scope and remaining work
+
+These results establish the tested intake, staging and recovery behaviours.
+They do not establish source authenticity, personnel-claim accuracy,
+authority validity or full research-system completion.
+
+Remaining work includes:
+- Whole-batch repeat-import and concurrent-import verification.
+- Recovery using storage separate from the laptop.
+- Resolution of ambiguous source-field semantics.
+- Identity resolution and normalized identity/operational imports.
+- Historical reconstruction, authority checks, contradiction detection,
+  blockchain publication and end-user workflows.
