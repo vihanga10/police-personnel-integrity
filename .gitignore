@@ -61,3 +61,6 @@ logs/
 !/backend/.env.migration.example
 
 /backend/.secrets/
+
+# Track repeatable PostgreSQL verification scripts.
+!/database/postgresql/tests/*.sql
