@@ -8,11 +8,12 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     String,
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -43,12 +44,12 @@ class SourceAssertion(Base):
             name="source_assertion_valid_sha256",
         ),
         CheckConstraint(
-            "jsonb_typeof(asserted_value) = 'object'",
-            name="source_assertion_value_object",
+            "octet_length(asserted_value_ciphertext) > 0",
+            name="source_assertion_has_ciphertext",
         ),
         CheckConstraint(
-            "asserted_value <> '{}'::jsonb",
-            name="source_assertion_value_not_empty",
+            "length(trim(encryption_key_version)) > 0",
+            name="source_assertion_encryption_key_version",
         ),
         CheckConstraint(
             """
@@ -113,9 +114,13 @@ class SourceAssertion(Base):
         String(50),
         nullable=False,
     )
-    asserted_value: Mapped[dict[str, object]] = mapped_column(
-        JSONB,
-        nullable=False,
+    asserted_value_ciphertext: Mapped[bytes] = mapped_column(
+    LargeBinary,
+    nullable=False,
+    )
+    encryption_key_version: Mapped[str] = mapped_column(
+    String(50),
+    nullable=False,
     )
 
     source_record_id: Mapped[str | None] = mapped_column(

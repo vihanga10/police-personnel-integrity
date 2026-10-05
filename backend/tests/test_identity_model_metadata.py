@@ -142,26 +142,37 @@ def test_source_assertion_has_required_provenance_fields() -> None:
     assert required_columns.issubset(columns)
 
 
-def test_source_assertion_has_checksum_constraints() -> None:
+def test_source_assertion_has_protected_payload_and_constraints() -> None:
+    table = SourceAssertion.__table__
+
+    assert "asserted_value" not in table.c
+    assert "asserted_value_ciphertext" in table.c
+    assert "encryption_key_version" in table.c
+
+    assert table.c.asserted_value_ciphertext.nullable is False
+    assert table.c.encryption_key_version.nullable is False
+
     constraint_names = {
         constraint.name
-        for constraint in SourceAssertion.__table__.constraints
+        for constraint in table.constraints
         if constraint.name is not None
     }
 
-    assert any(
-        name.endswith("source_assertion_valid_sha256")
-        for name in constraint_names
-    )
-    assert any(
+    required_suffixes = {
+        "source_assertion_valid_sha256",
+        "source_assertion_has_ciphertext",
+        "source_assertion_encryption_key_version",
+        "source_assertion_provenance_ids",
+    }
+
+    for suffix in required_suffixes:
+        assert any(
+            name.endswith(suffix)
+            for name in constraint_names
+        ), suffix
+
+    assert not any(
         name.endswith("source_assertion_value_object")
-        for name in constraint_names
-    )
-    assert any(
-        name.endswith("source_assertion_value_not_empty")
-        for name in constraint_names
-    )
-    assert any(
-        name.endswith("source_assertion_provenance_ids")
+        or name.endswith("source_assertion_value_not_empty")
         for name in constraint_names
     )
