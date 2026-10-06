@@ -92,3 +92,28 @@ Remaining work includes:
 - Identity resolution and normalized identity/operational imports.
 - Historical reconstruction, authority checks, contradiction detection,
   blockchain publication and end-user workflows.
+
+## PF identity registration pilot — 2026-10-06
+
+- Backend revision: `ccf5266be03c2b9cf025dbce9e83d305886c8a53`.
+- Batch: `BATCH-RAW-001`.
+- Input: first data row of `officer_personal_information.csv`.
+- Reported supplying source: `PF_REGISTRY`.
+- Attempt: `6c8585d7-5685-4ed5-8114-d6914890b4f0`.
+- First registration outcome: `CREATED`.
+- Reason: `PF_PROFILE_WITH_NO_EXISTING_CANDIDATE`.
+- Committed pilot records: 1 officer, 4 source assertions,
+  4 identifiers and 1 registration decision.
+- Retry using protected backup keys: `VERIFIED_EXISTING`.
+- Retry duplicate check: passed.
+- Protected attempt evidence is retained outside the repository.
+- Personnel values were not displayed.
+
+Before the pilot, all 146 tests passed, including 14 registration-service
+integration tests. These service tests require an empty identity registry;
+subsequent runs need an isolated test database.
+
+Remaining verification includes successful concurrent commits in an isolated
+test database. Lock contention and transaction rollback have been tested.
+Full-batch identity registration has not yet run. Source independence and
+source truth remain unverified.
