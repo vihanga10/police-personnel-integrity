@@ -53,21 +53,17 @@ represent an officially approved Sri Lanka Police policy.
 
 ## 5. Access rules
 
-- Deny access unless a rule explicitly allows it.
-- Evaluate authorization in the backend for every request.
-- IGP: permitted restricted access under the configured application role.
-- SDIG: eligible for restricted access, but the national-versus-assigned
-  scope decision remains unresolved. Do not implement a blanket national
-  grant until this decision is recorded.
-- HQ Admin: ordinary administrative access; restricted CID/CCIB access
-  requires a valid, scoped IGP approval.
-- Station OIC: permitted ordinary information for the assigned station;
-  no access to protected CID/CCIB history.
-- Other roles: existing authorized scope only; no implicit restricted access.
-- Evaluate current appointment and account status, not rank text alone.
-- Treat view, add, amend, approve and export as separate permissions.
-- Permission to view must not automatically permit editing or exporting.
-- Application HQ Admin status must not imply database-superuser or key access.
+- SDIG responsible for CID: may view CID-restricted information.
+- SDIG responsible for CCIB: may view CCIB-restricted information.
+- Access requires a verified active appointment and explicitly assigned
+  unit responsibility. Rank or Colombo location alone does not grant access.
+- Responsibility for both units permits access to both.
+- Unit-scoped access includes corresponding restricted historical records
+  after personnel transfer out.
+- Access through an appointment ends when that appointment ends.
+- Other SDIGs receive no automatic CID/CCIB-restricted access.
+- These rules grant viewing only; amendment and export require separately
+  defined permissions.
 
 ## 6. ABAC inputs
 
@@ -137,7 +133,8 @@ Verify:
 
 ## 11. Open decisions and implementation status
 
-- SDIG restricted-access scope requires an explicit decision.
+- SDIG viewing scope is limited to explicitly assigned CID/CCIB responsibility.
+- Trusted appointment evidence and its validation remain to be implemented.
 - Detailed name/NIC visibility follows the ordinary authorized identity scope.
 - Physical encryption layout and migration requirements require model review.
 - Classification of existing historical rows requires source-based validation.
