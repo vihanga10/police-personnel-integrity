@@ -117,3 +117,25 @@ Remaining verification includes successful concurrent commits in an isolated
 test database. Lock contention and transaction rollback have been tested.
 Full-batch identity registration has not yet run. Source independence and
 source truth remain unverified.
+
+## Full PF identity registration — 2026-10-06
+
+- Batch: BATCH-RAW-001.
+- Registration command and tests committed through abc6d60.
+- Attempt: a771d6ac-ae2d-4ac7-81f6-7e53781f7136.
+- Staged-profile validation and backup-key recovery passed for 6,596 rows.
+- Attempt outcomes: 6,595 CREATED, 1 VERIFIED_EXISTING,
+  0 MATCHED and 0 REVIEW_REQUIRED.
+- Database totals: 6,596 officers, 23,966 identifier versions,
+  23,966 source assertions and 6,596 registration decisions.
+- Journal/database reconciliation passed for 13,194 events
+  and 6,596 decisions.
+- Protected report: decision-reconciliation.json in the attempt directory.
+- No personnel values were displayed in verification output.
+
+These results demonstrate registration consistency under the current PF
+policy. They do not establish source truth or source independence.
+
+Remaining work includes profile and family transformations, MongoDB
+operational transformations, historical reconstruction, authority checks,
+contradiction detection, blockchain commitments and user workflows.
