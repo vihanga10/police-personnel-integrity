@@ -140,3 +140,26 @@ Verify:
 - Classification of existing historical rows requires source-based validation.
 - Approval duration and audit retention remain configurable policy decisions.
 - This document alone does not implement encryption, authorization or logging.
+
+## 12. Record entry and evidence preservation
+
+- HQ Admin is the only human application role permitted to import source
+  files and enter personnel records.
+- The backend validates, encrypts and saves accepted submissions with
+  source references and the submitting user's identity.
+- Import permission does not grant permission to view restricted
+  CID/CCIB information.
+- Restricted viewing by HQ Admin requires a valid IGP approval.
+- Existing evidence content must not be overwritten.
+- Corrections create new versions linked to the previous evidence.
+- Existing controlled version-closure rules remain applicable.
+- Application users cannot delete personnel evidence, audit findings
+  or access-log records.
+- Automated audit processes may append findings with explanations,
+  supporting evidence references and the algorithm/policy version.
+- Resolutions and reassessments are appended and linked to the
+  original finding; previous findings remain preserved.
+- Database permissions and version controls enforce preservation.
+  Blockchain commitments provide tamper evidence for anchored records.
+- Correction approval, export, account administration and audit-log
+  viewing permissions remain to be specified.
