@@ -1,0 +1,28 @@
+# Separate research instance; loopback binding prevents network exposure.
+name: police-personnel-mongo
+services:
+  mongo:
+    image: mongo:8.0.32-noble
+    restart: unless-stopped
+    healthcheck:
+      # Ping reveals readiness only; authenticated access is checked separately.
+      test: ["CMD", "mongosh", "--quiet", "--eval", "quit(db.adminCommand({ping:1}).ok ? 0 : 1)"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    ports:
+      - "127.0.0.1:27018:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: police_mongo_bootstrap
+      MONGO_INITDB_ROOT_PASSWORD_FILE: /run/secrets/mongo_root_password
+    secrets:
+      - mongo_root_password
+    volumes:
+      - research_mongo:/data/db
+secrets:
+  mongo_root_password:
+    file: ${POLICE_MONGO_ROOT_PASSWORD_FILE:?Set the private root password file path}
+volumes:
+  research_mongo:
+    name: police-personnel-research-mongo-v1
