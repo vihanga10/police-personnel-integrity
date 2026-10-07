@@ -26,7 +26,7 @@ def _encoded(value):
     return value
 
 
-def seal_plan(crypto, plan, *, officer_uid, raw_record_id):
+def seal_plan(crypto, plan, *, officer_uid, raw_record_id, reference_evidence=None):
     if not isinstance(plan, ProfilePlan) or plan.policy_version != PLAN_POLICY:
         raise ValueError("Unsupported profile plan.")
     payload = {
@@ -34,6 +34,7 @@ def seal_plan(crypto, plan, *, officer_uid, raw_record_id):
         "officer_uid": str(officer_uid), "raw_record_id": raw_record_id,
         "record_classification": "UNASSESSED", "needs_review": plan.needs_review,
         "valid_from": None, "valid_to": None, "measured_at": None,
+        "reference_evidence": {} if reference_evidence is None else reference_evidence,
         "fields": [dict(
             source_column=item.source_column, table=item.table, target_field=item.target_field,
             source_value=item.source_value, value=_encoded(item.value),

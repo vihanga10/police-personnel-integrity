@@ -12,6 +12,7 @@ from settings import Settings
 from app.identity.register_profiles import private_key_file, preflight, verify_recovery
 from app.identity.profile_plan import plan_profile, validate_routing
 from app.identity.profile_plan_crypto import seal_plan, open_plan
+from app.identity.station_reference import load_staged_station_index
 from app.intake.staging_rows import open_row
 from app.intake.staging_store import stored_row
 from app.staging.models import RawRecord
@@ -51,6 +52,9 @@ def main():
         with engine.connect() as connection:
             with connection.begin():
                 connection.execute(text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY"))
+                station_index, station_provenance = load_staged_station_index(
+                    connection, crypto, backup, batch_id=args.batch_id,
+                )
                 decisions = IdentityRegistrationDecision.__table__
                 latest = {}
                 q = select(decisions).where(decisions.c.raw_record_id.in_(selected)).order_by(decisions.c.version_number.desc())
@@ -68,9 +72,17 @@ def main():
                         raise ValueError("Registration confirmation differs.")
                     source = open_row(crypto, stored_row(raw))
                     values = dict(zip(source["columns"], source["values"], strict=True))
-                    plan = plan_profile(values, phone_region=args.phone_region)
+                    plan = plan_profile(values, phone_region=args.phone_region,
+                                        station_candidates=station_index.candidates)
+                    station = next(f for f in plan.fields if f.source_column == "present_address_local_police_station_name")
+                    reference_evidence = {}
+                    if station.status == "PARSED":
+                        reference_evidence["address_station"] = dict(
+                            station_provenance, station_code=station.value,
+                            raw_record_id=station_index.source_rows[station.value],
+                        )
                     binding = dict(officer_uid=decision["officer_uid"], raw_record_id=raw["raw_record_id"])
-                    ciphertext, version = seal_plan(crypto, plan, **binding)
+                    ciphertext, version = seal_plan(crypto, plan, reference_evidence=reference_evidence, **binding)
                     if open_plan(crypto, ciphertext, key_version=version, **binding) != open_plan(backup, ciphertext, key_version=version, **binding):
                         raise ValueError("Plan backup recovery differs.")
                     seen.add(raw["raw_record_id"])
@@ -89,7 +101,9 @@ def main():
         print("Rows requiring field review:", reviews)
         print("Field status counts:", dict(sorted(statuses.items())))
         print("Issue counts:", dict(sorted(issues.items())))
-        print("Station reference mapping and snapshot date were not supplied.")
+        print("Station source rows validated:", len(station_index.source_rows))
+        print("Ambiguous station names:", sum(len(codes) > 1 for codes in station_index.candidates.values()))
+        print("Station matches are source-scoped; historical applicability and profile snapshot date remain unknown.")
         print("No database writes or saved plaintext plans; no personnel values displayed.")
         print("Classification remains UNASSESSED; no import readiness or source-truth claim.")
         return 0
