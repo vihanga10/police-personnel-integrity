@@ -25,6 +25,7 @@ EXPECTED_TABLES = {
     "identity.officer_previous_employment_version",
     "identity.officer_restricted_profile_version",
     "identity.source_assertion",
+    "identity.remaining_source_assertion",
     "identity.source_assertion_classification",
     "identity.source_attestation",
     "identity.source_system",
@@ -60,7 +61,11 @@ def test_all_foreign_key_targets_resolve() -> None:
         for foreign_key in table.foreign_keys:
             target_column = foreign_key.column
 
-            assert target_column.table.fullname in EXPECTED_TABLES
+            # Remaining assertions reference encrypted staging provenance directly.
+            allowed = EXPECTED_TABLES | {"staging.raw_record"}
+            assert target_column.table.fullname in allowed
+            if target_column.table.schema == "staging":
+                assert target_column.table.fullname in StagingBase.metadata.tables
 
 
 def test_officer_table_contains_only_stable_registry_fields() -> None:

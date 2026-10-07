@@ -69,3 +69,6 @@ __all__.extend(["SrbDeliveryPreparation", "SrbDeliveryCompletion"])
 from app.models.activity_delivery_storage import ActivityDeliveryPreparation, ActivityDeliveryCompletion
 
 __all__.extend(["ActivityDeliveryPreparation", "ActivityDeliveryCompletion"])
+
+# Register remaining encrypted source claims and append-only delivery receipts.
+from app.models.remaining_delivery_storage import (RemainingSourceAssertion, RemainingDeliveryPreparation, RemainingDeliveryCompletion)
