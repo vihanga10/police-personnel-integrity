@@ -1758,7 +1758,11 @@
           "target_field": "full_name",
           "transformation_rule": "Preserve source spelling in a versioned name record.",
           "validation_rule": "Reject blank supplied names; validate length; do not match by name alone.",
-          "review_status": "SPECIFIED"
+          "review_status": "SPECIFIED",
+          "logical_target_field": "full_name",
+          "physical_storage_column": "full_name",
+          "storage_policy": "PF_PROFILE_WRITER_V1",
+          "effective_date_policy": "Unknown; NULL metadata and null encrypted dates. No snapshot date inferred."
         },
         {
           "source_column": "name_with_initials",
@@ -1767,7 +1771,11 @@
           "target_field": "name_with_initials",
           "transformation_rule": "Preserve supplied value; do not invent initials.",
           "validation_rule": "Validate length; preserve missing values.",
-          "review_status": "SPECIFIED"
+          "review_status": "SPECIFIED",
+          "logical_target_field": "name_with_initials",
+          "physical_storage_column": "name_with_initials",
+          "storage_policy": "PF_PROFILE_WRITER_V1",
+          "effective_date_policy": "Unknown; NULL metadata and null encrypted dates. No snapshot date inferred."
         },
         {
           "source_column": "father_name",
@@ -1776,7 +1784,12 @@
           "target_field": "related_person_name",
           "transformation_rule": "Create supported family relation with relationship_type FATHER.",
           "validation_rule": "Require nonblank supplied name; do not create a police identity for father.",
-          "review_status": "SPECIFIED"
+          "review_status": "SPECIFIED",
+          "logical_target_field": "related_person_name",
+          "physical_storage_column": "profile_payload_ciphertext",
+          "storage_policy": "PF_PROFILE_WRITER_V1",
+          "effective_date_policy": "Unknown; NULL metadata and null encrypted dates. No snapshot date inferred.",
+          "storage_note": "Logical field is contained inside the authenticated encrypted JSON payload; no separate plaintext value column."
         },
         {
           "source_column": "gender",
@@ -1785,7 +1798,12 @@
           "target_field": "gender_code",
           "transformation_rule": "Map using a versioned vocabulary; preserve original assertion.",
           "validation_rule": "Flag unmapped values; do not guess.",
-          "review_status": "SPECIFIED"
+          "review_status": "SPECIFIED",
+          "logical_target_field": "gender_code",
+          "physical_storage_column": "profile_payload_ciphertext",
+          "storage_policy": "PF_PROFILE_WRITER_V1",
+          "effective_date_policy": "Unknown; NULL metadata and null encrypted dates. No snapshot date inferred.",
+          "storage_note": "Logical field is contained inside the authenticated encrypted JSON payload; no separate plaintext value column."
         },
         {
           "source_column": "date_of_birth",
@@ -1794,7 +1812,12 @@
           "target_field": "date_of_birth",
           "transformation_rule": "Parse documented date format; preserve unknown dates.",
           "validation_rule": "Reject invalid dates; flag dates after the documented snapshot date.",
-          "review_status": "SPECIFIED"
+          "review_status": "SPECIFIED",
+          "logical_target_field": "date_of_birth",
+          "physical_storage_column": "profile_payload_ciphertext",
+          "storage_policy": "PF_PROFILE_WRITER_V1",
+          "effective_date_policy": "Unknown; NULL metadata and null encrypted dates. No snapshot date inferred.",
+          "storage_note": "Logical field is contained inside the authenticated encrypted JSON payload; no separate plaintext value column."
         },
         {
           "source_column": "age",
@@ -1803,7 +1826,11 @@
           "target_field": "asserted_value_ciphertext",
           "transformation_rule": "Retain reported age in encrypted assertion; calculate age separately.",
           "validation_rule": "Validate reported numeric value; compare only with sufficient date evidence.",
-          "review_status": "SPECIFIED"
+          "review_status": "SPECIFIED",
+          "logical_target_field": "asserted_value_ciphertext",
+          "physical_storage_column": "asserted_value_ciphertext",
+          "storage_policy": "PF_PROFILE_WRITER_V1",
+          "effective_date_policy": "Unknown; NULL metadata and null encrypted dates. No snapshot date inferred."
         },
         {
           "source_column": "place_of_birth",
@@ -1812,7 +1839,12 @@
           "target_field": "place_of_birth",
           "transformation_rule": "Preserve supplied birthplace.",
           "validation_rule": "Validate length; preserve missing values.",
-          "review_status": "SPECIFIED"
+          "review_status": "SPECIFIED",
+          "logical_target_field": "place_of_birth",
+          "physical_storage_column": "profile_payload_ciphertext",
+          "storage_policy": "PF_PROFILE_WRITER_V1",
+          "effective_date_policy": "Unknown; NULL metadata and null encrypted dates. No snapshot date inferred.",
+          "storage_note": "Logical field is contained inside the authenticated encrypted JSON payload; no separate plaintext value column."
         },
         {
           "source_column": "nationality",
@@ -1821,7 +1853,12 @@
           "target_field": "nationality_code",
           "transformation_rule": "Map using versioned nationality vocabulary.",
           "validation_rule": "Flag unmapped values; retain original assertion.",
-          "review_status": "SPECIFIED"
+          "review_status": "SPECIFIED",
+          "logical_target_field": "nationality_code",
+          "physical_storage_column": "profile_payload_ciphertext",
+          "storage_policy": "PF_PROFILE_WRITER_V1",
+          "effective_date_policy": "Unknown; NULL metadata and null encrypted dates. No snapshot date inferred.",
+          "storage_note": "Logical field is contained inside the authenticated encrypted JSON payload; no separate plaintext value column."
         },
         {
           "source_column": "religion",
@@ -1830,7 +1867,12 @@
           "target_field": "religion_code",
           "transformation_rule": "Map using versioned vocabulary; restrict access.",
           "validation_rule": "Flag unmapped values; do not infer missing information.",
-          "review_status": "SPECIFIED"
+          "review_status": "SPECIFIED",
+          "logical_target_field": "religion_code",
+          "physical_storage_column": "profile_payload_ciphertext",
+          "storage_policy": "PF_PROFILE_WRITER_V1",
+          "effective_date_policy": "Unknown; NULL metadata and null encrypted dates. No snapshot date inferred.",
+          "storage_note": "Logical field is contained inside the authenticated encrypted JSON payload; no separate plaintext value column."
         },
         {
           "source_column": "present_address",
@@ -1839,7 +1881,12 @@
           "target_field": "address_text",
           "transformation_rule": "Create address version with address_type PRESENT.",
           "validation_rule": "Validate length; do not invent effective dates.",
-          "review_status": "SPECIFIED"
+          "review_status": "SPECIFIED",
+          "logical_target_field": "address_text",
+          "physical_storage_column": "profile_payload_ciphertext",
+          "storage_policy": "PF_PROFILE_WRITER_V1",
+          "effective_date_policy": "Unknown; NULL metadata and null encrypted dates. No snapshot date inferred.",
+          "storage_note": "Logical field is contained inside the authenticated encrypted JSON payload; no separate plaintext value column."
         },
         {
           "source_column": "present_address_local_police_station_name",
@@ -1848,7 +1895,12 @@
           "target_field": "local_station_reference",
           "transformation_rule": "Resolve to stable station reference using reference data.",
           "validation_rule": "Flag unknown or ambiguous station matches.",
-          "review_status": "SPECIFIED"
+          "review_status": "SPECIFIED",
+          "logical_target_field": "local_station_reference",
+          "physical_storage_column": "profile_payload_ciphertext",
+          "storage_policy": "PF_PROFILE_WRITER_V1",
+          "effective_date_policy": "Unknown; NULL metadata and null encrypted dates. No snapshot date inferred.",
+          "storage_note": "Logical field is contained inside the authenticated encrypted JSON payload; no separate plaintext value column."
         },
         {
           "source_column": "height_cm",
@@ -1857,7 +1909,12 @@
           "target_field": "height_cm",
           "transformation_rule": "Parse decimal centimetres; preserve measurement date as unknown if absent.",
           "validation_rule": "Validate numeric type and database constraints; flag implausible values.",
-          "review_status": "SPECIFIED"
+          "review_status": "SPECIFIED",
+          "logical_target_field": "height_cm",
+          "physical_storage_column": "profile_payload_ciphertext",
+          "storage_policy": "PF_PROFILE_WRITER_V1",
+          "effective_date_policy": "Unknown; NULL metadata and null encrypted dates. No snapshot date inferred.",
+          "storage_note": "Logical field is contained inside the authenticated encrypted JSON payload; no separate plaintext value column."
         },
         {
           "source_column": "chest_cm",
@@ -1866,7 +1923,12 @@
           "target_field": "chest_cm",
           "transformation_rule": "Parse decimal centimetres; do not invent measurement date.",
           "validation_rule": "Validate numeric type and database constraints; flag implausible values.",
-          "review_status": "SPECIFIED"
+          "review_status": "SPECIFIED",
+          "logical_target_field": "chest_cm",
+          "physical_storage_column": "profile_payload_ciphertext",
+          "storage_policy": "PF_PROFILE_WRITER_V1",
+          "effective_date_policy": "Unknown; NULL metadata and null encrypted dates. No snapshot date inferred.",
+          "storage_note": "Logical field is contained inside the authenticated encrypted JSON payload; no separate plaintext value column."
         },
         {
           "source_column": "blood_group",
@@ -1875,7 +1937,12 @@
           "target_field": "blood_group_code",
           "transformation_rule": "Map documented blood-group vocabulary; restrict access.",
           "validation_rule": "Flag unknown values; never infer blood group.",
-          "review_status": "SPECIFIED"
+          "review_status": "SPECIFIED",
+          "logical_target_field": "blood_group_code",
+          "physical_storage_column": "profile_payload_ciphertext",
+          "storage_policy": "PF_PROFILE_WRITER_V1",
+          "effective_date_policy": "Unknown; NULL metadata and null encrypted dates. No snapshot date inferred.",
+          "storage_note": "Logical field is contained inside the authenticated encrypted JSON payload; no separate plaintext value column."
         },
         {
           "source_column": "identifying_marks",
@@ -1884,7 +1951,12 @@
           "target_field": "identifying_marks_ciphertext",
           "transformation_rule": "Encrypt supplied description with record-specific context.",
           "validation_rule": "Validate supplied text before encryption; preserve missing values.",
-          "review_status": "SPECIFIED"
+          "review_status": "SPECIFIED",
+          "logical_target_field": "identifying_marks_ciphertext",
+          "physical_storage_column": "profile_payload_ciphertext",
+          "storage_policy": "PF_PROFILE_WRITER_V1",
+          "effective_date_policy": "Unknown; NULL metadata and null encrypted dates. No snapshot date inferred.",
+          "storage_note": "Logical field is contained inside the authenticated encrypted JSON payload; no separate plaintext value column."
         },
         {
           "source_column": "mo_remark",
@@ -1893,7 +1965,12 @@
           "target_field": "medical_officer_remark_ciphertext",
           "transformation_rule": "Encrypt supplied remark; apply restricted access.",
           "validation_rule": "Validate supplied text; do not infer medical conclusions.",
-          "review_status": "SPECIFIED"
+          "review_status": "SPECIFIED",
+          "logical_target_field": "medical_officer_remark_ciphertext",
+          "physical_storage_column": "profile_payload_ciphertext",
+          "storage_policy": "PF_PROFILE_WRITER_V1",
+          "effective_date_policy": "Unknown; NULL metadata and null encrypted dates. No snapshot date inferred.",
+          "storage_note": "Logical field is contained inside the authenticated encrypted JSON payload; no separate plaintext value column."
         },
         {
           "source_column": "marital_status",
@@ -1902,7 +1979,12 @@
           "target_field": "marital_status_code",
           "transformation_rule": "Map versioned vocabulary; preserve source assertion.",
           "validation_rule": "Flag unmapped values; do not invent validity dates.",
-          "review_status": "SPECIFIED"
+          "review_status": "SPECIFIED",
+          "logical_target_field": "marital_status_code",
+          "physical_storage_column": "profile_payload_ciphertext",
+          "storage_policy": "PF_PROFILE_WRITER_V1",
+          "effective_date_policy": "Unknown; NULL metadata and null encrypted dates. No snapshot date inferred.",
+          "storage_note": "Logical field is contained inside the authenticated encrypted JSON payload; no separate plaintext value column."
         },
         {
           "source_column": "prev_employment_dept",
@@ -1911,7 +1993,12 @@
           "target_field": "employer_department_name",
           "transformation_rule": "Preserve supplied department in a separate employment chain.",
           "validation_rule": "Validate length; unknown employment dates remain unknown.",
-          "review_status": "SPECIFIED"
+          "review_status": "SPECIFIED",
+          "logical_target_field": "employer_department_name",
+          "physical_storage_column": "profile_payload_ciphertext",
+          "storage_policy": "PF_PROFILE_WRITER_V1",
+          "effective_date_policy": "Unknown; NULL metadata and null encrypted dates. No snapshot date inferred.",
+          "storage_note": "Logical field is contained inside the authenticated encrypted JSON payload; no separate plaintext value column."
         },
         {
           "source_column": "officer_email",
@@ -1920,7 +2007,11 @@
           "target_field": "contact_value_ciphertext",
           "transformation_rule": "Validate then encrypt; type EMAIL; keyed lookup uses documented normalization.",
           "validation_rule": "Validate email syntax; do not assume entire address is case-insensitive.",
-          "review_status": "SPECIFIED"
+          "review_status": "SPECIFIED",
+          "logical_target_field": "contact_value_ciphertext",
+          "physical_storage_column": "contact_value_ciphertext",
+          "storage_policy": "PF_PROFILE_WRITER_V1",
+          "effective_date_policy": "Unknown; NULL metadata and null encrypted dates. No snapshot date inferred."
         },
         {
           "source_column": "officer_mobile_number",
@@ -1929,7 +2020,11 @@
           "target_field": "contact_value_ciphertext",
           "transformation_rule": "Validate then encrypt; type MOBILE; preserve original assertion.",
           "validation_rule": "Normalize with explicit country context; do not guess missing country.",
-          "review_status": "SPECIFIED"
+          "review_status": "SPECIFIED",
+          "logical_target_field": "contact_value_ciphertext",
+          "physical_storage_column": "contact_value_ciphertext",
+          "storage_policy": "PF_PROFILE_WRITER_V1",
+          "effective_date_policy": "Unknown; NULL metadata and null encrypted dates. No snapshot date inferred."
         },
         {
           "source_column": "officer_tin_number",

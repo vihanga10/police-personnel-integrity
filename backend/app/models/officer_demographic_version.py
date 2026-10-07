@@ -8,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     String,
     UniqueConstraint,
     func,
@@ -24,17 +25,9 @@ class OfficerDemographicVersion(Base):
 
     __tablename__ = "officer_demographic_version"
     __table_args__ = (
-        CheckConstraint(
-            """
-            date_of_birth IS NOT NULL
-            OR place_of_birth IS NOT NULL
-            OR nationality_code IS NOT NULL
-            OR religion_code IS NOT NULL
-            OR gender_code IS NOT NULL
-            OR marital_status_code IS NOT NULL
-            """,
-            name="officer_demographic_has_value",
-        ),
+        CheckConstraint("octet_length(profile_payload_ciphertext) > 28", name="profile_payload_present"),
+        CheckConstraint("length(trim(encryption_key_version)) > 0", name="profile_key_present"),
+        CheckConstraint("valid_from IS NULL AND valid_to IS NULL", name="profile_dates_protected"),
         CheckConstraint(
             "version_number > 0",
             name="officer_demographic_positive_version",
@@ -118,31 +111,7 @@ class OfficerDemographicVersion(Base):
         Integer,
         nullable=False,
     )
-    date_of_birth: Mapped[date | None] = mapped_column(
-        Date,
-        nullable=True,
-    )
-    place_of_birth: Mapped[str | None] = mapped_column(
-        String(250),
-        nullable=True,
-    )
-    nationality_code: Mapped[str | None] = mapped_column(
-        String(50),
-        nullable=True,
-    )
-    religion_code: Mapped[str | None] = mapped_column(
-        String(50),
-        nullable=True,
-    )
-    gender_code: Mapped[str | None] = mapped_column(
-        String(30),
-        nullable=True,
-    )
 
-    marital_status_code: Mapped[str | None] = mapped_column(
-        String(30),
-        nullable=True,
-    )
 
     valid_from: Mapped[date | None] = mapped_column(
         Date,
@@ -172,3 +141,5 @@ class OfficerDemographicVersion(Base):
         nullable=False,
         server_default=func.now(),
     )
+    profile_payload_ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    encryption_key_version: Mapped[str] = mapped_column(String(50), nullable=False)

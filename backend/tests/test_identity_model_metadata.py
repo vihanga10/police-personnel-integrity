@@ -1,4 +1,7 @@
 from app.db.base import Base
+from app.db.staging_base import StagingBase
+from app.staging.identity_decision import IdentityRegistrationDecision
+from app.identity.profile_records import PROTECTED_TABLES
 from app.models import (
     Officer,
     OfficerContactVersion,
@@ -99,7 +102,8 @@ def test_blood_group_is_in_restricted_profile_only() -> None:
     restricted_columns = set(OfficerRestrictedProfileVersion.__table__.c.keys())
 
     assert "blood_group_code" not in physical_columns
-    assert "blood_group_code" in restricted_columns
+    assert "blood_group_code" not in restricted_columns
+    assert "profile_payload_ciphertext" in restricted_columns
 
 
 def test_versioned_tables_have_version_and_transaction_fields() -> None:
@@ -177,3 +181,32 @@ def test_source_assertion_has_protected_payload_and_constraints() -> None:
         or name.endswith("source_assertion_value_not_empty")
         for name in constraint_names
     )
+
+
+def test_profile_destinations_encrypt_all_personnel_value_columns() -> None:
+    removed = {
+        "officer_address_version": {"address_text", "local_station_reference"},
+        "officer_demographic_version": {"date_of_birth", "place_of_birth", "nationality_code", "religion_code", "gender_code", "marital_status_code"},
+        "officer_family_relation": {"related_person_name", "related_person_gender_code", "related_person_date_of_birth", "related_person_place_of_birth", "related_person_address"},
+        "officer_physical_profile_version": {"height_cm", "chest_cm", "measured_at"},
+        "officer_previous_employment_version": {"employer_department_name"},
+        "officer_restricted_profile_version": {"blood_group_code", "identifying_marks_ciphertext", "medical_officer_remark_ciphertext"},
+    }
+    for name in PROTECTED_TABLES:
+        table = Base.metadata.tables["identity." + name]
+        assert set(table.c.keys()).isdisjoint(removed[name]), name
+        assert table.c.profile_payload_ciphertext.nullable is False
+        assert table.c.encryption_key_version.nullable is False
+        # Old plaintext checks must not survive column removal.
+        import re
+        for constraint in table.constraints:
+            rule = str(getattr(constraint, "sqltext", ""))
+            assert not any(re.search(r"\b" + c + r"\b", rule) for c in removed[name]), name
+
+
+def test_profile_receipt_has_source_and_identity_foreign_keys() -> None:
+    table = StagingBase.metadata.tables["staging.profile_transform_receipt"]
+    targets = {fk.column.table.fullname for fk in table.foreign_keys}
+    assert targets == {"staging.raw_record", "staging.identity_registration_decision", "identity.officer", "identity.source_assertion"}
+    assert table.c.evidence_ciphertext.nullable is False
+    assert table.c.encryption_key_version.nullable is False

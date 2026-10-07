@@ -45,3 +45,7 @@ from app.models.source_assertion_classification import (
 )
 
 __all__.append("SourceAssertionClassification")
+
+from app.models.profile_transform_receipt import ProfileTransformReceipt
+
+__all__.append("ProfileTransformReceipt")

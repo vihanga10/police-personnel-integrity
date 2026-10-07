@@ -159,3 +159,63 @@ class ProfilePlanCryptoTests(unittest.TestCase):
         first, _ = seal_plan(self.crypto, self.plan, **self.binding)
         second, _ = seal_plan(self.crypto, self.plan, **self.binding)
         self.assertNotEqual(first[:12], second[:12])
+
+
+class ProfileDestinationTests(unittest.TestCase):
+    def test_optional_missing_groups_are_not_fabricated(self):
+        from app.identity.profile_records import logical_records
+        records = logical_records(plan_profile(sample()))
+        self.assertEqual({r.table for r in records}, {"officer_name_version", "officer_demographic_version", "officer_physical_profile_version"})
+        self.assertFalse(any(r.table == "source_assertion" for r in records))
+
+    def test_father_name_is_a_protected_relationship_value(self):
+        from app.identity.profile_records import logical_records
+        record = next(r for r in logical_records(plan_profile(sample(father_name="Example Parent"))) if r.table == "officer_family_relation")
+        self.assertEqual(record.kind, "FATHER")
+        self.assertEqual(record.values, {"related_person_name": "Example Parent"})
+        self.assertNotIn("Example Parent", repr(record))
+
+    def test_contacts_are_distinct_normalized_records(self):
+        from app.identity.profile_records import logical_records
+        records = logical_records(plan_profile(sample(officer_email="User@EXAMPLE.ORG", officer_mobile_number="0712345678"), phone_region="LK"))
+        contacts = {r.kind:r.values["value"] for r in records if r.table == "officer_contact_version"}
+        self.assertEqual(contacts, {"EMAIL":"User@example.org", "MOBILE":"+94712345678"})
+
+    def test_review_required_plan_is_not_importable(self):
+        from app.identity.profile_records import logical_records
+        with self.assertRaises(ValueError):
+            logical_records(plan_profile(sample(religion="Unknown")))
+
+    def test_birth_date_and_measurements_remain_typed_payload_values(self):
+        from app.identity.profile_records import logical_records
+        records = {r.table:r for r in logical_records(plan_profile(sample()))}
+        self.assertEqual(records["officer_demographic_version"].values["date_of_birth"], {"type":"date", "value":"1990-01-02"})
+        self.assertEqual(records["officer_physical_profile_version"].values["height_cm"], {"type":"decimal", "value":"165.25"})
+
+    def test_storage_context_changes_for_every_binding(self):
+        from app.identity.profile_records import storage_context
+        binding = dict(raw_record_id="a"*64, officer_uid=uuid4(), record_id=uuid4(), table="officer_demographic_version")
+        first = storage_context("DESTINATION", **binding)
+        for changed in (dict(binding, raw_record_id="b"*64), dict(binding, officer_uid=uuid4()), dict(binding, record_id=uuid4()), dict(binding, table="officer_address_version")):
+            self.assertNotEqual(first, storage_context("DESTINATION", **changed))
+
+    def test_storage_context_rejects_wrong_purpose_table_and_source(self):
+        from app.identity.profile_records import storage_context
+        binding = dict(raw_record_id="a"*64, officer_uid=uuid4(), record_id=uuid4(), table="officer_demographic_version")
+        for purpose, changed in (("UNSUPPORTED", binding), ("ASSERTION", binding), ("DESTINATION", dict(binding, raw_record_id="invalid")), ("DESTINATION", dict(binding, officer_uid="text"))):
+            with self.assertRaises(ValueError):
+                storage_context(purpose, **changed)
+
+    def test_storage_ciphertext_cannot_move_to_another_destination(self):
+        from app.identity.profile_records import storage_context
+        with tempfile.TemporaryDirectory() as directory:
+            key = base64.b64encode(b"T"*32).decode()
+            path = Path(directory)/"keys.json"
+            path.write_text(json.dumps({"active_encryption_key_version":"v1", "active_lookup_key_version":"v1", "encryption_keys":{"v1":key}, "lookup_keys":{"v1":key}}))
+            crypto = IdentityCrypto(path)
+            binding = dict(raw_record_id="a"*64, officer_uid=uuid4(), record_id=uuid4(), table="officer_demographic_version")
+            context = storage_context("DESTINATION", **binding)
+            ciphertext, version = crypto.encrypt_assertion({"date_of_birth":"1990-01-02"}, context=context)
+            moved = storage_context("DESTINATION", **dict(binding, table="officer_address_version"))
+            with self.assertRaises(InvalidTag):
+                crypto.decrypt_assertion(ciphertext, key_version=version, context=moved)

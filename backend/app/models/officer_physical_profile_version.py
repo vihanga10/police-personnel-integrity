@@ -9,6 +9,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     Numeric,
     String,
     UniqueConstraint,
@@ -26,21 +27,9 @@ class OfficerPhysicalProfileVersion(Base):
 
     __tablename__ = "officer_physical_profile_version"
     __table_args__ = (
-        CheckConstraint(
-            """
-            height_cm IS NOT NULL
-            OR chest_cm IS NOT NULL
-            """,
-            name="officer_physical_profile_has_value",
-        ),
-        CheckConstraint(
-            "height_cm IS NULL OR height_cm > 0",
-            name="officer_physical_profile_positive_height",
-        ),
-        CheckConstraint(
-            "chest_cm IS NULL OR chest_cm > 0",
-            name="officer_physical_profile_positive_chest",
-        ),
+        CheckConstraint("octet_length(profile_payload_ciphertext) > 28", name="profile_payload_present"),
+        CheckConstraint("length(trim(encryption_key_version)) > 0", name="profile_key_present"),
+        CheckConstraint("valid_from IS NULL AND valid_to IS NULL", name="profile_dates_protected"),
         CheckConstraint(
             "version_number > 0",
             name="officer_physical_profile_positive_version",
@@ -126,19 +115,7 @@ class OfficerPhysicalProfileVersion(Base):
         Integer,
         nullable=False,
     )
-    height_cm: Mapped[Decimal | None] = mapped_column(
-        Numeric(5, 2),
-        nullable=True,
-    )
-    chest_cm: Mapped[Decimal | None] = mapped_column(
-        Numeric(5, 2),
-        nullable=True,
-    )
 
-    measured_at: Mapped[date | None] = mapped_column(
-        Date,
-        nullable=True,
-    )
 
     valid_from: Mapped[date | None] = mapped_column(
         Date,
@@ -168,3 +145,5 @@ class OfficerPhysicalProfileVersion(Base):
         nullable=False,
         server_default=func.now(),
     )
+    profile_payload_ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    encryption_key_version: Mapped[str] = mapped_column(String(50), nullable=False)

@@ -8,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     String,
     UniqueConstraint,
     func,
@@ -24,10 +25,9 @@ class OfficerPreviousEmploymentVersion(Base):
 
     __tablename__ = "officer_previous_employment_version"
     __table_args__ = (
-        CheckConstraint(
-            "length(trim(employer_department_name)) > 0",
-            name="officer_previous_employment_has_department",
-        ),
+        CheckConstraint("octet_length(profile_payload_ciphertext) > 28", name="profile_payload_present"),
+        CheckConstraint("length(trim(encryption_key_version)) > 0", name="profile_key_present"),
+        CheckConstraint("valid_from IS NULL AND valid_to IS NULL", name="profile_dates_protected"),
         CheckConstraint(
             "version_number > 0",
             name="officer_previous_employment_positive_version",
@@ -124,10 +124,6 @@ class OfficerPreviousEmploymentVersion(Base):
         nullable=True,
     )
 
-    employer_department_name: Mapped[str] = mapped_column(
-        String(300),
-        nullable=False,
-    )
 
     version_number: Mapped[int] = mapped_column(
         Integer,
@@ -167,3 +163,5 @@ class OfficerPreviousEmploymentVersion(Base):
         nullable=False,
         server_default=func.now(),
     )
+    profile_payload_ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    encryption_key_version: Mapped[str] = mapped_column(String(50), nullable=False)
