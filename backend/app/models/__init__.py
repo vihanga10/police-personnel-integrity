@@ -59,3 +59,8 @@ __all__.extend(["ServiceDeliveryPreparation", "ServiceDeliveryCompletion"])
 from app.models.history_delivery_storage import HistoryDeliveryPreparation, HistoryDeliveryCompletion
 
 __all__.extend(["HistoryDeliveryPreparation", "HistoryDeliveryCompletion"])
+
+# Register append-only SRB delivery facts for migration discovery.
+from app.models.srb_delivery_storage import SrbDeliveryPreparation, SrbDeliveryCompletion
+
+__all__.extend(["SrbDeliveryPreparation", "SrbDeliveryCompletion"])
