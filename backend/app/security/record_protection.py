@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 
-POLICY_VERSION = "CID_CCIB_PROTECTION_V1"
+POLICY_VERSION = "CID_CCIB_PROTECTION_V2"
 
 
 class AssignmentProtection(Enum):
@@ -31,6 +31,9 @@ class DisclosureCategory(Enum):
     # names, linked identities and entire profile objects do not qualify.
     OFFICER_NAME_NIC = "OFFICER_NAME_NIC"
     PERSONNEL_DETAILS = "PERSONNEL_DETAILS"
+    # Trusted backend projection only: previous unit and service-period dates.
+    # Full history rows, operations, duties and narratives never qualify.
+    FORMER_CID_CCIB_SERVICE_PERIOD = "FORMER_CID_CCIB_SERVICE_PERIOD"
 
 
 class ProtectionLevel(Enum):
@@ -76,6 +79,20 @@ request fields must never be passed through as classification inputs.
     if record_classification is RecordClassification.UNASSESSED:
         return ProtectionDecision(
             ProtectionLevel.WITHHOLD, "RECORD_CLASSIFICATION_UNASSESSED"
+        )
+    if category is DisclosureCategory.FORMER_CID_CCIB_SERVICE_PERIOD:
+        # Classification must be assessed before any former-service projection.
+        # Current CID/CCIB personnel still require restricted access to this view.
+        if assignment is AssignmentProtection.CID_CCIB:
+            return ProtectionDecision(
+                ProtectionLevel.RESTRICTED, "CURRENT_CID_CCIB_ASSIGNMENT"
+            )
+        if record_classification is not RecordClassification.CID_CCIB_RESTRICTED:
+            return ProtectionDecision(
+                ProtectionLevel.WITHHOLD, "FORMER_SERVICE_CLASSIFICATION_NOT_ESTABLISHED"
+            )
+        return ProtectionDecision(
+            ProtectionLevel.NORMAL, "FORMER_SERVICE_SUMMARY_REQUIRES_RECEIVING_SCOPE"
         )
     if record_classification is RecordClassification.CID_CCIB_RESTRICTED:
         return ProtectionDecision(

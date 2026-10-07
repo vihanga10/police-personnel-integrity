@@ -1,7 +1,11 @@
-# Personnel security policy — version 1
+# Personnel security policy — version 2
+
+The existing filename is retained for repository continuity. Updated by the
+2026-10-07 decision: encrypted storage for all personal payloads and scoped
+visibility of former CID/CCIB service periods.
 
 Status: DRAFT — requirements recorded; enforcement not yet implemented.
-Implementation baseline: 6ef032a.
+Policy helper: CID_CCIB_PROTECTION_V2. Full human authorization remains pending.
 Scope: PostgreSQL, MongoDB and application disclosure paths.
 
 ## 1. Purpose
@@ -20,8 +24,12 @@ represent an officially approved Sri Lanka Police policy.
 - Name and NIC are exceptions to CID/CCIB restricted disclosure, not
   instructions to remove encryption.
 - Name and NIC visibility still requires authenticated, authorized access.
-- Protect remaining personnel information in both databases through the
-  encryption design established during the model review.
+- Encrypt all stored personal payloads for all officers in PostgreSQL and
+  MongoDB, including ordinary officer profiles and service/history evidence.
+- Ordinary authorized application views decrypt permitted details within scope;
+  they do not require special IGP approval solely because storage is encrypted.
+- Opaque IDs, source digests and required technical routing metadata may remain
+  outside ciphertext; they remain internal and subject to database permissions.
 - Keep encryption keys outside database records and source control.
 - Do not put personnel values or encryption keys on a blockchain.
 
@@ -42,16 +50,28 @@ represent an officially approved Sri Lanka Police policy.
 - A transfer out of CID/CCIB must not automatically declassify CID/CCIB history.
 - A receiving Station OIC may view permitted ordinary current information
   for officers assigned to that OIC's station.
-- A permitted summary may state that the officer previously served in
-  CID/CCIB, without disclosing protected dates, duration or work.
-- Restrict CID/CCIB operations, duties, service-period details and related
-  documents after transfer.
+- After a verified transfer to an ordinary unit, the receiving authority may
+  view an authorized narrow summary of previous CID/CCIB unit and service-period
+  start/end dates for officers currently within that authority's scope.
+- Service-period dates require traceable historical evidence; unknown dates stay
+  unknown. Reported dates must not be represented as verified periods.
+- This exception does not expose source documents, operations, duties, reasons,
+  linked participants, narratives or other CID/CCIB activities.
+- Restrict CID/CCIB operations, duties, activities and related source documents
+  after transfer. Current CID/CCIB personnel still require restricted access
+  for their service-period details.
 - Review mixed records and derived outputs for indirect disclosure.
 - Ordinary current information may be disclosed through an authorized view;
   this does not release all historical versions.
 - Classification changes require authorized, recorded decisions.
 
 ## 5. Access rules
+
+- IGP may view restricted CID and CCIB details nationwide.
+- HQ Admin requires valid IGP approval for restricted viewing.
+- Station OIC and other designated receiving authorities may view ordinary
+  current details and the narrow former-service summary only within their
+  verified active responsibility; rank alone does not establish scope.
 
 - SDIG responsible for CID: may view CID-restricted information.
 - SDIG responsible for CCIB: may view CCIB-restricted information.
@@ -123,7 +143,11 @@ Verify:
 - Current CID/CCIB profile restrictions.
 - Permitted name/NIC display with protected storage retained.
 - Unauthorized and out-of-scope requests are denied.
-- Restrictions persist after transfers.
+- Protected operations and activities remain restricted after transfers.
+- Only the narrow former-service period projection receives the approved
+  ordinary-scope exception; full history records remain restricted.
+- Transfer into CID/CCIB restricts personnel disclosure immediately once the
+  assignment is established; storage remains encrypted throughout.
 - HQ Admin cannot bypass approval.
 - Expired and revoked grants stop further access.
 - Read permission does not imply write or export permission.
@@ -136,7 +160,9 @@ Verify:
 - SDIG viewing scope is limited to explicitly assigned CID/CCIB responsibility.
 - Trusted appointment evidence and its validation remain to be implemented.
 - Detailed name/NIC visibility follows the ordinary authorized identity scope.
-- Physical encryption layout and migration requirements require model review.
+- Encrypted profile/service storage is implemented; history storage foundation
+  is verified separately. Full classification, authorization and logging are pending.
+- No decryption/re-encryption migration is needed for this viewing-rule update.
 - Classification of existing historical rows requires source-based validation.
 - Approval duration and audit retention remain configurable policy decisions.
 - This document alone does not implement encryption, authorization or logging.

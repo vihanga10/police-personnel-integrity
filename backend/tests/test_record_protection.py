@@ -83,3 +83,31 @@ class RecordProtectionTests(unittest.TestCase):
     def test_omitted_assessment_is_rejected(self):
         with self.assertRaises(TypeError):
             required_protection(assignment=A.ORDINARY, category=D.PERSONNEL_DETAILS)
+
+
+class FormerServiceDisclosureTests(unittest.TestCase):
+    def test_receiving_scope_may_view_assessed_period_summary_after_transfer(self):
+        result = decide(A.ORDINARY, R.CID_CCIB_RESTRICTED, D.FORMER_CID_CCIB_SERVICE_PERIOD)
+        self.assertEqual(result.level, P.NORMAL)
+        self.assertEqual(result.reason_code, "FORMER_SERVICE_SUMMARY_REQUIRES_RECEIVING_SCOPE")
+
+    def test_current_cid_ccib_period_summary_stays_restricted(self):
+        self.assertEqual(decide(A.CID_CCIB, R.CID_CCIB_RESTRICTED,
+                               D.FORMER_CID_CCIB_SERVICE_PERIOD).level, P.RESTRICTED)
+
+    def test_summary_does_not_release_full_history_or_operations(self):
+        self.assertEqual(decide(A.ORDINARY, R.CID_CCIB_RESTRICTED,
+                               D.PERSONNEL_DETAILS).level, P.RESTRICTED)
+
+    def test_unassessed_or_unresolved_summary_is_withheld(self):
+        self.assertEqual(decide(A.UNRESOLVED, R.CID_CCIB_RESTRICTED,
+                               D.FORMER_CID_CCIB_SERVICE_PERIOD).level, P.WITHHOLD)
+        self.assertEqual(decide(A.ORDINARY, R.UNASSESSED,
+                               D.FORMER_CID_CCIB_SERVICE_PERIOD).level, P.WITHHOLD)
+
+    def test_ordinary_record_is_not_proof_of_former_cid_ccib_service(self):
+        self.assertEqual(decide(A.ORDINARY, R.ORDINARY,
+                               D.FORMER_CID_CCIB_SERVICE_PERIOD).level, P.WITHHOLD)
+
+    def test_updated_decision_identifies_policy_v2(self):
+        self.assertEqual(POLICY_VERSION, "CID_CCIB_PROTECTION_V2")
