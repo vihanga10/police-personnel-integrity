@@ -77,3 +77,8 @@ from app.models.remaining_delivery_storage import (RemainingSourceAssertion, Rem
 from app.models.family_transform_receipt import FamilyTransformReceipt
 
 __all__.append("FamilyTransformReceipt")
+
+# Register encrypted station reference claims and append-only delivery facts.
+from app.models.reference_delivery_storage import (ReferenceSourceAssertion, ReferenceDeliveryPreparation, ReferenceDeliveryCompletion)
+
+__all__.extend(["ReferenceSourceAssertion", "ReferenceDeliveryPreparation", "ReferenceDeliveryCompletion"])
