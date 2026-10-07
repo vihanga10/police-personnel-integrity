@@ -22,6 +22,7 @@ EXPECTED_TABLES = {
     "identity.officer_previous_employment_version",
     "identity.officer_restricted_profile_version",
     "identity.source_assertion",
+    "identity.source_assertion_classification",
     "identity.source_attestation",
     "identity.source_system",
 }

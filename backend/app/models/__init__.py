@@ -39,3 +39,9 @@ __all__ = [
     "OfficerNextOfKinVersion",
     "SourceAttestation",
 ]
+
+from app.models.source_assertion_classification import (
+    SourceAssertionClassification,
+)
+
+__all__.append("SourceAssertionClassification")
