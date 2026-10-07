@@ -64,3 +64,8 @@ __all__.extend(["HistoryDeliveryPreparation", "HistoryDeliveryCompletion"])
 from app.models.srb_delivery_storage import SrbDeliveryPreparation, SrbDeliveryCompletion
 
 __all__.extend(["SrbDeliveryPreparation", "SrbDeliveryCompletion"])
+
+# Register append-only SRB activity delivery facts for Alembic discovery.
+from app.models.activity_delivery_storage import ActivityDeliveryPreparation, ActivityDeliveryCompletion
+
+__all__.extend(["ActivityDeliveryPreparation", "ActivityDeliveryCompletion"])
