@@ -49,3 +49,8 @@ __all__.append("SourceAssertionClassification")
 from app.models.profile_transform_receipt import ProfileTransformReceipt
 
 __all__.append("ProfileTransformReceipt")
+
+# Register cross-store preparation and receipt tables for Alembic discovery.
+from app.models.service_delivery_storage import ServiceDeliveryPreparation, ServiceDeliveryCompletion
+
+__all__.extend(["ServiceDeliveryPreparation", "ServiceDeliveryCompletion"])
