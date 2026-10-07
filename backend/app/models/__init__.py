@@ -72,3 +72,8 @@ __all__.extend(["ActivityDeliveryPreparation", "ActivityDeliveryCompletion"])
 
 # Register remaining encrypted source claims and append-only delivery receipts.
 from app.models.remaining_delivery_storage import (RemainingSourceAssertion, RemainingDeliveryPreparation, RemainingDeliveryCompletion)
+
+# Register the atomic encrypted HR family transformation receipt.
+from app.models.family_transform_receipt import FamilyTransformReceipt
+
+__all__.append("FamilyTransformReceipt")
