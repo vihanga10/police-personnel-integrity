@@ -54,3 +54,8 @@ __all__.append("ProfileTransformReceipt")
 from app.models.service_delivery_storage import ServiceDeliveryPreparation, ServiceDeliveryCompletion
 
 __all__.extend(["ServiceDeliveryPreparation", "ServiceDeliveryCompletion"])
+
+# Register append-only historical delivery facts for Alembic discovery.
+from app.models.history_delivery_storage import HistoryDeliveryPreparation, HistoryDeliveryCompletion
+
+__all__.extend(["HistoryDeliveryPreparation", "HistoryDeliveryCompletion"])
