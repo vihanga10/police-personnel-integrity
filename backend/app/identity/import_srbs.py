@@ -143,6 +143,20 @@ def srb_payload(connection, crypto, backup, raw, file, stations, station_provena
     return payload, binding, fingerprint, row[SOURCE_KEYS[filename]].strip()
 
 
+def record_bounded_number_period(payload, periods):
+    """Group explicit bounded reports by subject and original number-type label."""
+    if payload["filename"] != "officer_police_numbers.csv":
+        return
+    fields = {item["source_column"]: item for item in payload["fields"]}
+    start, end = fields["valid_from"]["value"], fields["valid_to"]["value"]
+    # Missing ends remain unknown. Category objects are claims, not dictionary keys.
+    if isinstance(start, dict) and isinstance(end, dict):
+        first, last = date.fromisoformat(start["value"]), date.fromisoformat(end["value"])
+        if last > first:
+            label = fields["number_type"]["source_value"].strip()
+            periods.setdefault((payload["officer_uid"], label), []).append((first, last))
+
+
 def saved_state(connection, collection, *, crypto, backup, binding, payload):
     """Read-only classification of delivery progress, never a repair operation."""
     if collection.name != collection_for(payload):
@@ -267,13 +281,7 @@ def main():
                         file_rows[filename] += 1
                         review_rows[filename] += payload["needs_review"]
                         observations.update(payload["observations"])
-                        if filename == "officer_police_numbers.csv":
-                            values = {item["source_column"]: item["value"] for item in payload["fields"]}
-                            start, end = values["valid_from"], values["valid_to"]
-                            if isinstance(start, dict) and isinstance(end, dict):
-                                first, last = date.fromisoformat(start["value"]), date.fromisoformat(end["value"])
-                                if last > first:
-                                    bounded_numbers.setdefault((payload["officer_uid"], values["number_type"]), []).append((first, last))
+                        record_bounded_number_period(payload, bounded_numbers)
                         for item in payload["fields"]:
                             for issue in item["issues"]:
                                 warnings[filename + ":" + item["source_column"] + ":" + issue] += 1

@@ -212,3 +212,21 @@ def test_original_payloads_and_subject_consistency(tmp_path, filename, bad_link)
             assert payload["authority_result"] is None and payload["reconstructed_state"] is None
             assert binding.confirmation_sha256 == import_srbs.CONFIRMATION
             assert len(digest) == 64 and source_id == row[import_srbs.SOURCE_KEYS[filename]]
+
+
+@pytest.mark.parametrize("end", [None, {"type": "date", "value": "2021-01-01"}])
+def test_bounded_period_grouping_uses_reported_label_and_preserves_unknown_end(end):
+    from copy import deepcopy
+    from datetime import date
+    payload = dict(filename="officer_police_numbers.csv", officer_uid="TEST-OFFICER", fields=[
+        dict(source_column="number_type", source_value="  Reported type  ",
+             value={"reported_label": "Reported type", "code": None}),
+        dict(source_column="valid_from", source_value="2020-01-01",
+             value={"type": "date", "value": "2020-01-01"}),
+        dict(source_column="valid_to", source_value="" if end is None else "2021-01-01", value=end),
+    ])
+    original, periods = deepcopy(payload), {}
+    import_srbs.record_bounded_number_period(payload, periods)
+    assert payload == original
+    assert periods == ({} if end is None else {
+        ("TEST-OFFICER", "Reported type"): [(date(2020, 1, 1), date(2021, 1, 1))]})
