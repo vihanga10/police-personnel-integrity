@@ -21,88 +21,16 @@ from app.db.base import Base
 
 
 class SourceAttestation(Base):
-    """Versioned recording or certification evidence for a source assertion."""
+    """Encrypted recording/certification claims; metadata does not verify authority."""
 
     __tablename__ = "source_attestation"
     __table_args__ = (
+        # Personnel values, including reported dates, live only in this envelope.
+        CheckConstraint("octet_length(profile_payload_ciphertext) > 28", name="family_payload_present"),
+        CheckConstraint("length(trim(encryption_key_version)) > 0", name="family_key_present"),
         CheckConstraint(
             "attestation_type IN ('RECORDED_BY', 'CERTIFIED_BY')",
             name="attestation_type",
-        ),
-        CheckConstraint(
-            """
-            actor_officer_uid IS NOT NULL
-            OR actor_name_ciphertext IS NOT NULL
-            OR actor_identifier_ciphertext IS NOT NULL
-            OR actor_rank_asserted IS NOT NULL
-            OR signature_reference_ciphertext IS NOT NULL
-            OR attested_on IS NOT NULL
-            """,
-            name="attestation_has_value",
-        ),
-        CheckConstraint(
-            """
-            actor_name_ciphertext IS NULL
-            OR octet_length(actor_name_ciphertext) > 0
-            """,
-            name="attestation_actor_name",
-        ),
-        CheckConstraint(
-            """
-            actor_identifier_ciphertext IS NULL
-            OR octet_length(actor_identifier_ciphertext) > 0
-            """,
-            name="attestation_actor_identifier",
-        ),
-        CheckConstraint(
-            """
-            signature_reference_ciphertext IS NULL
-            OR octet_length(signature_reference_ciphertext) > 0
-            """,
-            name="attestation_signature",
-        ),
-        CheckConstraint(
-            """
-            (
-                actor_name_ciphertext IS NULL
-                AND actor_identifier_ciphertext IS NULL
-                AND signature_reference_ciphertext IS NULL
-            )
-            OR (
-                encryption_key_version IS NOT NULL
-                AND length(encryption_key_version) > 0
-            )
-            """,
-            name="attestation_encryption_key",
-        ),
-        CheckConstraint(
-            """
-            actor_identifier_lookup_hmac IS NULL
-            OR actor_identifier_lookup_hmac ~ '^[0-9a-f]{64}$'
-            """,
-            name="attestation_lookup_hmac",
-        ),
-        CheckConstraint(
-            """
-            actor_identifier_lookup_hmac IS NULL
-            OR (
-                lookup_key_version IS NOT NULL
-                AND length(lookup_key_version) > 0
-                AND actor_identifier_type IS NOT NULL
-            )
-            """,
-            name="attestation_lookup_key",
-        ),
-        CheckConstraint(
-            """
-            actor_identifier_type IS NULL
-            OR actor_identifier_type IN (
-                'NIC',
-                'POLICE_ID',
-                'REGIMENTAL_NUMBER'
-            )
-            """,
-            name="attestation_identifier_type",
         ),
         CheckConstraint(
             """
@@ -218,50 +146,14 @@ class SourceAttestation(Base):
         nullable=False,
     )
 
-    actor_name_ciphertext: Mapped[bytes | None] = mapped_column(
-        LargeBinary,
-        nullable=True,
-    )
 
-    actor_identifier_type: Mapped[str | None] = mapped_column(
-        String(30),
-        nullable=True,
-    )
 
-    actor_identifier_ciphertext: Mapped[bytes | None] = mapped_column(
-        LargeBinary,
-        nullable=True,
-    )
 
-    actor_identifier_lookup_hmac: Mapped[str | None] = mapped_column(
-        String(64),
-        nullable=True,
-    )
 
-    actor_rank_asserted: Mapped[str | None] = mapped_column(
-        String(100),
-        nullable=True,
-    )
 
-    signature_reference_ciphertext: Mapped[bytes | None] = mapped_column(
-        LargeBinary,
-        nullable=True,
-    )
 
-    attested_on: Mapped[date | None] = mapped_column(
-        Date,
-        nullable=True,
-    )
 
-    encryption_key_version: Mapped[str | None] = mapped_column(
-        String(50),
-        nullable=True,
-    )
 
-    lookup_key_version: Mapped[str | None] = mapped_column(
-        String(50),
-        nullable=True,
-    )
 
     resolution_status: Mapped[str] = mapped_column(
         String(20),
@@ -298,3 +190,7 @@ class SourceAttestation(Base):
         nullable=False,
         server_default=func.now(),
     )
+
+    # Uniform protected-payload columns match the existing encrypted family relation.
+    profile_payload_ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    encryption_key_version: Mapped[str] = mapped_column(String(50), nullable=False)

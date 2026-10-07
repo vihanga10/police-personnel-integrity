@@ -21,35 +21,14 @@ from app.db.base import Base
 
 
 class OfficerNextOfKinVersion(Base):
-    """A versioned next-of-kin designation for an officer."""
+    """Encrypted next-of-kin source claims; validity remains unknown."""
 
     __tablename__ = "officer_next_of_kin_version"
     __table_args__ = (
-        CheckConstraint(
-            "length(trim(related_person_name)) > 0",
-            name="officer_next_of_kin_has_name",
-        ),
-        CheckConstraint(
-            "length(trim(relationship_type)) > 0",
-            name="officer_next_of_kin_has_relationship",
-        ),
-        CheckConstraint(
-            """
-            address_ciphertext IS NULL
-            OR octet_length(address_ciphertext) > 0
-            """,
-            name="officer_next_of_kin_address",
-        ),
-        CheckConstraint(
-            """
-            address_ciphertext IS NULL
-            OR (
-                encryption_key_version IS NOT NULL
-                AND length(encryption_key_version) > 0
-            )
-            """,
-            name="officer_next_of_kin_encryption_key",
-        ),
+        # Personnel values, including reported dates, live only in this envelope.
+        CheckConstraint("octet_length(profile_payload_ciphertext) > 28", name="family_payload_present"),
+        CheckConstraint("length(trim(encryption_key_version)) > 0", name="family_key_present"),
+        CheckConstraint("valid_from IS NULL AND valid_to IS NULL", name="family_dates_protected"),
         CheckConstraint(
             "version_number > 0",
             name="officer_next_of_kin_positive_version",
@@ -155,25 +134,9 @@ class OfficerNextOfKinVersion(Base):
         nullable=True,
     )
 
-    related_person_name: Mapped[str] = mapped_column(
-        String(300),
-        nullable=False,
-    )
 
-    relationship_type: Mapped[str] = mapped_column(
-        String(50),
-        nullable=False,
-    )
 
-    address_ciphertext: Mapped[bytes | None] = mapped_column(
-        LargeBinary,
-        nullable=True,
-    )
 
-    encryption_key_version: Mapped[str | None] = mapped_column(
-        String(50),
-        nullable=True,
-    )
 
     version_number: Mapped[int] = mapped_column(
         Integer,
@@ -213,3 +176,7 @@ class OfficerNextOfKinVersion(Base):
         nullable=False,
         server_default=func.now(),
     )
+
+    # Uniform protected-payload columns match the existing encrypted family relation.
+    profile_payload_ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    encryption_key_version: Mapped[str] = mapped_column(String(50), nullable=False)

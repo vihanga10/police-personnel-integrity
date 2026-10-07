@@ -125,12 +125,14 @@ def test_versioned_tables_have_version_and_transaction_fields() -> None:
         assert required_columns.issubset(columns), table_name
 
 
-def test_civil_event_uses_event_date_as_valid_time() -> None:
+def test_civil_event_protects_reported_date_without_inventing_valid_time() -> None:
     table = Base.metadata.tables[
         "identity.officer_family_civil_event_version"
     ]
 
-    assert "event_date" in table.c
+    assert "event_date" not in table.c
+    assert "event_type" not in table.c
+    assert table.c.profile_payload_ciphertext.nullable is False
     assert "transaction_start" in table.c
     assert "transaction_end" in table.c
 

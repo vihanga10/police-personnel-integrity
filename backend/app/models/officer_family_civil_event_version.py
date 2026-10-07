@@ -21,38 +21,14 @@ from app.db.base import Base
 
 
 class OfficerFamilyCivilEventVersion(Base):
-    """A versioned family civil event and its protected evidence reference."""
+    """Encrypted reported civil-event claims; no plaintext type or reported date."""
 
     __tablename__ = "officer_family_civil_event_version"
     __table_args__ = (
-        CheckConstraint(
-            "event_type IN ('MARRIAGE', 'DIVORCE', 'DEATH')",
-            name="officer_family_civil_event_type",
-        ),
-        CheckConstraint(
-            """
-            event_date IS NOT NULL
-            OR evidence_reference_ciphertext IS NOT NULL
-            """,
-            name="officer_family_civil_event_has_value",
-        ),
-        CheckConstraint(
-            """
-            evidence_reference_ciphertext IS NULL
-            OR octet_length(evidence_reference_ciphertext) > 0
-            """,
-            name="officer_family_civil_event_evidence_reference",
-        ),
-        CheckConstraint(
-            """
-            evidence_reference_ciphertext IS NULL
-            OR (
-                encryption_key_version IS NOT NULL
-                AND length(encryption_key_version) > 0
-            )
-            """,
-            name="officer_family_civil_event_encryption_key",
-        ),
+        # Personnel values, including reported dates, live only in this envelope.
+        CheckConstraint("octet_length(profile_payload_ciphertext) > 28", name="family_payload_present"),
+        CheckConstraint("length(trim(encryption_key_version)) > 0", name="family_key_present"),
+        Index("ix_officer_family_civil_event_officer", "officer_uid"),
         CheckConstraint(
             "version_number > 0",
             name="officer_family_civil_event_positive_version",
@@ -80,16 +56,6 @@ class OfficerFamilyCivilEventVersion(Base):
             "civil_event_chain_uid",
             "version_number",
             name="uq_officer_family_civil_event_chain_version",
-        ),
-        Index(
-            "ix_officer_family_civil_event_officer_type",
-            "officer_uid",
-            "event_type",
-        ),
-        Index(
-            "ix_officer_family_civil_event_date",
-            "officer_uid",
-            "event_date",
         ),
 # Prevent two replacements from superseding the same evidence version.
         Index(
@@ -150,25 +116,9 @@ class OfficerFamilyCivilEventVersion(Base):
         nullable=True,
     )
 
-    event_type: Mapped[str] = mapped_column(
-        String(20),
-        nullable=False,
-    )
 
-    event_date: Mapped[date | None] = mapped_column(
-        Date,
-        nullable=True,
-    )
 
-    evidence_reference_ciphertext: Mapped[bytes | None] = mapped_column(
-        LargeBinary,
-        nullable=True,
-    )
 
-    encryption_key_version: Mapped[str | None] = mapped_column(
-        String(50),
-        nullable=True,
-    )
 
     version_number: Mapped[int] = mapped_column(
         Integer,
@@ -198,3 +148,7 @@ class OfficerFamilyCivilEventVersion(Base):
         nullable=False,
         server_default=func.now(),
     )
+
+    # Uniform protected-payload columns match the existing encrypted family relation.
+    profile_payload_ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    encryption_key_version: Mapped[str] = mapped_column(String(50), nullable=False)
