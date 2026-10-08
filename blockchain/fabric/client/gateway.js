@@ -2,9 +2,9 @@
 const fs=require('node:fs');const path=require('node:path');const crypto=require('node:crypto');
 const {privatePath,read}=require('./journal');
 const {identity,verifyPeer}=require('./block-identity');
-function connections(configFile,readOnlyIdentity=false) {
+function connections(configFile,readOnlyIdentity=false,expectedChaincode='officer-evidence-test-v1') {
     const config=read(configFile);const grpc=require('@grpc/grpc-js');const {connect,signers,hash}=require('@hyperledger/fabric-gateway');
-    if(config.channel!=='personnel' || config.chaincode!=='officer-evidence-test-v1'||!/^[0-9a-f]{64}$/.test(config.genesis_sha256))throw new Error('Unexpected synthetic test network');
+    if(config.channel!=='personnel' || !['officer-evidence-test-v1','officer-evidence-v1'].includes(expectedChaincode)||config.chaincode!==expectedChaincode||!/^[0-9a-f]{64}$/.test(config.genesis_sha256))throw new Error('Unexpected synthetic test network');
     const captured=fs.readFileSync(privatePath(path.join(path.dirname(path.resolve(configFile)),'genesis.block')));
     if(crypto.createHash('sha256').update(captured).digest('hex')!==config.genesis_sha256)throw new Error('Saved genesis file differs');
     const genesisIdentity=identity(captured);
@@ -32,8 +32,8 @@ function connections(configFile,readOnlyIdentity=false) {
                 return {id:commit.getTransactionId(),commit_bytes:Buffer.from(commit.getBytes()).toString('base64')};},
             status:async bytes=>first.gateway.newCommit(Buffer.from(bytes,'base64')).getStatus(),
             observe:async(method,args)=>Object.fromEntries(await Promise.all(objects.map(async o=>[o.peer.msp_id,
-                JSON.parse(Buffer.from(await o.contract.evaluateTransaction(method,...args)).toString('utf8'))])))},
-        verifyNetwork:async()=>{for(const o of objects){const block=await o.gateway.getNetwork(config.channel).getContract('qscc').evaluateTransaction('GetBlockByNumber',config.channel,'0');
+                JSON.parse(Buffer.from(await o.contract.newProposal(method,{arguments:args,endorsingOrganizations:[o.peer.msp_id]}).evaluate()).toString('utf8'))])))},
+        verifyNetwork:async()=>{for(const o of objects){const block=await o.gateway.getNetwork(config.channel).getContract('qscc').newProposal('GetBlockByNumber',{arguments:[config.channel,'0'],endorsingOrganizations:[o.peer.msp_id]}).evaluate();
             verifyPeer(genesisIdentity,block);}},
         close:()=>{for(const o of objects){o.gateway.close();o.client.close();}}};
 }
