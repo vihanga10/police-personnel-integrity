@@ -3,6 +3,8 @@ const fs=require('node:fs'),path=require('node:path');
 const {ContractFactory,Interface,Transaction,getCreateAddress,getAddress}=require('ethers');
 const F=require('./deployment-files'),R=require('./sepolia-rpc');
 const POLICY='SEPOLIA_CONTRACT_DEPLOYMENT_V1';
+// Conservative local deployment bound below EIP-7825's 16,777,216 transaction cap.
+const MAX_DEPLOYMENT_GAS=12000000n;
 const fail=message=>{throw new Error(message);};
 const lower=s=>typeof s==='string'?s.toLowerCase():s;
 async function deploymentData(a){const factory=new ContractFactory(a.abi,a.bytecode);return (await factory.getDeployTransaction(a.writer)).data;}
@@ -10,14 +12,17 @@ function artifactIdentity(a){return {source_sha256:a.source_sha256,creation_sha2
 async function preflight(rpcs,config,a){const heads=await R.network(rpcs),data=await deploymentData(a);const views=await Promise.all(rpcs.map(async(r,i)=>{const [balance,latest,pending,estimate]=await Promise.all([r.call('eth_getBalance',[a.writer,'latest']),r.call('eth_getTransactionCount',[a.writer,'latest']),r.call('eth_getTransactionCount',[a.writer,'pending']),r.call('eth_estimateGas',[{from:a.writer,data,value:'0x0',maxFeePerGas:R.hex(config.maxFee),maxPriorityFeePerGas:R.hex(config.tip)}])]);if(R.quantity(heads[i].baseFeePerGas)+config.tip>config.maxFee)fail('Fee cap below current base fee and tip');return {balance:R.quantity(balance),latest:R.quantity(latest),pending:R.quantity(pending),estimate:R.quantity(estimate),gasCap:R.quantity(heads[i].gasLimit)};}));
     if(views[0].latest!==views[1].latest||views[0].pending!==views[1].pending||views[0].latest!==views[0].pending)fail('Wallet nonce not idle on both RPCs');
     const estimate=views.reduce((max,v)=>v.estimate>max?v.estimate:max,0n),gas=(estimate*120n+99n)/100n;
-    if(gas<=0n||gas>8000000n||views.some(v=>gas>v.gasCap)||gas*config.maxFee>config.budget||views.some(v=>v.balance<gas*config.maxFee))fail('Deployment exceeds gas, fee budget or balance');
+    if(gas<=0n||gas>MAX_DEPLOYMENT_GAS)fail('Deployment exceeds local gas limit');
+    if(views.some(v=>gas>v.gasCap))fail('Deployment exceeds observed block gas limit');
+    if(gas*config.maxFee>config.budget)fail('Deployment exceeds configured fee budget');
+    if(views.some(v=>v.balance<gas*config.maxFee))fail('Wallet balance below maximum deployment cost');
     if(views[0].latest>BigInt(Number.MAX_SAFE_INTEGER))fail('Nonce exceeds safe range');
     return {data,nonce:Number(views[0].latest),gasLimit:gas};
 }
 async function verifyPrepared(p,a,config){if(p.policy!==POLICY||p.chain_id!==11155111||p.genesis!==R.GENESIS||p.config_sha256!==config.sha256||F.stable(p.artifact)!==F.stable(artifactIdentity(a)))fail('Prepared deployment binding differs');
     if(F.stable(Object.keys(p).sort())!==F.stable(['artifact','chain_id','config_sha256','contract_address','genesis','policy','raw_transaction','transaction_hash']))fail('Prepared fields differ');
     const t=Transaction.from(p.raw_transaction),data=await deploymentData(a);
-    if(!t.isSigned()||t.hash!==p.transaction_hash||t.type!==2||t.chainId!==11155111n||getAddress(t.from)!==a.writer||t.to!==null||t.value!==0n||t.data!==data||t.maxFeePerGas!==config.maxFee||t.maxPriorityFeePerGas!==config.tip||t.accessList?.length!==0||t.gasLimit<=0n||t.gasLimit>8000000n||t.gasLimit*config.maxFee>config.budget||getCreateAddress({from:t.from,nonce:t.nonce})!==p.contract_address)fail('Original signed transaction differs');return t;
+    if(!t.isSigned()||t.hash!==p.transaction_hash||t.type!==2||t.chainId!==11155111n||getAddress(t.from)!==a.writer||t.to!==null||t.value!==0n||t.data!==data||t.maxFeePerGas!==config.maxFee||t.maxPriorityFeePerGas!==config.tip||t.accessList?.length!==0||t.gasLimit<=0n||t.gasLimit>MAX_DEPLOYMENT_GAS||t.gasLimit*config.maxFee>config.budget||getCreateAddress({from:t.from,nonce:t.nonce})!==p.contract_address)fail('Original signed transaction differs');return t;
 }
 async function observe(rpcs,p,a,config,t){const receipts=await Promise.all(rpcs.map(r=>r.call('eth_getTransactionReceipt',[p.transaction_hash])));if(receipts.every(v=>v===null))return {status:'PENDING',reason:'ORIGINAL_RECEIPT_NOT_YET_AVAILABLE'};if(receipts.some(v=>v===null))return {status:'PENDING',reason:'BOTH_RPC_RECEIPTS_REQUIRED'};
     const identity=receipt=>({transactionHash:receipt.transactionHash,blockHash:receipt.blockHash,blockNumber:receipt.blockNumber,contractAddress:lower(receipt.contractAddress),from:lower(receipt.from),to:receipt.to,status:receipt.status,gasUsed:receipt.gasUsed,effectiveGasPrice:receipt.effectiveGasPrice,transactionIndex:receipt.transactionIndex,logs:receipt.logs});

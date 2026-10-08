@@ -23,7 +23,7 @@ Hard network pins:
 - Chain ID: `11155111`.
 - Genesis block hash: `0x25a5cc106eea7138acab33231d7160d69cb777ee0c2c553fcddf5138993e6dd9`.
 - Current heads must be no older than two minutes, with at most 30 seconds future clock tolerance.
-- Deployment gas limit is at most 8,000,000 and below both observed block limits. This is below the EIP-7825 transaction cap of 16,777,216.
+- Deployment gas limit is at most 12,000,000 and below both observed block limits. This is below the EIP-7825 transaction cap of 16,777,216.
 - Default maximum fee: 5 gwei; priority fee: 1 gwei; maximum deployment exposure: 0.025 test ETH. These are configurable limits, not a fee quote or required funding amount. Hard policy limits: at most 20 gwei and 0.1 test ETH.
 - Both RPCs must see an idle, identical wallet nonce before initial preparation and sufficient test balance for the maximum signed cost. Estimate gas on both and add 20 percent headroom. Base fee plus configured tip must fit the cap.
 - At least 12 confirmations and inclusion below each RPC's `finalized` block are required. Twelve confirmations alone are insufficient.
@@ -105,3 +105,11 @@ Live Sepolia deployment verification is still required on the Mac. Then implemen
 ## Package verification
 
 Development checks: 26 focused tests passed, including an actual compiled-contract deployment on a local EVM, four interrupted signed-transaction recovery paths and encrypted wallet backup recovery. Seven disposable installer fixtures passed: clean installation, dirty tree, wrong branch, dependency drift, payload drift, existing target and symlink target. No live Sepolia, production wallet or research evidence was used by these tests.
+
+## Operator-observed deployment estimate correction (2026-10-08)
+
+Both Sepolia providers reported 8,804,119 estimated gas, giving 10,564,943 with the existing 20% margin. The earlier 8 million local bound rejected that deployment. The local bound is now 12 million in both initial preparation and original signed-transaction verification; it remains below EIP-7825, and the observed block limits, budget, balance, nonce and fee checks still apply. This is an operator-reported live estimate, not a deployment receipt. The contract compilation and wallet are unchanged.
+
+At the operator's configured 5 gwei fee cap, maximum signed exposure is 0.052824715 test ETH, exceeding both the 0.025 budget and 0.05 balance. A 2 gwei cap would give 0.021129886 test ETH at the same gas estimate, but is usable only if live base fee plus configured tip fits that cap. The installer does not change private fee configuration. Do not increase the budget or delete journals merely to pass validation. Before any private fee adjustment, verify no PREPARED.json exists and inspect both current base fees. Keep the budget and wallet recovery unchanged.
+
+The regression suite models the exact reported gas estimate and checks fee budget, balance, both block limits, gas boundary and original signed-transaction validation. These tests use synthetic RPC responses, not a live Sepolia deployment.
