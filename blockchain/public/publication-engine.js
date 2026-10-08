@@ -133,9 +133,14 @@ async function quote(rpcs, a, id, op, config) {
     }));
     check(views[0].latest === views[1].latest && views.every(v => v.latest === v.pending) &&
         views[0].latest <= BigInt(Number.MAX_SAFE_INTEGER), 'Publication nonce not idle');
-    const gas = (views.reduce((n, v) => v.estimate > n ? v.estimate : n, 0n) * 120n + 99n) / 100n;
-    check(gas > 0n && gas <= MAX_GAS && views.every(v => gas <= v.blockCap), 'Publication operation exceeds gas cap');
-    return { gas, cost: gas * config.maxFee, nonce: Number(views[0].latest),
+    const estimate = views.reduce((n, v) => v.estimate > n ? v.estimate : n, 0n);
+    const cap = views.reduce((n, v) => v.blockCap < n ? v.blockCap : n, MAX_GAS);
+    const preferred = (estimate * 120n + 99n) / 100n;
+    // Preserve at least 5% headroom; never exceed either block cap or EIP-7825.
+    const minimum = (estimate * 105n + 99n) / 100n;
+    check(estimate > 0n && minimum <= cap, 'Publication operation exceeds gas cap');
+    const gas = preferred <= cap ? preferred : cap;
+    return { gas, estimate, gasCap: cap, cost: gas * config.maxFee, nonce: Number(views[0].latest),
         funded: views.every(v => v.balance >= gas * config.maxFee), minBalance: views.reduce((n, v) => v.balance < n ? v.balance : n, views[0].balance) };
 }
 async function run({ mode, wallet, rpcs, config, artifact: a, deployment, plan: p, digest, directory,
@@ -160,6 +165,7 @@ async function run({ mode, wallet, rpcs, config, artifact: a, deployment, plan: 
             check(priorNonce === null || q.nonce === priorNonce + 1, 'Unrelated wallet transaction detected');
             const report = { status: q.funded && reserved + q.cost <= limit ? 'READY' : 'FUNDING_OR_BUDGET_REQUIRED', mode,
                 next_operation: op.index, next_method: op.name, estimated_gas_limit: q.gas.toString(),
+                raw_gas_estimate: q.estimate.toString(), gas_headroom: (q.gas - q.estimate).toString(), effective_gas_cap: q.gasCap.toString(),
                 maximum_next_fee_test_eth: formatEther(q.cost), reserved_publication_fees_test_eth: formatEther(reserved),
                 publication_fee_budget_test_eth: formatEther(limit), wallet_balance_test_eth: formatEther(q.minBalance),
                 remaining_operations: 68 - op.index, remaining_maximum_policy_exposure_test_eth: formatEther(BigInt(68 - op.index) * MAX_GAS * config.maxFee),
