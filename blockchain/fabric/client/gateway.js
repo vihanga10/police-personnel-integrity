@@ -1,9 +1,13 @@
 'use strict';
 const fs=require('node:fs');const path=require('node:path');const crypto=require('node:crypto');
 const {privatePath,read}=require('./journal');
+const {identity,verifyPeer}=require('./block-identity');
 function connections(configFile,readOnlyIdentity=false) {
     const config=read(configFile);const grpc=require('@grpc/grpc-js');const {connect,signers,hash}=require('@hyperledger/fabric-gateway');
     if(config.channel!=='personnel' || config.chaincode!=='officer-evidence-test-v1'||!/^[0-9a-f]{64}$/.test(config.genesis_sha256))throw new Error('Unexpected synthetic test network');
+    const captured=fs.readFileSync(privatePath(path.join(path.dirname(path.resolve(configFile)),'genesis.block')));
+    if(crypto.createHash('sha256').update(captured).digest('hex')!==config.genesis_sha256)throw new Error('Saved genesis file differs');
+    const genesisIdentity=identity(captured);
     const wallet=readOnlyIdentity?config.reader:config.anchorer;
     const credentials=fs.readFileSync(privatePath(wallet.certificate));
     const key=crypto.createPrivateKey(fs.readFileSync(privatePath(wallet.private_key)));
@@ -20,7 +24,7 @@ function connections(configFile,readOnlyIdentity=false) {
     });
     if(objects.map(o=>o.peer.msp_id).sort().join(',')!=='Org1MSP,Org2MSP')throw new Error('Two peer organizations required');
     const first=objects[0];
-    return {network:{genesis_sha256:config.genesis_sha256,channel:config.channel,chaincode:config.chaincode},
+    return {network:{genesis_sha256:config.genesis_sha256,channel:config.channel,chaincode:config.chaincode,genesis_identity:genesisIdentity},
         driver:{
             endorse:async(method,args)=>{const tx=await first.contract.newProposal(method,{arguments:args,endorsingOrganizations:['Org1MSP','Org2MSP']}).endorse();
                 return {id:tx.getTransactionId(),bytes:Buffer.from(tx.getBytes()).toString('base64'),expected:JSON.parse(Buffer.from(tx.getResult()).toString('utf8'))};},
@@ -30,7 +34,7 @@ function connections(configFile,readOnlyIdentity=false) {
             observe:async(method,args)=>Object.fromEntries(await Promise.all(objects.map(async o=>[o.peer.msp_id,
                 JSON.parse(Buffer.from(await o.contract.evaluateTransaction(method,...args)).toString('utf8'))])))},
         verifyNetwork:async()=>{for(const o of objects){const block=await o.gateway.getNetwork(config.channel).getContract('qscc').evaluateTransaction('GetBlockByNumber',config.channel,'0');
-            if(crypto.createHash('sha256').update(block).digest('hex')!==config.genesis_sha256)throw new Error('Peer genesis identity differs');}},
+            verifyPeer(genesisIdentity,block);}},
         close:()=>{for(const o of objects){o.gateway.close();o.client.close();}}};
 }
 module.exports={connections};
