@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import socket
@@ -34,6 +35,54 @@ def preflight(output, repo, names, port_free, networks=(), volumes=()):
     return output
 
 
+
+def verify_version(content, expected):
+    tokens = re.findall(r'(?im)^\s*version\s*:\s*([vV]?\d+\.\d+\.\d+(?:[-+][A-Za-z0-9.-]+)?)\s*$', content)
+    if len(tokens) != 1 or tokens[0].lstrip('vV') != expected:
+        raise ValueError('Downloaded binary versions differ.')
+
+
+def resume_pre_network(output, repo, names, port_free, networks=(), volumes=()):
+    """Resume only the known pre-network version-check stop; never an existing ledger."""
+    root = private_path(output, True)
+    preflight(root/'preflight-only', repo, names, port_free, networks, volumes)
+    allowed = {'SETUP_STARTED.json', 'release-source.json', 'release-source', 'fabric-samples', 'logs'}
+    for item in root.iterdir():
+        if item.name not in allowed and not re.fullmatch(r'SETUP_STOPPED-[0-9a-f]{32}\.json', item.name):
+            raise ValueError('Resume requires the original pre-network stop only.')
+    started = json.loads(private_path(root/'SETUP_STARTED.json').read_text())
+    initial = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', '6f6899a^{commit}'], text=True).strip()
+    if started != dict(status='STARTED', code_revision=initial, fabric=FABRIC, ca=CA, channel=CHANNEL, chaincode=CHAINCODE):
+        raise ValueError('Original setup receipt differs.')
+    logs = private_path(root/'logs', True)
+    phases = {'release_source', 'downloads', 'peer_binary_version', 'ca_binary_version'}
+    if {p.name for p in logs.iterdir()} != {phase+suffix for phase in phases for suffix in ('.log', '.json')}:
+        raise ValueError('Resume cannot follow a network-start attempt or other phase.')
+    for phase in phases:
+        if json.loads(private_path(logs/(phase+'.json')).read_text()) != dict(phase=phase, status='PASSED'):
+            raise ValueError('Incomplete download phase.')
+    verify_version(private_path(logs/'peer_binary_version.log').read_text(), FABRIC)
+    verify_version(private_path(logs/'ca_binary_version.log').read_text(), CA)
+    for binary in (root/'fabric-samples/bin/peer', root/'fabric-samples/bin/fabric-ca-client'):
+        if not binary.is_file() or any(p.is_symlink() for p in (binary, *binary.parents)):
+            raise ValueError('Downloaded binary path differs.')
+    release = root/'release-source'
+    if any(p.is_symlink() for p in (release, *release.parents)):
+        raise ValueError('Source path traverses symlink.')
+    receipt = json.loads(private_path(root/'release-source.json').read_text())
+    head = subprocess.check_output(['git', '-C', str(release), 'rev-parse', 'HEAD'], text=True).strip()
+    digest = hashlib.sha256((release/'scripts/install-fabric.sh').read_bytes()).hexdigest()
+    if receipt != dict(release_commit=head, installer_sha256=digest):
+        raise ValueError('Captured installer binding differs.')
+    for source in (release, root/'fabric-samples'):
+        if source.is_symlink() or any(p.is_symlink() for p in source.parents):
+            raise ValueError('Source path traverses symlink.')
+        for args in (('diff', '--exit-code'), ('diff', '--cached', '--exit-code')):
+            if subprocess.run(['git', '-C', str(source), *args], capture_output=True).returncode:
+                raise ValueError('Downloaded tracked sources differ.')
+    return root
+
+
 def free(port):
     with socket.socket() as sock:
         try: sock.bind(('127.0.0.1', port)); return True
@@ -49,6 +98,7 @@ def one(directory):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--network-root', type=Path, required=True)
+    parser.add_argument('--resume-pre-network', action='store_true', help='Resume only the verified v-prefix check stop before network creation.')
     args = parser.parse_args(); root = None
     os.umask(0o077)
     try:
@@ -60,10 +110,15 @@ def main():
         names = set(subprocess.check_output(['docker', 'ps', '-a', '--format', '{{.Names}}'], text=True).splitlines())
         networks = subprocess.check_output(['docker', 'network', 'ls', '--format', '{{.Name}}'], text=True).splitlines()
         volumes = subprocess.check_output(['docker', 'volume', 'ls', '--format', '{{.Name}}'], text=True).splitlines()
-        root = preflight(args.network_root, repo, names, free, networks, volumes)
-        root = private_output(root, repo)
-        save_receipt(dict(status='STARTED', code_revision=revision, fabric=FABRIC, ca=CA, channel=CHANNEL, chaincode=CHAINCODE), root/'SETUP_STARTED.json')
-        logs = root/'logs'; logs.mkdir(mode=0o700)
+        if args.resume_pre_network:
+            root = resume_pre_network(args.network_root, repo, names, free, networks, volumes)
+            save_receipt(dict(status='RESUMED_BEFORE_NETWORK', code_revision=revision), root/'SETUP_RESUMED.json')
+            logs = root/'logs'
+        else:
+            root = preflight(args.network_root, repo, names, free, networks, volumes)
+            root = private_output(root, repo)
+            save_receipt(dict(status='STARTED', code_revision=revision, fabric=FABRIC, ca=CA, channel=CHANNEL, chaincode=CHAINCODE), root/'SETUP_STARTED.json')
+            logs = root/'logs'; logs.mkdir(mode=0o700)
         def run(phase, command, cwd=root, env=None):
             print('Fabric setup phase:', phase, flush=True)
             log = logs/(phase+'.log')
@@ -72,16 +127,18 @@ def main():
                 result = subprocess.run(command, cwd=cwd, env=env, stdout=stream, stderr=subprocess.STDOUT, timeout=1800)
             if result.returncode: raise RuntimeError('External setup phase failed: '+phase)
             save_receipt(dict(phase=phase, status='PASSED'), logs/(phase+'.json'))
-        run('release_source', ['git', 'clone', '--depth', '1', '--branch', 'v'+FABRIC, 'https://github.com/hyperledger/fabric.git', str(root/'release-source')])
-        installer = root/'release-source/scripts/install-fabric.sh'
-        save_receipt(dict(release_commit=subprocess.check_output(['git', '-C', str(root/'release-source'), 'rev-parse', 'HEAD'], text=True).strip(),
-                          installer_sha256=hashlib.sha256(installer.read_bytes()).hexdigest()), root/'release-source.json')
-        run('downloads', ['bash', str(installer), '--fabric-version', FABRIC, '--ca-version', CA, 'docker', 'samples', 'binary'])
+        if not args.resume_pre_network:
+            run('release_source', ['git', 'clone', '--depth', '1', '--branch', 'v'+FABRIC, 'https://github.com/hyperledger/fabric.git', str(root/'release-source')])
+            installer = root/'release-source/scripts/install-fabric.sh'
+            save_receipt(dict(release_commit=subprocess.check_output(['git', '-C', str(root/'release-source'), 'rev-parse', 'HEAD'], text=True).strip(),
+                              installer_sha256=hashlib.sha256(installer.read_bytes()).hexdigest()), root/'release-source.json')
+            run('downloads', ['bash', str(installer), '--fabric-version', FABRIC, '--ca-version', CA, 'docker', 'samples', 'binary'])
         samples = root/'fabric-samples'; network = samples/'test-network'
-        run('peer_binary_version', [str(samples/'bin/peer'), 'version'])
-        run('ca_binary_version', [str(samples/'bin/fabric-ca-client'), 'version'])
-        if 'Version: '+FABRIC not in (logs/'peer_binary_version.log').read_text() or 'Version: '+CA not in (logs/'ca_binary_version.log').read_text():
-            raise ValueError('Downloaded binary versions differ.')
+        prefix = 'resume_' if args.resume_pre_network else ''
+        run(prefix+'peer_binary_version', [str(samples/'bin/peer'), 'version'])
+        run(prefix+'ca_binary_version', [str(samples/'bin/fabric-ca-client'), 'version'])
+        verify_version((logs/(prefix+'peer_binary_version.log')).read_text(), FABRIC)
+        verify_version((logs/(prefix+'ca_binary_version.log')).read_text(), CA)
         sample_commit = subprocess.check_output(['git', '-C', str(samples), 'rev-parse', 'HEAD'], text=True).strip()
         save_receipt(dict(samples_commit=sample_commit, network_script_sha256=hashlib.sha256((network/'network.sh').read_bytes()).hexdigest()), root/'sample-source.json')
         # Official sample scripts use fixed names/ports; preflight refuses collisions before creation.

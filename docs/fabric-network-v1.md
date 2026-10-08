@@ -52,7 +52,7 @@ git status --short --branch
 Use a new empty private directory outside Git; keep all existing research keys untouched. From `backend`:
 
 ```bash
-uv run python scripts/setup_fabric_network.py \
+uv run python -m scripts.setup_fabric_network \
     --network-root "$HOME/ResearchKeys/police-personnel-integrity/fabric-local-v1"
 ```
 
@@ -83,3 +83,17 @@ Test ledger records remain preserved. A fresh journal creates another random tes
 Only the Mac's successful setup and real checker output establish local deployment readiness. Container presence or unit tests alone are insufficient. Fabric binary/image compatibility, CA enrollment, endorsement, gateway access and actual commit readback remain unverified until these checks pass.
 
 The actual research anchoring client and separate research chaincode deployment follow. Immediately before any research submission, rerun the live evidence gate and enforce its ten-minute freshness limit. Research writes must use the exact protected publication already verified; record and reconcile original transaction receipts. Public anchoring of the same 6,596 commitments, public-chain confirmations and the audit integrity gate remain pending. Classification stays UNASSESSED.
+
+## Guarded repair of the original version-format stop
+
+The original checker compared `Version: 2.5.16` with binaries that report `Version: v2.5.16` (and similarly for CA). The corrected parser accepts a single optional v/V prefix, verifies an exact version and rejects other versions, suffixes, missing or repeated version declarations.
+
+After installing, testing and committing this fix, resume only the original pre-network stop:
+
+```bash
+uv run python -m scripts.setup_fabric_network \
+    --network-root "$HOME/ResearchKeys/police-personnel-integrity/fabric-local-v1" \
+    --resume-pre-network
+```
+
+Resume requires the original setup revision 6f6899a, the four successful download/version command receipts, matching captured release installer and clean tracked downloaded sources. It rejects any network-start attempt, other setup material, Fabric containers/volumes/network or occupied ports. It preserves prior logs and downloads and re-executes both version commands into separate logs before starting the network. This is a narrow repair path, not general recovery of a partially created ledger. If resume stops after starting, preserve everything and inspect that phase; do not retry by deleting files.
