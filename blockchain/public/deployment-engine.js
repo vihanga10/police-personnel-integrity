@@ -29,18 +29,34 @@ async function observe(rpcs,p,a,config,t){const receipts=await Promise.all(rpcs.
     if(F.stable(identity(receipts[0]))!==F.stable(identity(receipts[1])))fail('RPC deployment receipts disagree');
     const receipt=receipts[0],number=R.quantity(receipt.blockNumber);R.hash(receipt.blockHash);
     if(receipt.transactionHash!==p.transaction_hash||R.quantity(receipt.status)!==1n||lower(receipt.contractAddress)!==lower(p.contract_address)||lower(receipt.from)!==lower(a.writer)||receipt.to!==null||!Array.isArray(receipt.logs)||receipt.logs.length!==0||R.quantity(receipt.gasUsed)>t.gasLimit||R.quantity(receipt.effectiveGasPrice)>config.maxFee)fail('Original deployment receipt invalid');R.quantity(receipt.transactionIndex);
-    const iface=new Interface(a.abi);
-    const checks=await Promise.all(rpcs.map(async r=>{const [block,head,finalized,tx,code,writer,officers,chain]=await Promise.all([
-        r.call('eth_getBlockByNumber',[receipt.blockNumber,false]),r.call('eth_getBlockByNumber',['latest',false]),r.call('eth_getBlockByNumber',['finalized',false]),r.call('eth_getTransactionByHash',[p.transaction_hash]),r.call('eth_getCode',[p.contract_address,receipt.blockNumber]),
-        r.call('eth_call',[{to:p.contract_address,data:iface.encodeFunctionData('writer')},receipt.blockNumber]),r.call('eth_call',[{to:p.contract_address,data:iface.encodeFunctionData('OFFICERS')},receipt.blockNumber]),r.call('eth_call',[{to:p.contract_address,data:iface.encodeFunctionData('CHAIN_ID')},receipt.blockNumber])]);
+    // The original receipt, creation input and inclusion block remain authoritative.
+    // Contract state is read at one common finalized block instead of requiring
+    // an archive provider for the original deployment-height state.
+    const views=await Promise.all(rpcs.map(async r=>{const [block,head,finalized,tx]=await Promise.all([
+        r.call('eth_getBlockByNumber',[receipt.blockNumber,false]),r.call('eth_getBlockByNumber',['latest',false]),
+        r.call('eth_getBlockByNumber',['finalized',false]),r.call('eth_getTransactionByHash',[p.transaction_hash])]);
         if(!block||block.hash!==receipt.blockHash||R.quantity(block.number)!==number||!block.transactions?.includes(p.transaction_hash)||!tx||tx.hash!==p.transaction_hash||tx.blockHash!==receipt.blockHash||R.quantity(tx.blockNumber)!==number||lower(tx.from)!==lower(a.writer)||tx.to!==null||tx.input!==t.data||R.quantity(tx.nonce)!==BigInt(t.nonce)||R.quantity(tx.chainId)!==t.chainId||R.quantity(tx.type)!==2n||R.quantity(tx.value)!==0n||R.quantity(tx.gas)!==t.gasLimit||R.quantity(tx.maxFeePerGas)!==t.maxFeePerGas||R.quantity(tx.maxPriorityFeePerGas)!==t.maxPriorityFeePerGas)fail('Original inclusion or transaction readback differs');
-        if(code!==a.runtime||getAddress(iface.decodeFunctionResult('writer',writer)[0])!==a.writer||iface.decodeFunctionResult('OFFICERS',officers)[0]!==6596n||iface.decodeFunctionResult('CHAIN_ID',chain)[0]!==11155111n)fail('Deployed runtime or writer differs');
-        const confirmed=R.quantity(head.number)>=number+BigInt(config.confirmations)-1n,final=finalized!==null&&R.quantity(finalized.number)>=number;
-        // Check the inclusion block again after the finality query to catch a changed fork.
-        const again=await r.call('eth_getBlockByNumber',[receipt.blockNumber,false]);if(again?.hash!==receipt.blockHash)fail('Deployment inclusion reorg detected');
-        return confirmed&&final;
+        if(finalized!==null){R.hash(finalized.hash);R.quantity(finalized.number);}
+        return {head,finalized};
     }));
-    if(checks.some(v=>!v))return {status:'PENDING',reason:'FINALIZED_BLOCK_AND_CONFIRMATIONS_REQUIRED',transaction_hash:p.transaction_hash,contract_address:p.contract_address};
+    if(views.some(v=>R.quantity(v.head.number)<number+BigInt(config.confirmations)-1n||v.finalized===null||R.quantity(v.finalized.number)<number))
+        return {status:'PENDING',reason:'FINALIZED_BLOCK_AND_CONFIRMATIONS_REQUIRED',transaction_hash:p.transaction_hash,contract_address:p.contract_address};
+    const height=views.reduce((n,v)=>R.quantity(v.finalized.number)<n?R.quantity(v.finalized.number):n,R.quantity(views[0].finalized.number));
+    const tag=R.hex(height),blocks=await Promise.all(rpcs.map(r=>r.call('eth_getBlockByNumber',[tag,false])));
+    if(blocks.some(b=>!b||R.quantity(b.number)!==height)||blocks[0].hash!==blocks[1].hash)fail('Finalized verification block differs');
+    R.hash(blocks[0].hash);
+    for(let i=0;i<views.length;i++)if(R.quantity(views[i].finalized.number)===height&&views[i].finalized.hash!==blocks[i].hash)fail('Finalized verification block differs');
+    const iface=new Interface(a.abi);
+    await Promise.all(rpcs.map(async r=>{const [code,writer,officers,chain]=await Promise.all([
+        r.call('eth_getCode',[p.contract_address,tag]),
+        r.call('eth_call',[{to:p.contract_address,data:iface.encodeFunctionData('writer')},tag]),
+        r.call('eth_call',[{to:p.contract_address,data:iface.encodeFunctionData('OFFICERS')},tag]),
+        r.call('eth_call',[{to:p.contract_address,data:iface.encodeFunctionData('CHAIN_ID')},tag])]);
+        if(code!==a.runtime||getAddress(iface.decodeFunctionResult('writer',writer)[0])!==a.writer||iface.decodeFunctionResult('OFFICERS',officers)[0]!==6596n||iface.decodeFunctionResult('CHAIN_ID',chain)[0]!==11155111n)fail('Deployed runtime or writer differs');
+        const [again,stateBlock]=await Promise.all([r.call('eth_getBlockByNumber',[receipt.blockNumber,false]),r.call('eth_getBlockByNumber',[tag,false])]);
+        if(again?.hash!==receipt.blockHash)fail('Deployment inclusion reorg detected');
+        if(stateBlock?.hash!==blocks[0].hash||R.quantity(stateBlock.number)!==height)fail('Finalized verification block changed');
+    }));
     return {policy:POLICY,status:'PASSED',chain_id:11155111,genesis:R.GENESIS,transaction_hash:p.transaction_hash,contract_address:p.contract_address,writer:a.writer,block_number:Number(number),block_hash:receipt.blockHash,gas_used:receipt.gasUsed,effective_gas_price:receipt.effectiveGasPrice,artifact:artifactIdentity(a),config_sha256:config.sha256,two_rpc_readback:true,finalized:true,minimum_confirmations:config.confirmations,research_commitments_submitted:0};
 }
 async function run({mode,wallet,rpcs,config,artifact:a,directory,interrupt=()=>{}}){if(!['VALIDATE','EXECUTE','RECONCILE'].includes(mode))fail('Unknown deployment mode');if(wallet.address!==a.writer)fail('Writer wallet differs');let submitted=false;const prepared=path.join(directory,'PREPARED.json'),completed=path.join(directory,'PASSED.json');

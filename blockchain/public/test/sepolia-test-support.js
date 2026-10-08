@@ -7,7 +7,7 @@ function config(){return R.configuration({policy:'SEPOLIA_DEPLOYMENT_NETWORK_V1'
 function fake(){const wallet=Wallet.createRandom(),a=artifact(wallet.address),state={raw:null,broadcasts:[],receipts:true,finality:true,tamper:null,failBroadcast:false};const iface=new Interface(a.abi),blockHash='0x'+'bc'.repeat(32);
     function rpc(peer){return {async call(m,p){const tx=state.raw?Transaction.from(state.raw):null,addr=tx?getCreateAddress({from:wallet.address,nonce:tx.nonce}):null;let v;
         switch(m){case 'eth_chainId':v='0xaa36a7';break;
-        case 'eth_getBlockByNumber':if(p[0]==='0x0')v={number:'0x0',hash:R.GENESIS};else if(p[0]==='latest')v={number:'0x70',hash:'0x'+'dd'.repeat(32),timestamp:R.hex(Math.floor(Date.now()/1000)),gasLimit:'0x1c9c380',baseFeePerGas:R.hex(1000000000)};else if(p[0]==='finalized')v=state.finality?{number:'0x70',hash:'0x'+'dd'.repeat(32)}:{number:'0x1',hash:'0x'+'aa'.repeat(32)};else v={number:'0x60',hash:blockHash,transactions:tx?[tx.hash]:[]};break;
+        case 'eth_getBlockByNumber':if(p[0]==='0x0')v={number:'0x0',hash:R.GENESIS};else if(p[0]==='latest')v={number:'0x70',hash:'0x'+'dd'.repeat(32),timestamp:R.hex(Math.floor(Date.now()/1000)),gasLimit:'0x1c9c380',baseFeePerGas:R.hex(1000000000)};else if(p[0]==='0x70')v={number:'0x70',hash:'0x'+'dd'.repeat(32)};else if(p[0]==='finalized')v=state.finality?{number:'0x70',hash:'0x'+'dd'.repeat(32)}:{number:'0x1',hash:'0x'+'aa'.repeat(32)};else v={number:'0x60',hash:blockHash,transactions:tx?[tx.hash]:[]};break;
         case 'eth_getBalance':v=R.hex(10n**18n);break;
         case 'eth_getTransactionCount':v=tx?'0x1':'0x0';break;
         case 'eth_estimateGas':v='0x1e8480';break;
