@@ -26,6 +26,8 @@ async function main(argv) {
     const result = await F.locked(directory, () => run({ mode, wallet, rpcs, config, artifact: a, deployment: saved,
         plan: auth.plan, digest: auth.payload.public_payload_sha256, directory,
         publicationBudget: auth.payload.publication_fee_budget_eth, guard: () => recent(auth.payload),
+        receiptWaitMs: 45000, finalityWaitMs: 60000, pollIntervalMs: 3000,
+        waitProgress: (phase, index) => console.log(`Public bounded wait: ${phase} | operation=${index}`),
         progress: n => console.log(`Public original receipts verified: ${n} / 68`),
         readProgress: n => console.log(`Public officer readback: ${n} / 6596`) }));
     F.write(resultFile, { ...result, code_revision: expectedRevision });

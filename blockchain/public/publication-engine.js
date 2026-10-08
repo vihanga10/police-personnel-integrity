@@ -143,20 +143,44 @@ async function quote(rpcs, a, id, op, config) {
     return { gas, estimate, gasCap: cap, cost: gas * config.maxFee, nonce: Number(views[0].latest),
         funded: views.every(v => v.balance >= gas * config.maxFee), minBalance: views.reduce((n, v) => v.balance < n ? v.balance : n, views[0].balance) };
 }
+// Bounded read-only polling never signs, broadcasts or suppresses verification errors.
+async function pollUntil(read, initial, ready, { waitMs = 0, intervalMs = 3000, now = Date.now,
+    sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) } = {}) {
+    check(Number.isInteger(waitMs) && waitMs >= 0 && waitMs <= 60000 &&
+        Number.isInteger(intervalMs) && intervalMs >= 1000 && intervalMs <= 5000, 'Polling bounds differ');
+    let value = initial;
+    const end = now() + waitMs, rounds = Math.ceil(waitMs / intervalMs);
+    for (let n = 0; n < rounds && !ready(value); n++) {
+        const left = end - now();
+        if (left <= 0) break;
+        await sleep(Math.min(intervalMs, left));
+        if (now() >= end) break;
+        value = await read();
+    }
+    return value;
+}
 async function run({ mode, wallet, rpcs, config, artifact: a, deployment, plan: p, digest, directory,
-    publicationBudget, guard = () => { throw new Error('Fresh authorization required'); }, interrupt = () => {}, progress = () => {}, readProgress = () => {} }) {
+    publicationBudget, guard = () => { throw new Error('Fresh authorization required'); }, interrupt = () => {}, progress = () => {}, readProgress = () => {},
+    receiptWaitMs = 0, finalityWaitMs = 0, pollIntervalMs = 3000, pollingSleep, pollingNow, waitProgress = () => {} }) {
     check(['VALIDATE', 'EXECUTE', 'RECONCILE'].includes(mode), 'Publication mode differs');
     const limit = budget(publicationBudget), id = identity(a, config, deployment, p, digest), ops = operations(p, a.abi);
     check(wallet.address === id.writer && deployment.status === 'PASSED' && deployment.finalized === true &&
         deployment.two_rpc_readback === true && deployment.chain_id === 11155111 && deployment.artifact.runtime_sha256 === a.runtime_sha256,
         'Verified deployment required');
-    guard(); await R.network(rpcs); await runtimeCheck(rpcs, a, id);
     const completionFile = path.join(directory, 'PASSED.json');
     const observations = []; let reserved = 0n, priorNonce = null, submitted = 0;
     const pending = reason => ({ status: 'PENDING', reason, completed_operations: observations.length,
         original_transactions_prepared: observations.length + (fs.existsSync(path.join(directory, `${observations.length.toString().padStart(2, '0')}-PREPARED.json`)) ? 1 : 0),
         submitted_transactions_this_run: submitted, research_publication_complete: false });
+    const polling = waitMs => ({ waitMs, intervalMs: pollIntervalMs,
+        ...(pollingSleep ? { sleep: pollingSleep } : {}), ...(pollingNow ? { now: pollingNow } : {}) });
+    // Validate both wait policies even when the chain is immediately available.
+    await pollUntil(async () => null, null, () => true, polling(receiptWaitMs));
+    await pollUntil(async () => null, null, () => true, polling(finalityWaitMs));
+    try {
+    guard(); await R.network(rpcs); await runtimeCheck(rpcs, a, id);
     for (const op of ops) {
+        let newlyPrepared = false;
         const file = path.join(directory, `${op.index.toString().padStart(2, '0')}-PREPARED.json`);
         if (!fs.existsSync(file)) {
             if (mode === 'RECONCILE') return pending('ORIGINAL_TRANSACTION_NOT_PREPARED');
@@ -175,12 +199,20 @@ async function run({ mode, wallet, rpcs, config, artifact: a, deployment, plan: 
             const raw = await wallet.signTransaction({ type: 2, chainId: 11155111, to: id.contract, nonce: q.nonce,
                 data: op.data, value: 0n, gasLimit: q.gas, maxFeePerGas: config.maxFee, maxPriorityFeePerGas: config.tip, accessList: [] });
             F.write(file, { identity: id, index: op.index, raw_transaction: raw, transaction_hash: Transaction.from(raw).hash });
+            newlyPrepared = true;
             await interrupt('AFTER_PREPARE', op.index);
         }
         const prepared = F.read(file), tx = verifyPrepared(prepared, id, op, config, priorNonce === null ? null : priorNonce + 1);
         reserved += tx.gasLimit * config.maxFee;
         check(reserved <= limit, 'Previously prepared fees exceed publication budget');
         let observation = await observe(rpcs, prepared, id, op, config, tx, a.abi);
+        const waitReceipt = async initial => {
+            if (initial.status !== 'PENDING' || !receiptWaitMs || mode !== 'EXECUTE') return initial;
+            waitProgress('RECEIPTS', op.index);
+            return pollUntil(() => observe(rpcs, prepared, id, op, config, tx, a.abi), initial,
+                v => v.status !== 'PENDING', polling(receiptWaitMs));
+        };
+        if (!newlyPrepared) observation = await waitReceipt(observation);
         if (observation.status === 'PENDING' && mode === 'EXECUTE') {
             guard(); await R.network(rpcs);
             const nonceViews = await Promise.all(rpcs.map(async rpc => {
@@ -202,7 +234,7 @@ async function run({ mode, wallet, rpcs, config, artifact: a, deployment, plan: 
                 } catch (error) { if (['Publication broadcast hash differs', 'Fresh live gate required'].includes(error.message)) throw error; }
             }
             await interrupt('AFTER_BROADCAST', op.index);
-            observation = await observe(rpcs, prepared, id, op, config, tx, a.abi);
+            observation = await waitReceipt(await observe(rpcs, prepared, id, op, config, tx, a.abi));
             if (!acknowledged && observation.status === 'PENDING') return pending('AMBIGUOUS_ORIGINAL_BROADCAST');
         }
         if (observation.status === 'PENDING') return pending(observation.reason);
@@ -212,6 +244,21 @@ async function run({ mode, wallet, rpcs, config, artifact: a, deployment, plan: 
         else if (mode !== 'VALIDATE') { F.write(minedFile, mined); await interrupt('AFTER_RECEIPT', op.index); }
         observations.push({ tx: tx.hash, ...observation }); priorNonce = tx.nonce;
         await interrupt('AFTER_READBACK', op.index); progress(observations.length);
+    }
+    if (observations.some(o => !o.finalized) && finalityWaitMs && mode !== 'VALIDATE') {
+        waitProgress('FINALITY', 67);
+        const refreshed = await pollUntil(async () => {
+            const next = [];
+            for (const op of ops) {
+                const prepared = F.read(path.join(directory, `${op.index.toString().padStart(2, '0')}-PREPARED.json`));
+                const tx = verifyPrepared(prepared, id, op, config, null);
+                const value = await observe(rpcs, prepared, id, op, config, tx, a.abi);
+                check(value.status === 'MINED' && F.stable(value.receipt) === F.stable(observations[op.index].receipt), 'Final publication inclusion changed');
+                next.push({ tx: tx.hash, ...value });
+            }
+            return next;
+        }, observations, values => values.every(v => v.finalized), polling(finalityWaitMs));
+        observations.splice(0, observations.length, ...refreshed);
     }
     if (observations.some(o => !o.finalized)) return pending('ALL_ORIGINAL_TRANSACTIONS_REQUIRE_FINALITY');
     const seal = observations.at(-1).receipt;
@@ -231,5 +278,9 @@ async function run({ mode, wallet, rpcs, config, artifact: a, deployment, plan: 
     if (fs.existsSync(completionFile)) check(F.stable(F.read(completionFile)) === F.stable(result), 'Saved publication completion differs');
     else if (mode !== 'VALIDATE') F.write(completionFile, result);
     return { ...result, mode, submitted_transactions_this_run: submitted, research_publication_complete: true };
+    } catch (error) {
+        if (error.message === 'Fresh live gate required') return pending('FRESH_AUTHORIZATION_REQUIRED');
+        throw error;
+    }
 }
-module.exports = { run, operations, verifyPrepared, observe, quote, budget, readAll, identity };
+module.exports = { run, operations, verifyPrepared, observe, quote, budget, readAll, identity, pollUntil };

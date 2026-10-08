@@ -70,8 +70,9 @@ test('changed stored officer commitment stops full final readback', async () => 
 });
 test('fresh gate expiry before broadcast preserves prepared original without submitting', async () => {
     const f = fake(); let expired = false;
-    await assert.rejects(run({ ...f, mode: 'EXECUTE', guard: () => { if (expired) throw new Error('Fresh live gate required'); },
-        interrupt: p => { if (p === 'AFTER_PREPARE') expired = true; } }), /Fresh live gate/);
+    const result = await run({ ...f, mode: 'EXECUTE', guard: () => { if (expired) throw new Error('Fresh live gate required'); },
+        interrupt: p => { if (p === 'AFTER_PREPARE') expired = true; } });
+    assert.equal(result.reason, 'FRESH_AUTHORIZATION_REQUIRED');
     assert.equal(f.state.broadcasts.length, 0); assert.ok(fs.existsSync(path.join(f.directory, '00-PREPARED.json')));
 });
 test('altered saved signed bytes or configuration cannot reconcile', async () => {
