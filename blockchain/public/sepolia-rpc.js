@@ -10,9 +10,9 @@ function configuration(c){if(F.stable(Object.keys(c).sort())!==F.stable(['confir
     if(maxFee<=0n||maxFee>parseUnits('20','gwei')||tip<=0n||tip>maxFee||budget<=0n||budget>parseEther('0.1'))throw new Error('Test fee caps exceed policy');
     return {sha256:F.digest(c),maxFee,tip,budget,confirmations:c.confirmations,urls:c.rpc_urls};
 }
-function endpoint(url){let id=0;return {async call(method,params){const requestId=++id;let response;try{const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:requestId,method,params}),signal:AbortSignal.timeout(20000)});if(!r.ok)throw new Error('RPC HTTP failure');const body=await r.text();if(body.length>4*1024*1024)throw new Error('RPC response too large');response=JSON.parse(body);}catch{throw new Error('RPC unavailable; private configuration preserved');}if(response.jsonrpc!=='2.0'||response.id!==requestId||response.error||!Object.hasOwn(response,'result'))throw new Error('RPC rejected request');return response.result;}};}
+const { endpoint, safeFailure } = require('./rpc-read-recovery');
 function quantity(v){if(typeof v!=='string'||!/^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(v))throw new Error('Malformed RPC quantity');return BigInt(v);}
 function hex(v){return '0x'+BigInt(v).toString(16);}
 function hash(v){if(typeof v!=='string'||!/^0x[0-9a-f]{64}$/.test(v))throw new Error('Malformed RPC hash');return v;}
 async function network(rpcs,now=Date.now()){if(rpcs.length!==2)throw new Error('Two RPCs required');const result=await Promise.all(rpcs.map(async r=>{const [id,genesis,latest]=await Promise.all([r.call('eth_chainId',[]),r.call('eth_getBlockByNumber',['0x0',false]),r.call('eth_getBlockByNumber',['latest',false])]);if(quantity(id)!==11155111n||hash(genesis?.hash)!==GENESIS||quantity(genesis.number)!==0n)throw new Error('Sepolia identity differs');if(!latest||quantity(latest.timestamp)*1000n>BigInt(now+30000)||BigInt(now)-quantity(latest.timestamp)*1000n>120000n||quantity(latest.gasLimit)<1n)throw new Error('RPC head stale');hash(latest.hash);return latest;}));return result;}
-module.exports={GENESIS,configuration,endpoint,quantity,hex,hash,network};
+module.exports={GENESIS,configuration,endpoint,quantity,hex,hash,network,safeFailure};

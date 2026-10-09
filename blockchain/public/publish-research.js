@@ -37,7 +37,8 @@ async function main(argv) {
     console.log(JSON.stringify(summary));
     console.log('Original evidence and Fabric commitments preserved. Classification remains UNASSESSED; audit execution remains pending.');
 }
-if (require.main === module) main(process.argv.slice(2)).catch(() => {
+if (require.main === module) main(process.argv.slice(2)).catch(error => {
+    console.error('Public readback diagnostic:', JSON.stringify(R.safeFailure(error)));
     console.error('Public publication stopped. Private journals and original transactions preserved; rerun the guarded launcher with fresh evidence checks.');
     process.exitCode = 1;
 });
