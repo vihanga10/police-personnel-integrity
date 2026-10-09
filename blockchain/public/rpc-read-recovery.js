@@ -67,9 +67,24 @@ function classify(message, code) {
 function endpoint(url, options = {}) {
     // Array.map passes the provider index; test dependencies are explicit objects.
     const provider = Number.isInteger(options) && options >= 0 && options < 2 ? options + 1 : null;
-    const { fetchImpl = globalThis.fetch, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) } =
+    const { fetchImpl: underlyingFetch = globalThis.fetch, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) } =
         typeof options === 'object' && options !== null ? options : {};
-    const fail = (...args) => { while (args.length < 7) args.push(undefined); return new RpcFailure(...args, provider); };
+    // Production endpoints always pace. Injected transport fixtures remain fast;
+    // pacing fixtures explicitly enable the scheduler and supply a virtual clock.
+    const injected = typeof options === 'object' && options !== null ? options : {};
+    const paced = !Object.hasOwn(injected, 'fetchImpl') || injected.pacing === true;
+    const scheduler = paced ? require('./rpc-read-pacing').readPacing({
+        ...(injected.pacingDependencies || {}) }) : null;
+    const fetchImpl = (address, request) => {
+        const body = JSON.parse(request.body), entries = Array.isArray(body) ? body : [body];
+        const action = () => underlyingFetch(address, request);
+        return scheduler && entries.every(e => READS.has(e.method)) ? scheduler.run(entries.length, action) : action();
+    };
+    const fail = (...args) => {
+        // HTTP and JSON-RPC throttles cool down this provider only. Neither
+        // method parameters nor the fixed finalized block are modified.
+        if (scheduler && READS.has(args[1]) && (args[4] === 429 || args[5] === 429)) scheduler.cooldown();
+        while (args.length < 7) args.push(undefined); return new RpcFailure(...args, provider); };
     let id = 0;
     const { batchReader } = require('./rpc-read-batch');
     const batch = batchReader({ url, fetchImpl, sleep, nextId: () => ++id, fail,
