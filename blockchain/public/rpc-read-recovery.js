@@ -68,7 +68,10 @@ function endpoint(url, options = {}) {
         typeof options === 'object' && options !== null ? options : {};
     const fail = (...args) => { while (args.length < 7) args.push(undefined); return new RpcFailure(...args, provider); };
     let id = 0;
-    return { async call(method, params) {
+    const { batchReader } = require('./rpc-read-batch');
+    const batch = batchReader({ url, fetchImpl, sleep, nextId: () => ++id, fail,
+        isRead: method => READS.has(method), classify });
+    return { batch, async call(method, params) {
         // Capture exact parameters once; retries cannot select a different state block.
         const captured = JSON.parse(JSON.stringify(params));
         const limit = READS.has(method) ? 3 : 1;

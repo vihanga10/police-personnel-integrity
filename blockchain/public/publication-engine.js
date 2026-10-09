@@ -130,13 +130,22 @@ async function readAll(rpcs, p, a, id, sealReceipt, progress = () => {}) {
     };
     await checkBlocks();
     await runtimeCheck(rpcs, a, id, tag); await checkState(rpcs, p, a, id, 68, tag);
-    // Bound concurrency to four calls. Every value uses this same fixed state block.
+    // Ten read-only calls per provider/HTTP batch, at most two HTTP requests in
+    // flight. IDs are correlated by the transport; every returned value is checked.
+    // Individual-call adapters remain usable for tests without a batch transport.
     for (const ch of p.chunks) {
-        for (let offset = 0; offset < ch.handles.length; offset += 2) {
-            await Promise.all(ch.handles.slice(offset, offset + 2).flatMap((handle, j) => rpcs.map(async rpc => {
-                const bytes = await rpc.call('eth_call', [{ to: id.contract, data: iface.encodeFunctionData('readOfficer', [p.batch, handle]) }, tag]);
-                check(iface.decodeFunctionResult('readOfficer', bytes)[0] === ch.commitments[offset + j], 'Original officer commitment readback differs');
-            })));
+        for (let offset = 0; offset < ch.handles.length; offset += 10) {
+            const handles = ch.handles.slice(offset, offset + 10);
+            const requests = handles.map(handle => ({ method: 'eth_call', params: [{ to: id.contract,
+                data: iface.encodeFunctionData('readOfficer', [p.batch, handle]) }, tag] }));
+            await Promise.all(rpcs.map(async rpc => {
+                const values = typeof rpc.batch === 'function' ? await rpc.batch(requests) :
+                    await Promise.all(requests.map(r => rpc.call(r.method, r.params)));
+                check(Array.isArray(values) && values.length === handles.length, 'Complete officer batch required');
+                for (let j = 0; j < values.length; j++)
+                    check(iface.decodeFunctionResult('readOfficer', values[j])[0] === ch.commitments[offset + j],
+                        'Original officer commitment readback differs');
+            }));
         }
         await checkBlocks();
         progress(ch.start + ch.handles.length);

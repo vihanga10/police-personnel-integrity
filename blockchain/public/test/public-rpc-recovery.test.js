@@ -150,7 +150,7 @@ test('full 6596 readback recovers one transient request at position 5101 without
     const iface = new Interface(f.artifact.abi);
     const target = iface.encodeFunctionData('readOfficer', [f.plan.batch, f.plan.chunks[51].handles[0]]);
     let injected = false; const retried = [], waits = [], methods = [];
-    const rpcs = f.rpcs.map((rpc, peer) => endpoint('https://fixture.invalid', {
+    const endpoints = f.rpcs.map((rpc, peer) => endpoint('https://fixture.invalid', {
         sleep: async ms => waits.push(ms), fetchImpl: async (_, options) => {
             const request = JSON.parse(options.body); methods.push(request.method);
             if (peer === 0 && request.method === 'eth_call' && request.params[0].data === target) {
@@ -162,6 +162,9 @@ test('full 6596 readback recovers one transient request at position 5101 without
             return response(request, await rpc.call(request.method, request.params));
         }
     }));
+    // Keep this fixture focused on single-request retry recovery. Batch transport
+    // and complete batch coverage are exercised in public-batch-read.test.js.
+    const rpcs = endpoints.map(rpc => ({ call: (method, params) => rpc.call(method, params) }));
     let count = 0;
     const result = await readAll(rpcs, f.plan, f.artifact,
         { contract: f.deployment.contract_address, writer: f.wallet.address }, seal, n => { count = n; });
