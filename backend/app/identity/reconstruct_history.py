@@ -15,6 +15,7 @@ from app.identity.evidence_bundle_v2 import open_artifact, seal_artifact
 from app.identity.generate_protected_commitments import load_binding, load_keys, private_output, verify_saved
 from app.identity.historical_reconstruction import POLICY, reconstruct, require
 from app.identity.historical_source_claims import source_claims, HEADERS
+from app.identity.historical_officer_selection import read_private_nic, select_from_sql
 from app.identity.inspect_stage2_coverage import ROWS
 from app.identity.protected_commitment import generate, digest, POLICY as COMMITMENT_POLICY
 from app.identity.public_anchor_authorization import PUBLIC_SHA
@@ -31,6 +32,9 @@ def arguments(argv=None):
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--on', type=date.fromisoformat, required=True,
         help='Requested reported-state date, YYYY-MM-DD; no accepted state is inferred.')
+    # Selection input is read without terminal echo, never from a --nic argument.
+    parser.add_argument('--select-nic', action='store_true',
+        help='Privately select one exact NIC candidate after full anchored-inventory validation.')
     return parser.parse_args(argv)
 
 
@@ -106,6 +110,21 @@ def main(argv=None):
         require_audit_permit(permit_envelope, crypto, backup, public, context)
         buckets = subject_index(manifest, catalog)
         require(len(buckets) == 6596, 'Complete officer coverage required.')
+        selection = None
+        if args.select_nic:
+            # Validate every commitment first; single-officer mode cannot relax batch coverage.
+            require_audit_permit(permit_envelope, crypto, backup, public, context)
+            nic = read_private_nic()
+            try:
+                # Waiting at the prompt may expire the permit; check before opening SQL.
+                require_audit_permit(permit_envelope, crypto, backup, public, context)
+                selection = select_from_sql(crypto, backup, nic, manifest, catalog)
+            finally:
+                # Do not retain the entered NIC in saved selection metadata.
+                del nic
+            require_audit_permit(permit_envelope, crypto, backup, public, context)
+            buckets = {selection.officer_uid: buckets[selection.officer_uid]}
+            print('Single-officer exact evidence candidate selected; historical identity remains UNASSESSED.', flush=True)
         # This is the source snapshot's capture label, not an accepted transaction history.
         captured_at = datetime.fromisoformat(manifest['snapshot']['collection_started_at'])
         attempt = private_output(args.output_root, repo) / str(uuid4()); attempt.mkdir(mode=0o700)
@@ -120,10 +139,12 @@ def main(argv=None):
             aggregate.update(v.dimension + ':' + v.status for v in values)
             if len(chunk) == 100 or number == len(buckets):
                 artifact_binding = dict(artifact='REPORTED_HISTORY', policy=POLICY, context=context,
-                    public_payload_sha256=PUBLIC_SHA, on=args.on.isoformat(), chunk=files)
+                    public_payload_sha256=PUBLIC_SHA, on=args.on.isoformat(),
+                    selection_mode='SINGLE_NIC_CANDIDATE' if selection else 'ALL_OFFICERS', chunk=files)
                 # JSON encode dates explicitly; no source text normalization.
                 payload = json.loads(json.dumps(dict(policy=POLICY, on=args.on.isoformat(),
-                    known_snapshot_capture=captured_at.isoformat(), context=context, results=chunk),
+                    known_snapshot_capture=captured_at.isoformat(), context=context,
+                    selection=asdict(selection) if selection else None, results=chunk),
                     default=lambda v: v.isoformat()))
                 # Verify encrypted primary/backup recovery before publishing a private artifact.
                 encrypted = seal_artifact(crypto, backup, payload, artifact_binding)
@@ -136,11 +157,14 @@ def main(argv=None):
         # PASSED records complete processing; it does not certify historical truth.
         save_receipt(dict(policy=POLICY, status='PASSED', code_revision=revision, officers=len(buckets),
             on=args.on.isoformat(), aggregate=dict(sorted(aggregate.items())), encrypted_artifacts=files,
+            selection_mode='SINGLE_NIC_CANDIDATE' if selection else 'ALL_OFFICERS',
             accepted_state_claim=False, classification='UNASSESSED', public_payload_sha256=PUBLIC_SHA,
             context=context), attempt / 'PASSED.json')
         print('Reported historical reconstruction: PASSED')
         print(json.dumps(dict(sorted(aggregate.items()))))
         print('Reported candidates and uncertainty only; encrypted outputs. No accepted state, authority decision, database or blockchain writes.')
+        if selection:
+            print('NIC selection used read-only SQL verification; historical identity remains UNASSESSED.')
         return 0
     # Keep incomplete private artifacts for diagnosis; never label a partial run complete.
     except Exception as error:

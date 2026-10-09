@@ -42,9 +42,14 @@ original anchored publication using the original generator revision, and verifie
 the saved encrypted commitments. It requires a fresh encrypted audit permit bound
 to the current code revision, selected attempt IDs and destination artifact SHA.
 It checks expiry before/after each officer projection, before saving each output
-chunk and before issuing PASSED. No DB or RPC connection or chain write occurs.
+chunk and before issuing PASSED. Default all-officer processing makes no DB or RPC
+connection or chain write. Optional `--select-nic` adds a restricted read-only
+SQL snapshot to verify encrypted NIC evidence; it makes no database or chain writes.
 
-All 6,596 officers are covered in encrypted chunks of at most 100 results.
+By default, all 6,596 officers are covered in encrypted chunks of at most 100 results.
+With `--select-nic`, only one exact verified candidate officer is projected after
+the full original batch has still been validated. See
+`single-officer-historical-selection-v1.md` for private NIC input and selection rules.
 Original text, dates, candidate UUIDs and provenance are never printed. Only
 aggregate status counts are printed. Output is private, outside Git; primary
 and backup recovery are checked before each artifact is saved. A stopped run
