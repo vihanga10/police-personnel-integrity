@@ -6,11 +6,13 @@ import pytest
 from app.identity.historical_reconstruction import Claim, reconstruct, DIMENSIONS
 from app.identity.historical_source_claims import source_claims, HEADERS, reported_date
 
+# Random fixture identifiers and made-up values never come from research personnel.
 OFFICER = str(uuid4())
 CAPTURE = datetime(2026, 10, 9, 4, 0, tzinfo=timezone.utc)
 ON = date(2020, 1, 10)
 
 
+# Shared fixture builder keeps each test focused on one temporal or provenance rule.
 def claim(identifier='a', **kwargs):
     fields = dict(claim_id=identifier, officer_uid=OFFICER, dimension='rank', value='rank-A',
         source_reference='protected-reference', destination_digest='a'*64, start=date(2020, 1, 1))
@@ -22,6 +24,7 @@ def result(claims, dimension='rank', **kwargs):
     return next(x for x in reconstruct(OFFICER, claims, on=ON, captured_at=CAPTURE, **kwargs) if x.dimension == dimension)
 
 
+# Missing evidence must not become a verified state or an unrestricted finding.
 def test_all_dimensions_and_absence_do_not_establish_state():
     values = reconstruct(OFFICER, [], on=ON, captured_at=CAPTURE)
     assert tuple(v.dimension for v in values) == DIMENSIONS
@@ -36,6 +39,7 @@ def test_latest_event_projection_keeps_predecessor_and_future():
     assert 'LATEST_REPORTED_EVENT_CARRY_FORWARD_HYPOTHESIS' in v.reasons
 
 
+# Permuting input checks that chronology ties never introduce arbitrary precedence.
 def test_same_day_conflict_never_uses_input_order_to_choose():
     a,b = claim(), claim('b', value='rank-B')
     for ordering in itertools.permutations([a,b]):
@@ -66,6 +70,7 @@ def test_interval_boundaries_are_only_reported_candidates(start,end,count):
         assert 'END_DAY_INCLUSION_IS_CANDIDATE_ONLY' in v.reasons
 
 
+# Restrictions are a set of potentially concurrent claims rather than a scalar label.
 def test_concurrent_restrictions_are_not_mutually_exclusive():
     a=claim(dimension='restrictions',mode='INTERVAL',end=None)
     b=claim('b',dimension='restrictions',mode='INTERVAL',value='another restriction')
@@ -98,6 +103,7 @@ def test_reprs_do_not_disclose_claim_value_officer_or_reference():
     assert all(x not in repr(c) + repr(result([c])) for x in ('secret-promotion','secret-source',OFFICER))
 
 
+# Construct exact source-header fixtures to exercise the real catalog adapter.
 def source(filename, row_updates=None, role='officer_nic_no'):
     columns=sorted(HEADERS[filename]); row={c:'' for c in columns}
     row.update(row_updates or {})
@@ -109,6 +115,7 @@ def source(filename, row_updates=None, role='officer_nic_no'):
         provenance=dict(source_row_number=1),assertion=dict(id='assertion'))}, {raw:[dict(row_sha256='c'*64)]}
 
 
+# Guard the distinction between the subject and an actor mentioned in the same row.
 def test_adapter_recorder_role_cannot_become_subject_state():
     catalog,bindings=source('officer_restrictions.csv',role='restriction_recorded_officer_nic')
     assert source_claims(OFFICER,catalog,bindings) == ()
@@ -175,6 +182,7 @@ from app.identity.audit_gate import verify_inputs, seal_permit
 from app.identity.reconstruct_history import permitted_projection, subject_index, arguments
 
 
+# Exercise genuine encrypted fixture permits rather than trusting plaintext READY labels.
 def test_permit_gated_projection_uses_actual_encrypted_permit(verified,tmp_path):
     p,l,f,r,context,now=verified
     crypto=identity_crypto(tmp_path)
@@ -185,6 +193,7 @@ def test_permit_gated_projection_uses_actual_encrypted_permit(verified,tmp_path)
 
 
 @pytest.mark.parametrize('failure',['expired','context','public','ciphertext'])
+# A forbidden algorithm stub proves authorization failures occur before computation.
 def test_bad_permit_stops_before_algorithm(verified,tmp_path,monkeypatch,failure):
     from copy import deepcopy
     import app.identity.reconstruct_history as runner
@@ -203,6 +212,7 @@ def test_bad_permit_stops_before_algorithm(verified,tmp_path,monkeypatch,failure
             crypto=crypto,backup=crypto,public=p,context=context,now=now)
 
 
+# Simulated expiry during computation must prevent a completed authorized projection.
 def test_guard_rechecks_after_algorithm(verified,tmp_path,monkeypatch):
     import app.identity.reconstruct_history as runner
     p,l,f,r,context,now=verified

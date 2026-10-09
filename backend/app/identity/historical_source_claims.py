@@ -14,12 +14,14 @@ from app.identity.service_plan import ROUTES as SERVICE
 from app.identity.srb_plan import ROUTES as SRB
 from app.identity.remaining_plan import ROUTES as REMAINING
 
+# Reuse the established source schemas so changed or missing columns fail closed.
 HEADERS = {**{k: set(v) for k, v in HISTORY.items()},
     'officer_service_information.csv': set(SERVICE),
     **{k: set(v) for k, v in SRB.items()},
     '_demotions_enacted.csv': set(REMAINING['_demotions_enacted.csv'])}
 
 
+# Parse only the inspected ISO date syntax; never guess day/month order.
 def reported_date(text):
     if not text.strip():
         return None, ('REPORTED_DATE_MISSING',)
@@ -43,6 +45,7 @@ def source_claims(officer_uid, catalog, raw_bindings):
         if filename not in HEADERS:
             continue
         require(raw == item['raw_record_id'] and re.fullmatch('[0-9a-f]{64}', raw), 'Source row binding differs.')
+        # An officer mentioned as recorder or authority is not necessarily the subject.
         links = [x for x in item['candidate_links'] if x['officer_uid'] == officer_uid and x['role'] == 'officer_nic_no']
         if not links:
             continue
@@ -55,10 +58,13 @@ def source_claims(officer_uid, catalog, raw_bindings):
             and all(isinstance(x, str) for x in columns + values), 'Source column preservation differs.')
         row = dict(zip(columns, values))
         require(bool(raw_bindings.get(raw)), 'Destination versions missing.')
+        # Tie each claim to every captured destination version for its original row.
         fingerprint = digest(raw_bindings[raw])
+        # Full source text stays in the private reference, including original date spellings.
         reference = canonical(dict(raw_record_id=raw, filename=filename,
             original=original, provenance=item['provenance'], assertion=item['assertion']))
 
+        # Build one dimension-specific claim while preserving missing values for review.
         def add(dimension, fields, start_field=None, end_field=None, mode='EVENT', issues=()):
             if not any(row[f].strip() for f in fields):
                 # A missing required state value is retained as a blocking review.
@@ -78,11 +84,13 @@ def source_claims(officer_uid, catalog, raw_bindings):
                 dimension, value, reference, fingerprint, mode, start, end,
                 tuple(sorted(set((*issues, *start_issues, *end_issues))))))
 
+        # These routes describe source reports, not accepted outcomes of personnel actions.
         if filename == 'promotion_history.csv':
             add('rank', ('to_rank',), 'effective_date')
             # Arrival and unit identity semantics are not approved.
             add('posting', ('to_unit_name',), 'new_unit_arrive_date', issues=('PROMOTION_POSTING_SEMANTICS_UNASSESSED',))
         elif filename == 'transfer_history.csv':
+            # Cancellation evidence prevents automatic application of a transfer.
             issues = ('TRANSFER_CANCELLATION_OR_FLAG_UNASSESSED',) if row['is_cancelled'].strip() != 'FALSE' or row['cancellation_date'].strip() or row['cancellation_ref'].strip() else ()
             add('rank', ('to_rank',), 'effective_date', issues=issues)
             add('posting', ('to_station_code', 'to_station_name', 'to_unit_type', 'to_unit_name'),
@@ -92,12 +100,14 @@ def source_claims(officer_uid, catalog, raw_bindings):
         elif filename == 'officer_restrictions.csv':
             add('restrictions', ('restriction_id', 'restriction_category', 'restriction_effect', 'restriction_scope'),
                 'restriction_start_date', 'restriction_removal_date', 'INTERVAL')
+        # An override claim requires later authority and scope checks before any effect.
         elif filename == 'restriction_overrides.csv':
             add('restrictions', ('restriction_id', 'override_id', 'override_ground'), 'override_date',
                 mode='REVIEW', issues=('OVERRIDE_AUTHORITY_SCOPE_AND_LINKAGE_UNASSESSED',))
         elif filename == '_demotions_enacted.csv':
             add('rank', ('floor_rank',), 'punishment_date', mode='REVIEW',
                 issues=('DEMOTION_FLOOR_NOT_ACCEPTED_RESULTING_RANK',))
+        # Current HR labels have no accepted historical applicability date.
         else:
             add('rank', ('entry_rank',), 'date_of_enlistment', issues=('ENLISTMENT_NOT_ACCEPTED_RANK_EFFECTIVE_DATE',))
             add('rank', ('current_rank',), mode='SNAPSHOT')

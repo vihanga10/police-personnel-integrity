@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from uuid import UUID
 
+# Version the interpretation rules separately from source evidence and commitments.
 POLICY = 'REPORTED_HISTORICAL_RECONSTRUCTION_V1'
 DIMENSIONS = ('rank', 'posting', 'police_number', 'service_status', 'restrictions')
 UNCERTAINTIES = ('CLASSIFICATION_UNASSESSED', 'HISTORICAL_IDENTITY_UNASSESSED',
@@ -31,6 +32,7 @@ def instant(value):
     return value.astimezone(timezone.utc)
 
 
+# Immutable claims retain provenance without exposing sensitive fields in repr().
 @dataclass(frozen=True)
 class Claim:
     claim_id: str
@@ -63,6 +65,7 @@ class Claim:
             'Claim issue shape differs.')
 
 
+# Keep candidate, review, future and expired evidence separate in each answer.
 @dataclass(frozen=True)
 class Projection:
     dimension: str
@@ -87,6 +90,7 @@ def reconstruct(officer_uid, claims, *, on, captured_at, known_at=None):
     """
     day(on)
     capture = instant(captured_at)
+    # A single captured snapshot cannot answer what the database knew at another time.
     knowledge = capture if known_at is None else instant(known_at)
     require(knowledge == capture, 'Earlier or later transaction-time history is unavailable in this snapshot.')
     require(str(UUID(officer_uid)) == officer_uid, 'Officer UUID differs.')
@@ -100,6 +104,7 @@ def reconstruct(officer_uid, claims, *, on, captured_at, known_at=None):
         selected = sorted((c for c in claims if c.dimension == dimension), key=lambda c: c.claim_id)
         review, future, expired, events, intervals = [], [], [], [], []
         for c in selected:
+            # Unplaced or semantically uncertain evidence must not become an active state.
             if c.mode in {'SNAPSHOT', 'REVIEW'} or c.start is None or c.issues:
                 review.append(c)
             elif c.start > on:
@@ -108,6 +113,7 @@ def reconstruct(officer_uid, claims, *, on, captured_at, known_at=None):
                 (expired if c.end is not None and c.end < on else intervals).append(c)
             else:
                 events.append(c)
+        # Keep every latest-date tie; never let input ordering choose the winning report.
         latest = max((c.start for c in events), default=None)
         current_events = [c for c in events if c.start == latest]
         candidates = sorted(current_events + intervals, key=lambda c: c.claim_id)
@@ -124,9 +130,11 @@ def reconstruct(officer_uid, claims, *, on, captured_at, known_at=None):
                 reasons.append('END_DAY_INCLUSION_IS_CANDIDATE_ONLY')
         if review:
             reasons.append('UNPLACED_OR_UNASSESSED_EVIDENCE_REQUIRES_REVIEW')
+        # A workflow may succeed while the historical question remains unanswerable.
         if not candidates:
             status = 'CANNOT_VERIFY'
             reasons.append('NO_DATED_CANDIDATE_AT_REQUESTED_DATE')
+        # Multiple restrictions can coexist; scalar state dimensions can conflict.
         elif dimension != 'restrictions' and len({c.value for c in candidates}) > 1:
             status = 'CONFLICTING_REPORTS'
             reasons.append('COMPETING_REPORTED_VALUES_WITHOUT_ACCEPTED_PRECEDENCE')
