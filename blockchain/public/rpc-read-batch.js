@@ -36,6 +36,12 @@ function batchReader({ url, fetchImpl, sleep, nextId, fail, isRead, classify }) 
                     } catch { throw errorFor('MALFORMED_RPC_BATCH', attempt, response.status); }
                     // A valid batch can arrive out of order; it must still cover every
                     // requested ID exactly once, with no extra/missing/duplicate IDs.
+                    // A provider may throttle the entire batch with one valid
+                    // id:null error. Only numeric 429 enters bounded recovery.
+                    if (!Array.isArray(body) && body?.jsonrpc === '2.0' && body.id === null &&
+                        Object.hasOwn(body, 'error') && !Object.hasOwn(body, 'result') &&
+                        body.error?.code === 429 && typeof body.error.message === 'string')
+                        body = messages.map(m => ({ jsonrpc: '2.0', id: m.id, error: body.error }));
                     if (!Array.isArray(body))
                         throw errorFor('RPC_BATCH_REJECTED', attempt, response.status,
                             Number.isSafeInteger(body?.error?.code) ? body.error.code : null);

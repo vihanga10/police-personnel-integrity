@@ -55,6 +55,9 @@ function classify(message, code) {
         return ['RPC_REJECTED', false];
     if (/daily|monthly|billing|credits exhausted|quota exhausted/i.test(message))
         return ['PROVIDER_QUOTA_EXHAUSTED', false];
+    // Some providers report throttling as numeric JSON-RPC 429 under HTTP 200.
+    // Permanent historical/authentication/quota errors above still take precedence.
+    if (code === 429) return ['TRANSIENT_PROVIDER_FAILURE', true];
     if ([-32005, -32016, -32000, -32603].includes(code) &&
         /rate.?limit|too many requests|requests per|temporarily unavailable|server busy|overload|try again/i.test(message))
         return ['TRANSIENT_PROVIDER_FAILURE', true];
