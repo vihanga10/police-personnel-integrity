@@ -4,7 +4,7 @@ from dataclasses import asdict, fields
 from datetime import date, datetime
 import json
 from app.identity.audit_gate import binding as validate_context
-from app.identity.historical_reconstruction import POLICY as HISTORY_POLICY, reconstruct, require
+from app.identity.historical_reconstruction import SUPPORTED_POLICIES, reconstruct, require
 from app.identity.historical_source_claims import source_claims
 from app.identity.historical_officer_selection import Selection
 from app.identity.historical_explanation import explain
@@ -25,7 +25,7 @@ def replay_saved(summary, payloads, manifest, catalog, bindings, *, evidence_con
     require(set(summary) == {'policy','status','code_revision','officers','on','aggregate',
         'encrypted_artifacts','selection_mode','accepted_state_claim','classification',
         'public_payload_sha256','context'}, 'Saved summary fields differ.')
-    require(summary['policy'] == HISTORY_POLICY and summary['status'] == 'PASSED' and
+    require(summary['policy'] in SUPPORTED_POLICIES and summary['status'] == 'PASSED' and
         summary['accepted_state_claim'] is False and summary['classification'] == 'UNASSESSED' and
         summary['public_payload_sha256'] == public_sha, 'Completed unaccepted saved result required.')
     context = summary['context']; validate_context(context)
@@ -48,7 +48,7 @@ def replay_saved(summary, payloads, manifest, catalog, bindings, *, evidence_con
     aggregate, seen, explanations, seen_set = Counter(), [], [], set()
     for chunk_index, payload in enumerate(payloads):
         require(set(payload) == {'policy','on','known_snapshot_capture','context','selection','results'} and
-            payload['policy'] == HISTORY_POLICY and payload['on'] == on.isoformat() and
+            payload['policy'] == summary['policy'] and payload['on'] == on.isoformat() and
             payload['known_snapshot_capture'] == captured_at.isoformat() and payload['context'] == context,
             'Saved result payload context differs.')
         selection = payload['selection']
@@ -77,7 +77,7 @@ def replay_saved(summary, payloads, manifest, catalog, bindings, *, evidence_con
             seen.append(officer); seen_set.add(officer)
             # Replay from authenticated originals, not from potentially changed saved claims.
             values = reconstruct(officer,source_claims(officer,buckets[officer],bindings['raw_bindings']),
-                on=on,captured_at=captured_at)
+                on=on,captured_at=captured_at,policy=summary['policy'])
             require(result['projections']==json_value([asdict(v) for v in values]),
                 'Saved reconstruction differs from anchored source replay.')
             aggregate.update(v.dimension+':'+v.status for v in values)

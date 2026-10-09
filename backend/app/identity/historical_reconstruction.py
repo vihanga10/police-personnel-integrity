@@ -7,9 +7,12 @@ No database reader, disclosure endpoint, persistence or chain writer lives here.
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from uuid import UUID
+import json
 
 # Version the interpretation rules separately from source evidence and commitments.
-POLICY = 'REPORTED_HISTORICAL_RECONSTRUCTION_V1'
+LEGACY_POLICY = 'REPORTED_HISTORICAL_RECONSTRUCTION_V1'
+POLICY = 'REPORTED_HISTORICAL_RECONSTRUCTION_V2'
+SUPPORTED_POLICIES = (LEGACY_POLICY, POLICY)
 DIMENSIONS = ('rank', 'posting', 'police_number', 'service_status', 'restrictions')
 UNCERTAINTIES = ('CLASSIFICATION_UNASSESSED', 'HISTORICAL_IDENTITY_UNASSESSED',
     'REPORTED_DATE_SEMANTICS_UNASSESSED', 'AUTHORITY_AND_DELEGATION_UNASSESSED',
@@ -79,7 +82,36 @@ class Projection:
     accepted_state: None = None
 
 
-def reconstruct(officer_uid, claims, *, on, captured_at, known_at=None):
+def police_number_comparison(candidates):
+    """Compare exact reported numbers only inside an exact nonblank type.
+
+    Type spelling is preserved: no case folding, alias merging or inferred
+    precedence. Missing type/number prevents a unique answer. Malformed typed
+    claims stop processing with a value-free error rather than guessing a shape.
+    """
+    def unique_fields(pairs):
+        result = {}
+        for key, value in pairs:
+            require(key not in result, 'Police number candidate shape differs.')
+            result[key] = value
+        return result
+    grouped, incomplete = {}, False
+    for claim in candidates:
+        try:
+            value = json.loads(claim.value, object_pairs_hook=unique_fields)
+        except (ValueError, TypeError):
+            raise ValueError('Police number candidate shape differs.') from None
+        require(isinstance(value, dict) and set(value) == {'police_no', 'number_type'} and
+            all(isinstance(v, str) for v in value.values()), 'Police number candidate shape differs.')
+        number, kind = value['police_no'], value['number_type']
+        if not kind.strip() or not number.strip():
+            incomplete = True
+            continue
+        grouped.setdefault(kind, set()).add(number)
+    return any(len(numbers) > 1 for numbers in grouped.values()), incomplete
+
+
+def reconstruct(officer_uid, claims, *, on, captured_at, known_at=None, policy=POLICY):
     """Project reports at a date using only one captured knowledge snapshot.
 
     Latest-event carry-forward is a named hypothesis, not an accepted interval.
@@ -88,6 +120,7 @@ def reconstruct(officer_uid, claims, *, on, captured_at, known_at=None):
     A blank end never proves continuing validity, and absence never proves freedom
     from restrictions. Snapshot labels are not backdated. No override is applied.
     """
+    require(policy in SUPPORTED_POLICIES, 'Unsupported reconstruction policy.')
     day(on)
     capture = instant(captured_at)
     # A single captured snapshot cannot answer what the database knew at another time.
@@ -130,15 +163,24 @@ def reconstruct(officer_uid, claims, *, on, captured_at, known_at=None):
                 reasons.append('END_DAY_INCLUSION_IS_CANDIDATE_ONLY')
         if review:
             reasons.append('UNPLACED_OR_UNASSESSED_EVIDENCE_REQUIRES_REVIEW')
+        conflict = dimension != 'restrictions' and len({c.value for c in candidates}) > 1
+        incomplete_number = False
+        # Keep v1 byte-for-byte result semantics for archived replay only. New
+        # queries use v2; changing interpretation never changes anchored evidence.
+        if dimension == 'police_number' and policy == POLICY and candidates:
+            conflict, incomplete_number = police_number_comparison(candidates)
+            reasons.append('POLICE_NUMBER_TYPES_AND_EQUIVALENCE_UNASSESSED')
+            if incomplete_number:
+                reasons.append('POLICE_NUMBER_TYPE_OR_VALUE_MISSING')
         # A workflow may succeed while the historical question remains unanswerable.
         if not candidates:
             status = 'CANNOT_VERIFY'
             reasons.append('NO_DATED_CANDIDATE_AT_REQUESTED_DATE')
         # Multiple restrictions can coexist; scalar state dimensions can conflict.
-        elif dimension != 'restrictions' and len({c.value for c in candidates}) > 1:
+        elif conflict:
             status = 'CONFLICTING_REPORTS'
             reasons.append('COMPETING_REPORTED_VALUES_WITHOUT_ACCEPTED_PRECEDENCE')
-        elif review or on > capture.date():
+        elif review or incomplete_number or on > capture.date():
             status = 'CANNOT_VERIFY'
         else:
             status = 'REPORTED_CANDIDATES'

@@ -6,7 +6,7 @@ from datetime import date,datetime,timezone
 import json
 from uuid import uuid4
 import pytest
-from app.identity.historical_reconstruction import reconstruct
+from app.identity.historical_reconstruction import reconstruct, LEGACY_POLICY
 from app.identity.historical_source_claims import source_claims,HEADERS
 from app.identity.historical_officer_selection import Selection
 from app.identity.historical_explanation import explain,REASONS
@@ -40,7 +40,7 @@ def archive():
     add('officer_police_numbers.csv',dict(police_no='fixture-number-B',number_type='fixture-type-A',valid_from='2020-01-01'))
     add('officer_restrictions.csv',dict(restriction_id='fixture-sensitive-restriction',restriction_start_date='2020-01-01'))
     manifest=dict(bundles=[dict(officer_uid=officer)],snapshot=dict(collection_started_at=CAPTURE.isoformat()))
-    values=reconstruct(officer,source_claims(officer,{k:v for k,v in catalog.items() if v['filename'] in HEADERS},bindings['raw_bindings']),on=ON,captured_at=CAPTURE)
+    values=reconstruct(officer,source_claims(officer,{k:v for k,v in catalog.items() if v['filename'] in HEADERS},bindings['raw_bindings']),on=ON,captured_at=CAPTURE,policy=LEGACY_POLICY)
     context=dict(code_revision='a'*40,bundle_attempt_id='bundle',binding_attempt_id='binding',commitment_attempt_id='commitment',binding_artifact_sha256='b'*64)
     payload=dict(policy='REPORTED_HISTORICAL_RECONSTRUCTION_V1',on=ON.isoformat(),known_snapshot_capture=CAPTURE.isoformat(),
         context=context,selection=json_value(asdict(Selection(officer,(profile,)))),

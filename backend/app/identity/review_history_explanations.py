@@ -10,7 +10,7 @@ from uuid import uuid4
 from app.identity.bind_evidence_destinations import load_attempt, private_path
 from app.identity.evidence_bundle_v2 import open_artifact, seal_artifact
 from app.identity.generate_protected_commitments import load_binding, load_keys, private_output, verify_saved
-from app.identity.historical_reconstruction import POLICY as HISTORY_POLICY, require
+from app.identity.historical_reconstruction import SUPPORTED_POLICIES, require
 from app.identity.historical_explanation import POLICY
 from app.identity.historical_result_review import replay_saved
 from app.identity.inspect_stage2_coverage import ROWS
@@ -24,6 +24,7 @@ from app.intake.registration_receipt import save_receipt
 def saved_payloads(directory, summary, crypto, backup):
     """Authenticate every expected chunk; plaintext PASSED is only a routing hint."""
     require(not (directory/'STOPPED.json').exists(), 'Incomplete saved reconstruction refused.')
+    require(summary['policy'] in SUPPORTED_POLICIES, 'Unsupported saved reconstruction policy.')
     count = summary['encrypted_artifacts']
     require(type(count) is int and 1<=count<=66, 'Saved artifact count differs.')
     expected = ['history-%03d.encrypted.json'%i for i in range(count)]
@@ -32,7 +33,7 @@ def saved_payloads(directory, summary, crypto, backup):
     payloads = []
     for i,name in enumerate(expected):
         envelope = json.loads(private_path(directory/name).read_text())
-        binding = dict(artifact='REPORTED_HISTORY',policy=HISTORY_POLICY,context=summary['context'],
+        binding = dict(artifact='REPORTED_HISTORY',policy=summary['policy'],context=summary['context'],
             public_payload_sha256=PUBLIC_SHA,on=summary['on'],selection_mode=summary['selection_mode'],chunk=i)
         payload = open_artifact(crypto,envelope,binding)
         require(open_artifact(backup,envelope,binding)==payload, 'Saved result backup recovery differs.')

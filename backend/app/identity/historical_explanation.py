@@ -21,6 +21,8 @@ REASONS = {
     'UNPLACED_OR_UNASSESSED_EVIDENCE_REQUIRES_REVIEW': 'Snapshot, undated or semantically uncertain reports prevent a unique answer.',
     'NO_DATED_CANDIDATE_AT_REQUESTED_DATE': 'No usable dated candidate was available at the query date.',
     'COMPETING_REPORTED_VALUES_WITHOUT_ACCEPTED_PRECEDENCE': 'Candidate values differ and no accepted precedence chooses one.',
+    'POLICE_NUMBER_TYPES_AND_EQUIVALENCE_UNASSESSED': 'Numbers are compared within exact reported types; type equivalence and historical meaning remain unassessed.',
+    'POLICE_NUMBER_TYPE_OR_VALUE_MISSING': 'A candidate has a missing reported type or number, so it cannot establish a unique answer.',
     'NO_RESTRICTION_OR_OVERRIDE_EFFECT_ACCEPTED': 'Restriction and override effects have not been accepted.',
 }
 ISSUES = frozenset({'REPORTED_VALUE_MISSING', 'REPORTED_DATE_MISSING', 'REPORTED_DATE_INVALID',
