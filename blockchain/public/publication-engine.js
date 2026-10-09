@@ -102,9 +102,35 @@ async function checkState(rpcs, p, a, id, completed, tag = 'latest') {
     }
 }
 async function readAll(rpcs, p, a, id, sealReceipt, progress = () => {}) {
-    const tag = sealReceipt.block, iface = new Interface(a.abi);
+    // Inclusion evidence stays pinned to the original seal. Contract state is read
+    // at one common finalized height, avoiding a dependency on archive RPC state.
+    check(rpcs.length === 2, 'Two publication RPCs required');
+    const heads = await Promise.all(rpcs.map(rpc => rpc.call('eth_getBlockByNumber', ['finalized', false])));
+    check(heads.every(Boolean), 'Finalized publication head unavailable');
+    const height = heads.map(head => R.quantity(head.number)).reduce((x, y) => x < y ? x : y);
+    check(height >= R.quantity(sealReceipt.block), 'Finalized publication head precedes seal');
+    const tag = R.hex(height), iface = new Interface(a.abi);
+    const stateBlocks = await Promise.all(rpcs.map(rpc => rpc.call('eth_getBlockByNumber', [tag, false])));
+    check(stateBlocks.every(block => block && R.quantity(block.number) === height &&
+        R.hash(block.hash) === block.hash), 'Finalized publication state block malformed');
+    check(stateBlocks[0].hash === stateBlocks[1].hash, 'Finalized publication state blocks disagree');
+    const stateHash = stateBlocks[0].hash;
+    const checkBlocks = async () => {
+        for (const rpc of rpcs) {
+            const [state, seal, final] = await Promise.all([
+                rpc.call('eth_getBlockByNumber', [tag, false]),
+                rpc.call('eth_getBlockByNumber', [sealReceipt.block, false]),
+                rpc.call('eth_getBlockByNumber', ['finalized', false])]);
+            check(state && R.quantity(state.number) === height && state.hash === stateHash,
+                'Finalized publication state block changed');
+            check(seal && R.quantity(seal.number) === R.quantity(sealReceipt.block) && seal.hash === sealReceipt.block_hash,
+                'Original sealed inclusion block changed');
+            check(final && R.quantity(final.number) >= height, 'Publication finality regressed');
+        }
+    };
+    await checkBlocks();
     await runtimeCheck(rpcs, a, id, tag); await checkState(rpcs, p, a, id, 68, tag);
-    // Bound concurrency to four calls. Read every value at the exact sealed inclusion block.
+    // Bound concurrency to four calls. Every value uses this same fixed state block.
     for (const ch of p.chunks) {
         for (let offset = 0; offset < ch.handles.length; offset += 2) {
             await Promise.all(ch.handles.slice(offset, offset + 2).flatMap((handle, j) => rpcs.map(async rpc => {
@@ -112,12 +138,11 @@ async function readAll(rpcs, p, a, id, sealReceipt, progress = () => {}) {
                 check(iface.decodeFunctionResult('readOfficer', bytes)[0] === ch.commitments[offset + j], 'Original officer commitment readback differs');
             })));
         }
+        await checkBlocks();
         progress(ch.start + ch.handles.length);
     }
-    for (const rpc of rpcs) {
-        const block = await rpc.call('eth_getBlockByNumber', [tag, false]);
-        check(block?.hash === sealReceipt.block_hash, 'Sealed readback block reorg detected');
-    }
+    await checkBlocks();
+    return { policy: 'COMMON_FINALIZED_PUBLICATION_STATE_V1', block: tag, block_hash: stateHash };
 }
 async function quote(rpcs, a, id, op, config) {
     const heads = await R.network(rpcs);
@@ -262,7 +287,7 @@ async function run({ mode, wallet, rpcs, config, artifact: a, deployment, plan: 
     }
     if (observations.some(o => !o.finalized)) return pending('ALL_ORIGINAL_TRANSACTIONS_REQUIRE_FINALITY');
     const seal = observations.at(-1).receipt;
-    await readAll(rpcs, p, a, id, seal, readProgress);
+    const stateVerification = await readAll(rpcs, p, a, id, seal, readProgress);
     // Recheck every original receipt/inclusion after the bounded full-record readback.
     for (const op of ops) {
         const prepared = F.read(path.join(directory, `${op.index.toString().padStart(2, '0')}-PREPARED.json`));
@@ -271,13 +296,13 @@ async function run({ mode, wallet, rpcs, config, artifact: a, deployment, plan: 
         check(again.status === 'MINED' && again.finalized && F.stable(again.receipt) === F.stable(observations[op.index].receipt), 'Final publication inclusion changed');
     }
     // The gate is required at entry and before every signing/broadcast. Final readback is
-    // against an immutable, finalized sealed block and may legitimately take over ten minutes.
+    // against one fixed finalized state block and may legitimately take over ten minutes.
     const result = { policy: 'SEPOLIA_RESEARCH_PUBLICATION_V1', status: 'PASSED', identity: id, officers: 6596,
         original_valid_transactions: 68, two_rpc_readback: true, finalized: true, sealed_block: seal.block,
         sealed_block_hash: seal.block_hash, transaction_hashes: observations.map(o => o.tx), classification: 'UNASSESSED' };
     if (fs.existsSync(completionFile)) check(F.stable(F.read(completionFile)) === F.stable(result), 'Saved publication completion differs');
     else if (mode !== 'VALIDATE') F.write(completionFile, result);
-    return { ...result, mode, submitted_transactions_this_run: submitted, research_publication_complete: true };
+    return { ...result, state_verification: stateVerification, mode, submitted_transactions_this_run: submitted, research_publication_complete: true };
     } catch (error) {
         if (error.message === 'Fresh live gate required') return pending('FRESH_AUTHORIZATION_REQUIRED');
         throw error;

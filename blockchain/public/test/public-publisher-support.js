@@ -23,6 +23,7 @@ function fake() {
             if (params[0] === '0x0') v = { number: '0x0', hash: R.GENESIS };
             else if (params[0] === 'latest') v = { number: '0x1000', timestamp: R.hex(Math.floor(Date.now() / 1000)), hash: '0x' + 'ff'.repeat(32), gasLimit: R.hex(30000000n), baseFeePerGas: R.hex(10n) };
             else if (params[0] === 'finalized') v = { number: state.finality ? '0x1000' : '0x1' };
+            else if (params[0] === '0x1000') v = { number: '0x1000', hash: '0x' + 'ff'.repeat(32) };
             else { const t = [...state.txs.values()].find(t => t.block.number === params[0]); v = t ? t.block : null; }
             break;
         case 'eth_getCode': v = a.runtime; break;
