@@ -23,11 +23,14 @@ from app.identity.protected_commitment import digest
 
 POLICY='ENCRYPTED_FINDINGS_JOURNAL_V1'
 REVIEW_POLICY='FINDINGS_REVIEW_INTENT_V1'
+AUTHORIZED_REVIEW_POLICY='TEMPORALLY_AUTHORIZED_FINDINGS_REVIEW_V1'
 DECISIONS=('NEEDS_MORE_EVIDENCE','REPORTED_DISAGREEMENT_SUPPORTED','REPORTED_DISAGREEMENT_NOT_SUPPORTED')
 FIELDS={'policy','kind','ledger_id','officer_uid','sequence','previous_sha256','operation_id',
     'recorded_at','finding_id','supersedes','receipt_sha256','finding','review','reason'}
 REVIEW_FIELDS={'policy','kind','ledger_id','officer_uid','finding_id','target_entry_sha256',
     'operation_id','decision','reason','evidence_references','issued_at','expires_at'}
+
+AUTHORIZED_REVIEW_FIELDS=REVIEW_FIELDS|{'reviewer_uid','reviewed_at','target_scope','authority','authority_decision','review_timezone'}
 
 
 def _uuid(value):
@@ -116,15 +119,48 @@ class FindingsJournal:
     A filesystem owner can delete/rollback files: independent tip durability and
     witness integration are required before operational use.
     """
-    def __init__(self,*,root,repo,ledger_id,officer_uid,crypto,backup,signer,key_id,writer_keys,reviewer_keys):
+    def __init__(self,*,root,repo,ledger_id,officer_uid,crypto,backup,signer,key_id,writer_keys,reviewer_keys,
+            authority_keys=None,reviewer_identities=None,authority_scopes=None):
         self.repo=Path(repo).expanduser().resolve();self.root=J._private_root(root,self.repo)
         self.ledger_id=_uuid(ledger_id);self.officer_uid=_uuid(officer_uid)
         self.crypto=crypto;self.backup=backup;self.signer=signer;self.key_id=key_id
         self.writer_keys=deepcopy(writer_keys);self.reviewer_keys=deepcopy(reviewer_keys)
+        self.authority_keys=deepcopy(authority_keys or {})
+        self.reviewer_identities=deepcopy(reviewer_identities or {})
+        self.authority_scopes=deepcopy(authority_scopes or {})
+        self._authority_config()
         require(self.writer_keys and self.reviewer_keys and
             not (set(self.writer_keys.values())&set(self.reviewer_keys.values())),
             'Separate writer and reviewer public keys required.')
         J._recorder(signer,key_id,self.writer_keys,crypto,backup)
+
+    def _authority_config(self):
+        configured=bool(self.authority_keys or self.reviewer_identities or self.authority_scopes)
+        if configured:
+            require(self.authority_keys and self.reviewer_identities and
+                set(self.authority_scopes)==set(self.authority_keys) and
+                set(self.reviewer_identities)<=set(self.reviewer_keys),
+                'Complete review authority trust configuration required.')
+            for uid in self.reviewer_identities.values():_uuid(uid)
+            for key,public in self.authority_keys.items():
+                require(type(key) is str and key.strip() and type(public) is bytes and len(public)==32,
+                    'Review authority public key shape differs.')
+                scopes=self.authority_scopes[key]
+                require(type(scopes) is tuple and scopes and len(set(scopes))==len(scopes) and
+                    all(type(x) is str and x.strip() for x in scopes),'Explicit authority attestor scopes required.')
+            require(not set(self.authority_keys.values())&(set(self.writer_keys.values())|set(self.reviewer_keys.values())),
+                'Review assessor keys must be separate from writer and reviewer keys.')
+
+    def _review(self,intent):
+        policy=intent['payload']['policy']
+        if policy==REVIEW_POLICY:
+            return J._verify(intent,self.reviewer_keys,REVIEW_FIELDS,'REVIEW',REVIEW_POLICY)
+        require(policy==AUTHORIZED_REVIEW_POLICY,'Review protocol differs.')
+        value=J._verify(intent,self.reviewer_keys,AUTHORIZED_REVIEW_FIELDS,'REVIEW',AUTHORIZED_REVIEW_POLICY)
+        self._authority_config()
+        from app.identity.temporal_findings_review import validate_stored_authority
+        validate_stored_authority(value,intent['key_id'],self)
+        return value
 
     @contextmanager
     def _lock(self):
@@ -183,7 +219,7 @@ class FindingsJournal:
         else:
             require(v['kind']=='REVIEW' and v['finding'] is None and v['receipt_sha256'] is None and
                 v['supersedes'] is None and v['reason'] is None,'Finding entry kind differs.')
-            review=J._verify(v['review'],self.reviewer_keys,REVIEW_FIELDS,'REVIEW',REVIEW_POLICY)
+            review=self._review(v['review'])
             require(review['ledger_id']==self.ledger_id and review['officer_uid']==self.officer_uid and
                 review['finding_id']==v['finding_id'] and review['operation_id']==v['operation_id'] and
                 v['finding_id'] in heads and review['target_entry_sha256']==heads[v['finding_id']]['sha'],
@@ -219,9 +255,12 @@ class FindingsJournal:
         return self._append(expected_tip,operation_id,finding_id,'CORRECTION' if supersedes is not None else 'FINDING',
             supersedes,sha,finding,None,reason,before_publish)
 
-    def append_review(self,*,expected_tip,intent):
-        value=J._verify(intent,self.reviewer_keys,REVIEW_FIELDS,'REVIEW',REVIEW_POLICY)
-        return self._append(expected_tip,value['operation_id'],value['finding_id'],'REVIEW',None,None,None,intent,None)
+    def append_review(self,*,expected_tip,intent,before_publish=None):
+        value=self._review(intent)
+        if self.authority_keys:
+            require(value['policy']==AUTHORIZED_REVIEW_POLICY and callable(before_publish),
+                'Configured authority ledger requires protected temporal review publication.')
+        return self._append(expected_tip,value['operation_id'],value['finding_id'],'REVIEW',None,None,None,intent,None,before_publish)
 
     def _append(self,tip,operation,finding_id,kind,supersedes,receipt_sha,finding,review,reason,before_publish=None):
         _uuid(operation);_uuid(finding_id)

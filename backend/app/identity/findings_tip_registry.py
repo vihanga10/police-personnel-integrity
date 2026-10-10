@@ -58,9 +58,16 @@ class FindingsTipRegistry:
         self.key_pins=self._pins()
 
     def _pins(self):
-        return {name:digest({k:v.hex() for k,v in sorted(mapping.items())}) for name,mapping in
+        self.journal._authority_config()
+        result={name:digest({k:v.hex() for k,v in sorted(mapping.items())}) for name,mapping in
             (('registry',self.registry_keys),('recovery',self.recovery_keys),
              ('writer',self.journal.writer_keys),('reviewer',self.journal.reviewer_keys))}
+        if self.journal.authority_keys:
+            require(not set(self.journal.authority_keys.values())&(set(self.registry_keys.values())|set(self.recovery_keys.values())),
+                'Review assessor keys must be separate from registry and recovery keys.')
+            result['review_authority']=digest(dict(keys={k:v.hex() for k,v in sorted(self.journal.authority_keys.items())},
+                identities=self.journal.reviewer_identities,scopes=self.journal.authority_scopes))
+        return result
 
     def _config(self):
         require(self._pins()==self.key_pins,'Findings registry key pins changed.')
@@ -159,11 +166,11 @@ class FindingsTipRegistry:
             if result['status']=='ALREADY_RECORDED':return self._unchanged(expected_registry_tip,journal_tip)
             return self._advance(expected_registry_tip,result['tip'],kwargs['operation_id'])
 
-    def append_review(self,*,expected_registry_tip,intent):
+    def append_review(self,*,expected_registry_tip,intent,before_publish=None):
         with self._locked():
             entries=self._entries(expected_registry_tip);journal_tip=self._journal_tip(entries)
             with self.journal._lock():self._history(entries)
-            result=self.journal.append_review(expected_tip=journal_tip,intent=intent)
+            result=self.journal.append_review(expected_tip=journal_tip,intent=intent,before_publish=before_publish)
             if result['status']=='ALREADY_RECORDED':return self._unchanged(expected_registry_tip,journal_tip)
             return self._advance(expected_registry_tip,result['tip'],intent['payload']['operation_id'])
 

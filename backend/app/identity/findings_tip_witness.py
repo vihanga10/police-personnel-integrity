@@ -43,7 +43,7 @@ class WitnessedFindingsRegistry:
         require(client.writer_keys==registry.registry_keys and client.key_id==registry.key_id,
             'Findings witness writer pins differ.')
         authorities=set(registry.registry_keys.values())|set(registry.recovery_keys.values())|\
-            set(registry.journal.writer_keys.values())|set(registry.journal.reviewer_keys.values())
+            set(registry.journal.writer_keys.values())|set(registry.journal.reviewer_keys.values())|set(registry.journal.authority_keys.values())
         require(not authorities&set(client.witness_keys.values()),'Findings witness authority must have separate keys.')
         self.key_pins=(W._key_digest(client.writer_keys),W._key_digest(client.witness_keys))
         self._config()
@@ -125,9 +125,9 @@ class WitnessedFindingsRegistry:
         result=self.registry.append_receipt(expected_registry_tip=expected,**kwargs)
         return self._finish(expected,result)
 
-    def append_review(self,*,intent):
+    def append_review(self,*,intent,before_publish=None):
         expected=self._head()
-        result=self.registry.append_review(expected_registry_tip=expected,intent=intent)
+        result=self.registry.append_review(expected_registry_tip=expected,intent=intent,before_publish=before_publish)
         return self._finish(expected,result)
 
     def authorize_recovery(self,**kwargs):
