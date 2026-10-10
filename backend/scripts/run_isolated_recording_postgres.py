@@ -20,6 +20,8 @@ LABEL = 'org.police-personnel-integrity.recording-test'
 ENV = 'PPI_ISOLATED_RECORDING_POSTGRES_CONFIG'
 DATA = '/var/lib/postgresql/data'
 EXPECTED_TESTS = 23
+SUITES = {'recording': ('tests/test_committed_evidence_postgres.py', EXPECTED_TESTS),
+    'intake-hook': ('tests/test_controlled_recording_hook_postgres.py', 12)}
 FIELDS = {'run_id','container_id','container_name','image_id','database','user',
     'password','port','cluster_name'}
 
@@ -108,11 +110,13 @@ def cleanup(name,run_id):
     require(removed.returncode==0,'Isolated test container cleanup failed.')
 
 
-def run_suite():
+def run_suite(suite='recording'):
+    require(suite in SUITES,'Only installed, allowlisted test suites are accepted.')
+    test_file,expected_tests=SUITES[suite]
     require(shutil.which('docker') is not None,'Docker Desktop must be installed and running.')
     require(command('info').returncode==0,'Docker Desktop must be running.')
     backend=Path(__file__).resolve().parents[1]
-    require((backend/'tests/test_committed_evidence_postgres.py').is_file(),
+    require((backend/test_file).is_file(),
         'Installed PostgreSQL integration suite missing.')
     run=secrets.token_hex(16);name='ppi-recording-test-'+run
     config=dict(run_id=run,container_name=name,database='ppi_recording_test_'+run,
@@ -155,16 +159,16 @@ def run_suite():
             env['PYTEST_DISABLE_PLUGIN_AUTOLOAD']='1'
             report=directory/'results.xml'
             print('Running isolated PostgreSQL integration tests; existing database credentials are unused.',flush=True)
-            result=subprocess.run([sys.executable,'-m','pytest','tests/test_committed_evidence_postgres.py',
+            result=subprocess.run([sys.executable,'-m','pytest',test_file,
                 '-q','--tb=short','-o','addopts=','--junitxml='+str(report)],cwd=backend,env=env)
             if result.returncode==0:
                 suites=ElementTree.parse(report).getroot().iter('testsuite')
                 totals={key:0 for key in ('tests','failures','errors','skipped')}
                 for suite in suites:
                     for key in totals:totals[key]+=int(suite.attrib.get(key,0))
-                require(totals==dict(tests=EXPECTED_TESTS,failures=0,errors=0,skipped=0),
+                require(totals==dict(tests=expected_tests,failures=0,errors=0,skipped=0),
                     'Integration suite did not execute every expected PostgreSQL test.')
-                print(str(EXPECTED_TESTS)+' real PostgreSQL tests passed without skips.',flush=True)
+                print(str(expected_tests)+' real PostgreSQL tests passed without skips.',flush=True)
             return result.returncode
         finally:
             cleanup(name,run)
@@ -172,8 +176,10 @@ def run_suite():
 
 
 def main():
-    require(len(sys.argv)==1,'This launcher accepts no database or container overrides.')
-    return run_suite()
+    if len(sys.argv)==1:return run_suite()
+    require(len(sys.argv)==3 and sys.argv[1]=='--suite' and sys.argv[2] in SUITES,
+        'Only --suite recording or --suite intake-hook allowed; no database or container overrides.')
+    return run_suite(sys.argv[2])
 
 
 if __name__=='__main__':
