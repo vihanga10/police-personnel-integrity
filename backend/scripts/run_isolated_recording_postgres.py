@@ -21,7 +21,8 @@ ENV = 'PPI_ISOLATED_RECORDING_POSTGRES_CONFIG'
 DATA = '/var/lib/postgresql/data'
 EXPECTED_TESTS = 23
 SUITES = {'recording': ('tests/test_committed_evidence_postgres.py', EXPECTED_TESTS),
-    'intake-hook': ('tests/test_controlled_recording_hook_postgres.py', 12)}
+    'intake-hook': ('tests/test_controlled_recording_hook_postgres.py', 12),
+    'pipeline-e2e': ('tests/test_recording_pipeline_e2e_postgres.py', 10)}
 FIELDS = {'run_id','container_id','container_name','image_id','database','user',
     'password','port','cluster_name'}
 
@@ -178,7 +179,7 @@ def run_suite(suite='recording'):
 def main():
     if len(sys.argv)==1:return run_suite()
     require(len(sys.argv)==3 and sys.argv[1]=='--suite' and sys.argv[2] in SUITES,
-        'Only --suite recording or --suite intake-hook allowed; no database or container overrides.')
+        'Only allowlisted --suite recording, intake-hook or pipeline-e2e allowed; no database or container overrides.')
     return run_suite(sys.argv[2])
 
 
