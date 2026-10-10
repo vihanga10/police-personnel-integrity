@@ -214,17 +214,19 @@ class FindingsJournal:
                 pending['operation_id']==operation_id,'Pending findings recovery authorization differs.')
             return dict(status='RECOVERED',tip=new_tip,accepted_state=None,findings_anchored=False)
 
-    def append_receipt(self,*,expected_tip,operation_id,finding_id,receipt_path,supersedes=None,reason=None):
+    def append_receipt(self,*,expected_tip,operation_id,finding_id,receipt_path,supersedes=None,reason=None,before_publish=None):
         sha,finding=read_comparison_receipt(receipt_path,self.repo,self.crypto,self.backup,self.officer_uid)
         return self._append(expected_tip,operation_id,finding_id,'CORRECTION' if supersedes is not None else 'FINDING',
-            supersedes,sha,finding,None,reason)
+            supersedes,sha,finding,None,reason,before_publish)
 
     def append_review(self,*,expected_tip,intent):
         value=J._verify(intent,self.reviewer_keys,REVIEW_FIELDS,'REVIEW',REVIEW_POLICY)
         return self._append(expected_tip,value['operation_id'],value['finding_id'],'REVIEW',None,None,None,intent,None)
 
-    def _append(self,tip,operation,finding_id,kind,supersedes,receipt_sha,finding,review,reason):
+    def _append(self,tip,operation,finding_id,kind,supersedes,receipt_sha,finding,review,reason,before_publish=None):
         _uuid(operation);_uuid(finding_id)
+        require(before_publish is None or callable(before_publish),
+            'Trusted findings publication validator required.')
         # Freeze caller data so a mutation cannot change what is validated/signed.
         proposed=deepcopy(dict(kind=kind,operation_id=operation,finding_id=finding_id,supersedes=supersedes,
             receipt_sha256=receipt_sha,finding=finding,review=review,reason=reason))
@@ -244,6 +246,7 @@ class FindingsJournal:
             def check():
                 require(J._now().astimezone(timezone.utc)>=now,'Finding clock moved backwards.')
                 self._replay(tip);self._validate(value,heads,J._now().astimezone(timezone.utc))
+                if before_publish is not None:before_publish()
             sha=J._publish(path,J._sign(value,self.signer,self.key_id,POLICY),self.crypto,self.backup,
                 self._binding(value['sequence']),check)
             new_tip=self._tip(value['sequence'],sha)
