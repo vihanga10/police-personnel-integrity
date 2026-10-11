@@ -16,24 +16,25 @@ async function runJob(job,checkLoaded,loadTransport=loadConfiguredTransport){
     check(canonical(await checkLoaded('ENTRY',structuredClone(s),job.mode))===canonical(s),'Public backend entry differs');
     // Default always refuses. Tests pass backend-selected capabilities explicitly;
     // these cannot be specified in a pipe message or HTTP request.
-    const transport=await loadTransport();
+    const transport=await loadTransport(job);
     check(transport?.fixture_transport===true&&Array.isArray(transport.rpcs)&&transport.rpcs.length===2&&
         transport.rpcs.every(r=>r.fixture_transport===true),'Only isolated public runtime capabilities allowed');
-    const raw=privateFile(job.networkConfigFile,job.repo),config=JSON.parse(raw.toString('utf8'));
-    check(raw.toString('utf8')===canonical(config)&&N.configuration(config).sha256===s.network_config_sha256,
-        'Pinned canonical public network configuration required');
-    const key=privateFile(job.recoveryKeyFile,job.repo);check(key.length===32,'Raw dedicated public recovery key required');
-    const binding={policy:'FINDINGS_ENCRYPTED_GATEWAY_RETENTION_V1',operation:N.sha({policy:R.POLICY,selection:s}),selection_sha256:N.sha(s)};
-    const witness=createConfiguredClient({file:job.witnessConfigFile,sha256:job.witnessConfigSha256,binding,repository:job.repo});
-    check(witness.secure_witness===true&&witness.fixture_witness!==true,'Public backend requires mTLS recovery witness');
+    let key;
     try{
+        const raw=privateFile(job.networkConfigFile,job.repo),config=JSON.parse(raw.toString('utf8'));
+        check(raw.toString('utf8')===canonical(config)&&N.configuration(config).sha256===s.network_config_sha256,
+            'Pinned canonical public network configuration required');
+        key=privateFile(job.recoveryKeyFile,job.repo);check(key.length===32,'Raw dedicated public recovery key required');
+        const binding={policy:'FINDINGS_ENCRYPTED_GATEWAY_RETENTION_V1',operation:N.sha({policy:R.POLICY,selection:s}),selection_sha256:N.sha(s)};
+        const witness=createConfiguredClient({file:job.witnessConfigFile,sha256:job.witnessConfigSha256,binding,repository:job.repo});
+        check(witness.secure_witness===true&&witness.fixture_witness!==true,'Public backend requires mTLS recovery witness');
         const result=await R.runProtectedLoaded({verifiedSelection:s,approval:job.approval,trustedKeys:job.trustedKeys,
             config,rpcs:transport.rpcs,wallet:transport.wallet,directory:job.directory,repo:job.repo,key,
             checkLoaded,recoveryProtection:witness,mode:job.mode});
         return {...result,backend_public_runtime:'FIXTURE_ONLY',public_transport_enabled:false};
-    }finally{key.fill(0);}
+    }finally{if(key)key.fill(0);if(typeof transport.close==='function')transport.close();}
 }
-async function main(){
+async function main(loadTransport=loadConfiguredTransport){
     check(!process.stdin.isTTY&&!process.stdout.isTTY,'Backend private pipes required');
     const input=readline.createInterface({input:process.stdin,crlfDelay:Infinity});
     let started=false,sequence=0,pending;
@@ -47,7 +48,7 @@ async function main(){
             check(Buffer.byteLength(line)<=LIMIT,'Backend input bound');const message=JSON.parse(line);
             check(canonical(message)===line,'Canonical backend frame required');
             if(!started){exact(message,['kind','job']);check(message.kind==='start','Backend start required');started=true;
-                runJob(message.job,guard).then(result=>{emit({kind:'result',result});input.close();process.stdin.destroy();},
+                runJob(message.job,guard,loadTransport).then(result=>{emit({kind:'result',result});input.close();process.stdin.destroy();},
                     ()=>{emit({kind:'error'});input.close();process.stdin.destroy();process.exitCode=1;});
             }else{
                 if(message.kind==='denied'){
