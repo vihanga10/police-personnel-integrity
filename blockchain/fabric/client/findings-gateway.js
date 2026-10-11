@@ -3,6 +3,9 @@
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const {canonical}=require('../findings-chaincode/lib/findings');
 const {identity}=require('./block-identity');
+const {definitionHash}=require('./findings-definition');
+const {observeRead}=require('./findings-observation');
+const V2='FINDINGS_AUTHENTICATED_GATEWAY_V2';
 const {FindingsAdapter,destination}=require('./findings-adapter');
 const {hash}=require('./findings-block');
 const check=(v,m)=>{if(!v)throw new Error(m);};
@@ -21,7 +24,7 @@ function connectFindings({configFile,expectedConfigSha256,repo,retention,authori
     check(/^[0-9a-f]{64}$/.test(expectedConfigSha256),'Externally approved config digest required');
     const raw=privateFile(configFile,repo);check(hash(raw)===expectedConfigSha256,'Approved gateway config differs');const c=JSON.parse(raw);
     exact(c,['policy','destination','genesis_file','genesis_identity','identity','tls_client','peers']);
-    check(c.policy==='FINDINGS_AUTHENTICATED_GATEWAY_V1','Dedicated Gateway policy required');destination(c.destination);
+    check(['FINDINGS_AUTHENTICATED_GATEWAY_V1',V2].includes(c.policy),'Dedicated Gateway policy required');destination(c.destination);
     exact(c.identity,['certificate','private_key','certificate_sha256','private_key_sha256']);exact(c.tls_client,['certificate','private_key','certificate_sha256','private_key_sha256']);
     check(Array.isArray(c.peers)&&c.peers.length===2,'Two organization paths required');
     const paths=[configFile,c.genesis_file,c.identity.certificate,c.identity.private_key,c.tls_client.certificate,c.tls_client.private_key];
@@ -70,7 +73,7 @@ function connectFindings({configFile,expectedConfigSha256,repo,retention,authori
             async inspect(){local();for(const o of objects){
                 check(canonical(identity(await evaluate(o,o.qscc,'GetBlockByNumber',[c.destination.channel,'0'])))===canonical(c.genesis_identity),'Peer genesis identity differs');
                 const definition=await evaluate(o,o.lifecycle,'QueryChaincodeDefinition',[Buffer.concat([Buffer.from([0x0a,Buffer.byteLength(c.destination.chaincode)]),Buffer.from(c.destination.chaincode)])]);
-                check(hash(definition)===o.peer.definition_sha256,'Approved chaincode definition differs');
+                check((c.policy===V2?definitionHash(definition):hash(definition))===o.peer.definition_sha256,'Approved chaincode definition differs');
             }local();return structuredClone(c.destination);},
             async endorse(json){local();const t=await first.contract.newProposal('AnchorFindings',{
                 arguments:[json],endorsingOrganizations:['Org1MSP','Org2MSP']}).endorse();local();
@@ -79,7 +82,8 @@ function connectFindings({configFile,expectedConfigSha256,repo,retention,authori
                 check(t.getTransactionId()===id&&canonical(JSON.parse(Buffer.from(t.getResult()).toString('utf8')))===canonical(expected),'SDK reconstructed transaction differs');
                 const commit=await t.submit();local();return commit.getTransactionId();},
             async observe(id,handle){local();const result={};for(const o of objects){
-                const block=await evaluate(o,o.qscc,'GetBlockByTxID',[c.destination.channel,id]);
+                const read=()=>evaluate(o,o.qscc,'GetBlockByTxID',[c.destination.channel,id]);
+                const block=await (c.policy===V2?observeRead(read,id):read());
                 const record=JSON.parse(Buffer.from(await evaluate(o,o.contract,'ReadFindings',[handle])).toString('utf8'));
                 result[o.peer.msp_id]={block:Buffer.from(block),record};
             }local();return result;}

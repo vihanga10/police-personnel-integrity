@@ -212,3 +212,25 @@ test('certificate expiration after connection blocks network queries',async t=>{
     try {Date.now=()=>now()+2*86400000;await assert.rejects(a.inspect(s.d),/expired/);assert.equal(s.queryCalls.length,0);}
     finally {Date.now=now;a.close();}
 });
+
+// Consolidated V2 regression checks; existing V1 fixtures retain raw-byte pins.
+for(const scenario of ['map-order','changed-policy','index-lag','permission-error'])test('V2 factory '+scenario,async t=>{
+    const s=gatewayFixture(t),{definitionHash}=require('../findings-definition');
+    const base=Buffer.from('08011203312e301a04657363632204767363632a2e0a2c120c120a080212020800120208011a0d120b0a074f7267314d535010031a0d120b0a074f7267324d535010033200','hex');
+    const a=Buffer.from('420b0a074f7267314d53501001','hex'),b=Buffer.from('420b0a074f7267324d53501001','hex');
+    const approved=cat(base,a,b),reordered=cat(base,b,a);let reads=0,queries=0;
+    s.c.policy='FINDINGS_AUTHENTICATED_GATEWAY_V2';for(const peer of s.c.peers)peer.definition_sha256=definitionHash(approved);
+    fs.writeFileSync(s.configFile,canonical(s.c));s.options.expectedConfigSha256=B.hash(fs.readFileSync(s.configFile));
+    const original=s.sdk.connect;s.sdk.connect=options=>{const g=original(options),network=g.getNetwork;
+        g.getNetwork=channel=>{const n=network(channel),contract=n.getContract;n.getContract=(...args)=>{const c=contract(...args),proposal=c.newProposal;
+            c.newProposal=(method,options)=>{const p=proposal(method,options),evaluate=p.evaluate;p.evaluate=async()=>{
+                if(method==='QueryChaincodeDefinition'){queries++;if(scenario==='changed-policy'){const bad=Buffer.from(reordered);bad[35]^=1;return bad;}return reordered;}
+                if(method==='GetBlockByTxID'){reads++;if(scenario==='permission-error')throw Object.assign(new Error('access denied'),{code:9});
+                    if(scenario==='index-lag'&&reads<3)throw Object.assign(new Error('no such transaction ID ['+options.arguments[1]+'] in index'),{code:2});}
+                return evaluate();};return p;};return c;};return n;};return g;};
+    const adapter=connectFindings(s.options,{sdk:s.sdk,grpc:s.grpc});t.after(()=>adapter.close());
+    if(scenario==='changed-policy'){await assert.rejects(adapter.inspect(s.d),/definition differs/);assert.equal(reads,0);}
+    else if(scenario==='permission-error'){await assert.rejects(adapter.transport.observe('a'.repeat(64),payload().publication_id),/access denied/);assert.equal(reads,1);}
+    else if(scenario==='index-lag'){const observation=await adapter.transport.observe('a'.repeat(64),payload().publication_id);assert.deepEqual(Object.keys(observation),['Org1MSP','Org2MSP']);assert.equal(reads,4);}
+    else{assert.deepEqual(await adapter.inspect(s.d),s.d);assert.equal(queries,2);}
+});

@@ -1,0 +1,13 @@
+{
+  "name": "ppi-isolated-findings-fabric-integration",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {"node": ">=24 <25"},
+  "dependencies": {
+    "@hyperledger/fabric-gateway": "1.8.0",
+    "@grpc/grpc-js": "1.14.4",
+    "@hyperledger/fabric-protos": "0.3.7",
+    "fabric-contract-api": "2.5.8",
+    "fabric-shim": "2.5.8"
+  }
+}
