@@ -73,7 +73,19 @@ def _exchange(command, job, guard, *, timeout=300):
                     require(set(message) == {'kind','id','action','selection','mode'} and
                         type(message['id']) is int and message['id'] == expected_id,
                         'Backend guard order differs.')
-                    selected = guard(message['action'],message['selection'],message['mode'])
+                    try:
+                        selected = guard(message['action'],message['selection'],message['mode'])
+                    except Exception:
+                        # Ordered denial is never approval. Let the worker unwind
+                        # its owned session before terminating it. Hard deadlines
+                        # and crashes still leave interrupted artifacts intact.
+                        try:
+                            send({'kind':'denied','id':expected_id})
+                            process.stdin.close()
+                            process.wait(timeout=min(3,max(0.001,deadline-time.monotonic())))
+                        except Exception:
+                            pass
+                        raise
                     require(time.monotonic() < deadline, 'Backend approval response deadline passed.')
                     send({'kind':'approved','id':expected_id,'selection':selected}); expected_id += 1
                 elif message['kind'] == 'result':

@@ -47,8 +47,13 @@ async function main(){
                 runJob(message.job,guard).then(result=>{emit({kind:'result',result});input.close();process.stdin.destroy();},
                     ()=>{emit({kind:'error'});input.close();process.stdin.destroy();process.exitCode=1;});
             }else{
-                exact(message,['kind','id','selection']);check(message.kind==='approved'&&pending&&message.id===pending.id,'Backend response order differs');
-                const wait=pending;pending=null;wait.resolve(message.selection);
+                if(message.kind==='denied'){
+                    exact(message,['kind','id']);check(pending&&message.id===pending.id,'Backend denial order differs');
+                    const wait=pending;pending=null;wait.reject(new Error('Backend guard denied'));
+                }else{
+                    exact(message,['kind','id','selection']);check(message.kind==='approved'&&pending&&message.id===pending.id,'Backend response order differs');
+                    const wait=pending;pending=null;wait.resolve(message.selection);
+                }
             }
         }catch(_){if(pending){pending.reject(new Error('Backend pipe rejected'));pending=null;}
             input.close();process.stdin.destroy();process.exitCode=1;}
@@ -56,4 +61,4 @@ async function main(){
     input.on('close',()=>{if(pending){pending.reject(new Error('Backend pipe closed'));pending=null;}});
 }
 if(require.main===module)main().catch(()=>{process.exitCode=1;});
-module.exports={runJob};
+module.exports={runJob,main};

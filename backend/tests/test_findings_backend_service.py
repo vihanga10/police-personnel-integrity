@@ -51,7 +51,7 @@ def test_failed_replay_never_sends_approval(tmp_path):
         'reply=sys.stdin.readline()\n'+f'open({str(marker)!r},"w").write(reply)\n')
     def deny(*args):raise ValueError('Permit expired')
     with pytest.raises(ValueError,match='Permit expired'):_exchange(command,{},deny,timeout=2)
-    assert not marker.exists()
+    assert json.loads(marker.read_text()) == {'kind':'denied','id':1}
 
 
 def test_stalled_child_has_bounded_deadline(tmp_path):
