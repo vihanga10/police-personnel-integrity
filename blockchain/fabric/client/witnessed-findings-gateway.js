@@ -1,5 +1,5 @@
 'use strict';
-// Mandatory witnessed retention, local witness fixture only.
+// Mandatory authenticated witnessed retention; transport does not establish host independence.
 // Internal loaded-runner boundary. No request route, CLI or live provisioning.
 const crypto=require('node:crypto');
 const {canonical,sha,validate}=require('../findings-chaincode/lib/findings');
@@ -66,7 +66,7 @@ async function runProtectedLoaded({verifiedSelection,approval:grant,trustedKeys,
         await guard('FINAL');if(mode==='EXECUTE')await store.save('final',observed);
         await guard('RETURN');
         return {policy:POLICY,status:'FABRIC_COMMIT_VERIFIED',mode,operation,receipt:observed,
-            recovery_sha256:store.inventoryDigest(),recovery_witness_fixture:true,both_chains_anchored:false};
+            recovery_sha256:store.inventoryDigest(),recovery_witness_fixture:recoveryProtection.fixture_witness===true,recovery_witness_transport:recoveryProtection.secure_witness===true?'MTLS':'LOCAL_FIXTURE',independent_witness_deployment_verified:false,both_chains_anchored:false};
     });}finally{try{if(adapter&&typeof adapter.close==='function')await adapter.close();}finally{store.close();}}
 }
 module.exports={runProtectedLoaded,POLICY,approval,selection};

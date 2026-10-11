@@ -232,7 +232,7 @@ def main():
         root=Path(tempfile.mkdtemp(prefix=run_id+'-')).resolve();os.chmod(root,0o700)
         (root/'ISOLATED-RUN.json').write_text(json.dumps(dict(policy=POLICY,run_id=run_id,suite=args.suite)))
         phase='source-copy';context=root/'source';context.mkdir(mode=0o700)
-        selected={'client':['package.json','block-identity.js','findings-definition.js','findings-observation.js','findings-adapter.js','findings-block.js','findings-gateway.js','findings-retention.js','protected-findings-gateway.js','recovery-witness.js','witnessed-retention.js','witnessed-findings-gateway.js'],
+        selected={'client':['package.json','block-identity.js','findings-definition.js','findings-observation.js','findings-adapter.js','findings-block.js','findings-gateway.js','findings-retention.js','protected-findings-gateway.js','recovery-witness.js','recovery-witness-https.js','witnessed-retention.js','witnessed-findings-gateway.js'],
             'findings-chaincode':['package.json','index.js','lib/findings.js','test/commitment-vector.json'],
             'integration':['Dockerfile','package.json','package-lock.json','sdk-fixture.js','sdk.test.js','review.test.js','material.js','findings-peer-check.js','findings-dual-peer-check.js','Dockerfile.dual','recovery-witness-fixture.js','findings-witnessed-peer-check.js']}
         for directory,names in selected.items():

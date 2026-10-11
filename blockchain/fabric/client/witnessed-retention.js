@@ -5,9 +5,9 @@ const {canonical,sha}=require('../findings-chaincode/lib/findings');
 const check=(v,m)=>{if(!v)throw new Error(m);};
 function createWitnessedRetention(options){
     const {recoveryProtection:witness,authorizeRecovery=()=>{},readOnly=false,binding,directory,repo}=options;
-    check(witness?.fixture_witness===true&&canonical(witness.binding)===canonical(binding)&&typeof witness.read==='function'&&typeof witness.advance==='function','Mandatory bound recovery witness required');
+    check((witness?.fixture_witness===true||witness?.secure_witness===true)&&canonical(witness.binding)===canonical(binding)&&typeof witness.read==='function'&&typeof witness.advance==='function','Mandatory bound recovery witness required');
     const outside=(a,b)=>{const rel=path.relative(path.resolve(a),path.resolve(b));return rel==='..'||rel.startsWith('..'+path.sep);};
-    check(typeof witness.authority_directory==='string'&&path.isAbsolute(witness.authority_directory)&&outside(directory,witness.authority_directory)&&outside(witness.authority_directory,directory)&&outside(repo,witness.authority_directory)&&outside(witness.authority_directory,repo),'Separate witness authority storage required');
+    if(witness.fixture_witness)check(typeof witness.authority_directory==='string'&&path.isAbsolute(witness.authority_directory)&&outside(directory,witness.authority_directory)&&outside(witness.authority_directory,directory)&&outside(repo,witness.authority_directory)&&outside(witness.authority_directory,repo),'Separate witness authority storage required');
     check(isWitnessClient(witness),'Authenticated witness client instance required');
     check(typeof authorizeRecovery==='function','Trusted recovery authorization required');
     const read=witness.read.bind(witness),advance=witness.advance.bind(witness),local=createRetention(options);let active=false,broken=false;

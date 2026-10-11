@@ -1,5 +1,5 @@
 'use strict';
-// Mandatory witnessed retention, local witness fixture only.
+// Mandatory authenticated witnessed retention; transport does not establish host independence.
 // Internal loaded-runner fixture boundary only. No request endpoint or deployment CLI.
 const crypto=require('node:crypto');
 const N=require('./network'),{argumentsFor}=require('./payload'),{destination,PublicFindingsAdapter}=require('./public-adapter');
@@ -66,7 +66,7 @@ async function runProtectedLoaded({verifiedSelection,approval:grant,trustedKeys,
         if(saved){N.check(observed.status==='FINAL'&&N.canonical(saved)===N.canonical(observed),'Saved public finality no longer reconciles');}
         if(observed.status==='FINAL'){receipt(observed,plan,s);await guard('FINAL');if(mode==='EXECUTE')await store.save('final',observed);await interrupt('AFTER_FINAL');}
         await guard('RETURN');return {policy:POLICY,status:observed.status==='FINAL'?'ISOLATED_PUBLIC_VERIFIED':'PENDING',mode,operation,receipt:observed,
-            recovery_sha256:store.inventoryDigest(),recovery_witness_fixture:true,both_chains_anchored:false,live_chain_verification:false};
+            recovery_sha256:store.inventoryDigest(),recovery_witness_fixture:recoveryProtection.fixture_witness===true,recovery_witness_transport:recoveryProtection.secure_witness===true?'MTLS':'LOCAL_FIXTURE',independent_witness_deployment_verified:false,both_chains_anchored:false,live_chain_verification:false};
     });}finally{store.close();}
 }
 module.exports={POLICY,runProtectedLoaded,selection,approval};
