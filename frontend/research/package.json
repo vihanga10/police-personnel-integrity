@@ -1,0 +1,7 @@
+{
+  "name": "ppi-research-ui-tests", "version": "1.0.0", "private": true,
+  "description": "Test-only DOM and HTTPS acceptance dependencies; UI has no build or runtime npm dependency",
+  "engines": {"node": ">=22"},
+  "scripts": {"test": "node --test --test-concurrency=1 test/*.test.js"},
+  "devDependencies": {"jsdom": "26.1.0"}
+}

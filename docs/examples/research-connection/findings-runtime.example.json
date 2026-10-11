@@ -1,0 +1,50 @@
+{
+  "policy": "RESEARCH_FINDINGS_RUNTIME_V1",
+  "journal": {
+    "root": "/ABSOLUTE/PRIVATE/findings-journal",
+    "ledger_id": "ACTUAL_FINDINGS_LEDGER_UUID",
+    "officer_uid": "ACTUAL_AUTHORIZED_OFFICER_UUID",
+    "crypto": {
+      "primary": "/ABSOLUTE/PRIVATE/primary.json",
+      "backup": "/ABSOLUTE/PRIVATE/backup.json"
+    },
+    "signing_key": "/ABSOLUTE/OFFLINE/findings-writer.key",
+    "key_id": "ACTUAL_KEY_ID",
+    "writer_keys": {
+      "ACTUAL_KEY_ID": "BASE64_ACTUAL_ED25519_PUBLIC_KEY"
+    },
+    "reviewer_keys": {
+      "ACTUAL_REVIEWER_KEY_ID": "BASE64_ACTUAL_REVIEWER_PUBLIC_KEY"
+    },
+    "authority_keys": {},
+    "reviewer_identities": {},
+    "authority_scopes": {}
+  },
+  "registry": {
+    "root": "/ABSOLUTE/PRIVATE/findings-registry",
+    "registry_id": "ACTUAL_FINDINGS_REGISTRY_UUID",
+    "crypto": {
+      "primary": "/ABSOLUTE/PRIVATE/findings-registry-primary.json",
+      "backup": "/ABSOLUTE/PRIVATE/findings-registry-backup.json"
+    },
+    "signing_key": "/ABSOLUTE/OFFLINE/findings-registry.key",
+    "key_id": "ACTUAL_REGISTRY_KEY_ID",
+    "registry_keys": {
+      "ACTUAL_REGISTRY_KEY_ID": "BASE64_ACTUAL_REGISTRY_PUBLIC_KEY"
+    },
+    "recovery_keys": {
+      "ACTUAL_RECOVERY_KEY_ID": "BASE64_ACTUAL_RECOVERY_PUBLIC_KEY"
+    },
+    "witness": {
+      "witness_id": "ACTUAL_WITNESS_ID",
+      "witness_keys": {
+        "ACTUAL_KEY_ID": "BASE64_ACTUAL_ED25519_PUBLIC_KEY"
+      },
+      "profile": "/ABSOLUTE/PRIVATE/witness-profile.json",
+      "profile_sha256": "ACTUAL_64_HEX_PROFILE_HASH",
+      "ca_certificate": "/ABSOLUTE/PRIVATE/witness-ca.pem",
+      "client_certificate": "/ABSOLUTE/PRIVATE/witness-client.pem",
+      "client_key": "/ABSOLUTE/PRIVATE/witness-client-key.pem"
+    }
+  }
+}

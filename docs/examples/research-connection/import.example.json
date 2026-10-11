@@ -1,0 +1,10 @@
+{
+  "policy": "OPERATIONAL_RESEARCH_CONNECTION_V1",
+  "directory": "/ABSOLUTE/PRIVATE/directory-signed.json",
+  "presentations": [
+    "/ABSOLUTE/PRIVATE/presentation-signed.json"
+  ],
+  "disclosures": [
+    "/ABSOLUTE/PRIVATE/disclosure-signed.json"
+  ]
+}

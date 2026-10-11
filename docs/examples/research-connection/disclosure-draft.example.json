@@ -1,0 +1,15 @@
+{
+  "policy": "RESEARCH_WORKSPACE_V1",
+  "kind": "DISCLOSURE",
+  "issued_at": "REPLACE_WITH_CURRENT_UNIX_INTEGER",
+  "expires_at": "REPLACE_WITH_REVIEWED_UNIX_INTEGER_WITHIN_ONE_HOUR_AND_AUTHORIZATION",
+  "user_id": "ACTUAL_ENROLLED_ACCOUNT_UUID",
+  "account_version": "REPLACE_WITH_CURRENT_INTEGER_ACCOUNT_VERSION",
+  "officer_uid": "ACTUAL_AUTHORIZED_OFFICER_UUID",
+  "source_public_sha256": "EXACT_ORIGINAL_PUBLIC_PAYLOAD_SHA256",
+  "assignment": "REPLACE_WITH_ASSESSED_ASSIGNMENT",
+  "classification": "REPLACE_WITH_ASSESSED_CLASSIFICATION",
+  "restricted_clearance": false,
+  "request_reviews": false,
+  "reviewer_uid": null
+}
