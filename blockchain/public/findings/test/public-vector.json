@@ -1,0 +1,68 @@
+{
+  "note": "Python-produced serialization fixture. Fabric destination/receipt are fabricated test objects, not authenticated live evidence. Original opaque public commitments reuse the prior Python/Fabric vector.",
+  "public": {
+    "commitment_version": 1,
+    "entries": [
+      {
+        "commitment": "11f930625ec9d2f402dc1768c235c5325e3e523388b2404f9893aa3ad256b996",
+        "publication_id": "60b7b4b9daed796866248e131ee556ecdb8dda77079bbccc8edd291fc50590b7"
+      }
+    ],
+    "history_commitment": "18bbf45aba52e4b5161cb4d736570f00f5b96f5bce672310c12f4adf283b9c49",
+    "key_version": "findings-commit-v1",
+    "merkle_root": "eb3e73de9d7c58de425f2680ad02d9994d83c94dcf9b9548648f1ad7a9f8fe77",
+    "policy": "FINDINGS_PROTECTED_COMMITMENTS_V1",
+    "publication_commitment": "a7b4860430ed1f20b83befc883462c33a3fe98a8873673c57739657b07bf6a7a",
+    "publication_id": "0f73153b36b1efef6e652edc5e78a3927b1f70c2de1d6ef99102da6ab96cccc6"
+  },
+  "fabric_destination": {
+    "genesis_sha256": "833e467f38a8ba2dc91f5c21fe3a7969ec11f4eff8b4aa59fe6b02c173a4eee1",
+    "channel": "personnel",
+    "chaincode": "findings-anchor-v1",
+    "namespace": "findings-anchor-v1",
+    "organizations": [
+      "Org1MSP",
+      "Org2MSP"
+    ]
+  },
+  "fabric_receipt": {
+    "status": "FINAL",
+    "destination": {
+      "genesis_sha256": "833e467f38a8ba2dc91f5c21fe3a7969ec11f4eff8b4aa59fe6b02c173a4eee1",
+      "channel": "personnel",
+      "chaincode": "findings-anchor-v1",
+      "namespace": "findings-anchor-v1",
+      "organizations": [
+        "Org1MSP",
+        "Org2MSP"
+      ]
+    },
+    "payload": {
+      "merkle_root": "eb3e73de9d7c58de425f2680ad02d9994d83c94dcf9b9548648f1ad7a9f8fe77",
+      "namespace": "findings-anchor-v1",
+      "policy": "FINDINGS_FABRIC_ANCHOR_V1",
+      "public_sha256": "8f1a2cc2e84935fb92fb0c4027945389469de7df96486b6bf44bc837285ba9e5",
+      "publication_commitment": "a7b4860430ed1f20b83befc883462c33a3fe98a8873673c57739657b07bf6a7a",
+      "publication_id": "0f73153b36b1efef6e652edc5e78a3927b1f70c2de1d6ef99102da6ab96cccc6"
+    },
+    "transaction_id": "0dc0fba261b08087a3139119f24d90995bb63928e66a5e0c4bce23cde9222ffb",
+    "verification": {
+      "validation_code": "VALID",
+      "organizations": [
+        "Org1MSP",
+        "Org2MSP"
+      ],
+      "block_sha256": "0c383f2695db156b7cf9338c7c8f92a2deaecfb649a8c3b48ab0e1fd6c228a3b"
+    }
+  },
+  "payload": {
+    "policy": "FINDINGS_PUBLIC_ANCHOR_V1",
+    "namespace": "findings-anchor-v1",
+    "publication_id": "0f73153b36b1efef6e652edc5e78a3927b1f70c2de1d6ef99102da6ab96cccc6",
+    "public_sha256": "8f1a2cc2e84935fb92fb0c4027945389469de7df96486b6bf44bc837285ba9e5",
+    "merkle_root": "eb3e73de9d7c58de425f2680ad02d9994d83c94dcf9b9548648f1ad7a9f8fe77",
+    "fabric_destination_sha256": "8536d69752a391b3dfbfdd360c0b02f14434156e09e64b742151ca16ee73d3fc",
+    "fabric_transaction_id": "0dc0fba261b08087a3139119f24d90995bb63928e66a5e0c4bce23cde9222ffb",
+    "fabric_receipt_sha256": "001a1510d1c40f544ee42d43f4c337adffed9684eec9961e4b0d59264091bf28"
+  }
+}
