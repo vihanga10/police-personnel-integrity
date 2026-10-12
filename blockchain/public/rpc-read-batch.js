@@ -20,7 +20,10 @@ function batchReader({ url, fetchImpl, sleep, nextId, fail, isRead, classify }) 
             try {
                 response = await fetchImpl(url, { method: 'POST', headers: { 'content-type': 'application/json' },
                     body: JSON.stringify(messages), signal: AbortSignal.timeout(20000) });
-            } catch { failure = errorFor('TRANSPORT_UNAVAILABLE', attempt, null, null, true); }
+            } catch (error) {
+                if (error?.code === 'PPI_READ_PROFILE_FAILURE') throw error;
+                failure = errorFor('TRANSPORT_UNAVAILABLE', attempt, null, null, true);
+            }
             if (response) {
                 if (!response.ok) {
                     const transient = HTTP_TRANSIENT.has(response.status);

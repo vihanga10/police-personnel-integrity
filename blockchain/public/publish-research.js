@@ -30,7 +30,9 @@ async function main(argv) {
         waitProgress: (phase, index) => console.log(`Public bounded wait: ${phase} | operation=${index}`),
         progress: n => console.log(`Public original receipts verified: ${n} / 68`),
         readProgress: n => console.log(`Public officer readback: ${n} / 6596`) }));
-    F.write(resultFile, { ...result, code_revision: expectedRevision });
+    // Transport evidence belongs to this fresh verification, never the original journal.
+    const transport = require('./audit-read-rpc-profile').attestation();
+    F.write(resultFile, { ...result, code_revision: expectedRevision, ...transport });
     console.log(`Guarded Sepolia publication ${mode}: ${result.status}`);
     // Do not print individual handles, full authorization, signed transactions or RPC credentials.
     const { transaction_hashes, ...summary } = result;

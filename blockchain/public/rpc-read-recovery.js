@@ -42,6 +42,7 @@ class RpcFailure extends Error {
 }
 
 function safeFailure(error) {
+    if (error?.code === 'PPI_READ_PROFILE_FAILURE') return {policy: 'SAFE_RPC_READ_RECOVERY_V1', category: 'READ_PROFILE_REJECTED', read_retryable: false};
     if (error instanceof RpcFailure) return error.diagnostic;
     return { policy: 'SAFE_RPC_READ_RECOVERY_V1', category: 'VERIFICATION_OR_LOCAL_FAILURE',
         check_code: CHECKS.get(error?.message) || 'UNCLASSIFIED_SAFE_FAILURE' };
@@ -65,6 +66,7 @@ function classify(message, code) {
 }
 
 function endpoint(url, options = {}) {
+    const approvedReadRoute = require('./audit-read-rpc-profile').route(url);
     // Array.map passes the provider index; test dependencies are explicit objects.
     const provider = Number.isInteger(options) && options >= 0 && options < 2 ? options + 1 : null;
     const { fetchImpl: underlyingFetch = globalThis.fetch, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) } =
@@ -77,7 +79,8 @@ function endpoint(url, options = {}) {
         ...(injected.pacingDependencies || {}) }) : null;
     const fetchImpl = (address, request) => {
         const body = JSON.parse(request.body), entries = Array.isArray(body) ? body : [body];
-        const action = () => underlyingFetch(address, request);
+        const action = () => approvedReadRoute ? approvedReadRoute.fetch(address, request, underlyingFetch, READS) :
+            underlyingFetch(address, request);
         return scheduler && entries.every(e => READS.has(e.method)) ? scheduler.run(entries.length, action) : action();
     };
     const fail = (...args) => {
@@ -101,7 +104,8 @@ function endpoint(url, options = {}) {
                 response = await fetchImpl(url, { method: 'POST', headers: { 'content-type': 'application/json' },
                     body: JSON.stringify({ jsonrpc: '2.0', id: requestId, method, params: captured }),
                     signal: AbortSignal.timeout(20000) });
-            } catch {
+            } catch (error) {
+                if (error?.code === 'PPI_READ_PROFILE_FAILURE') throw error;
                 failure = fail('TRANSPORT_UNAVAILABLE', method, captured, attempt, null, null, true);
             }
             if (response) {
