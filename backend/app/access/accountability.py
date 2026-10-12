@@ -32,9 +32,9 @@ ACTION_PATHS={'/api/auth/login':'LOGIN','/api/auth/logout':'LOGOUT','/api/auth/s
  '/api/officers/search':'OFFICER_SEARCH','/api/research/history':'HISTORY_QUERY',
  '/api/research/requests':'REVIEW_REQUEST','/api/accountability/logs':'ACCESS_LOG_READ',
  '/api/accountability/legacy':'LEGACY_LOG_READ','/api/accountability/capabilities':'LOG_PERMISSION_CHECK',
- '/accountability':'LOG_PAGE_VIEW'}
+ '/api/research/available':'CONNECTED_VIEWS_READ','/accountability':'LOG_PAGE_VIEW'}
 ACTIONS=set(ACTION_PATHS.values())|{'OFFICER_IDENTITY_READ','WORKSPACE_READ','RECENT_REQUESTS_READ',
- 'REQUEST_STATUS_READ','CORRECTION_REQUEST','OTHER_REQUEST','ACCOUNT_RENEWAL','LOG_READER_GRANT'}
+ 'REQUEST_STATUS_READ','CORRECTION_REQUEST','OTHER_REQUEST','ACCOUNT_RENEWAL','LOG_READER_GRANT','DATASET_CONNECTION'}
 
 def canonical_uid(value):
     try:return value if type(value) is str and str(UUID(value))==value else None
@@ -314,10 +314,10 @@ class AccountabilityBoundary:
                 error=json.loads(body).get('error') if len(body)<=65536 else None
                 if type(error) is str and re.fullmatch('[A-Z_]{3,80}',error):base['reason']=error
             except Exception:pass
-        elif base['action']=='OFFICER_SEARCH':
+        elif base['action'] in ('OFFICER_SEARCH','CONNECTED_VIEWS_READ'):
             try:
                 body=b''.join(e.get('body',b'') for e in response if e['type']=='http.response.body')
-                value=json.loads(body) if len(body)<=65536 else None
+                value=json.loads(body) if len(body)<=512*1024 else None
                 if type(value) is dict and type(value.get('items')) is list and len(value['items'])<=100:
                     base['returned_officer_uids']=[v['officer_uid'] for v in value['items']
                         if type(v) is dict and canonical_uid(v.get('officer_uid'))]

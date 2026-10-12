@@ -125,7 +125,9 @@ class Connection:
     def _watch(self, path):
         p = private(path, repo=self.repo)
         require(p.stat().st_size <= 16 * 1024 * 1024, 'Bounded configuration input required')
-        self.pins[p] = hashlib.sha256(p.read_bytes()).hexdigest()
+        pin = hashlib.sha256(p.read_bytes()).hexdigest()
+        require(p not in self.pins or self.pins[p] == pin, 'Previously pinned connection input changed')
+        self.pins[p] = pin
 
     def _runtime_pins(self, path):
         self._watch(path)
@@ -269,6 +271,18 @@ class Connection:
                 len(presentations) <= 100 and len(disclosures) <= 1000, 'Bounded connection import required')
         selected = [p['payload']['officer_uid'] for p in presentations]
         snapshot = self._snapshot(selected)
+        return self._install_loaded(snapshot, directory, presentations, disclosures)
+
+    def _install_loaded(self, snapshot, directory, presentations, disclosures):
+        """Internal operator pipeline: reuse its one full replay, never HTTP input."""
+        require(type(presentations) is list and type(disclosures) is list and
+                len(presentations) <= 100 and len(disclosures) <= 1000, 'Bounded connection import required')
+        selected = [p['payload']['officer_uid'] for p in presentations]
+        self.check(selected)
+        require(snapshot['context']['code_revision'] == self.rev and
+                snapshot['envelope'] == R.read_json(self.args.audit_gate_attempt / 'audit-permit.encrypted.json', self.repo),
+                'Loaded replay and configured audit permit differ')
+        AlgorithmPermit(snapshot).check(snapshot)
         self.stage = 'SIGNED_DIRECTORY_BINDING'
         d = D.validate_directory(directory, self.access_keys)
         require(d['source_public_sha256'] == PUBLIC_SHA and d['expires_at'] <= self.envelope['payload']['expires_at'],

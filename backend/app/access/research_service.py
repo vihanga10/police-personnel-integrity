@@ -11,7 +11,7 @@ from app.security.record_protection import (
 class ResearchService:
     def __init__(self, store): self.store = store; self.access = store.access
 
-    def authorized(self, token, officer, *, csrf=None, review=False):
+    def authorized(self, token, officer, *, csrf=None, review=False, charge=True):
         try: uid(officer)
         except Exception: raise AccessError(404, 'NOT_FOUND') from None
         # AccessStore supplies the current signed account and directory; HTTP
@@ -21,7 +21,7 @@ class ResearchService:
             directory = self.access._directory(c)
             found = next((o for o in directory['officers'] if o['officer_uid'] == officer and permitted(user, o)), None)
             if found is None: raise AccessError(404, 'NOT_FOUND')
-            self.access._limit(c, 'SEARCH', session['user'], 60)
+            if charge: self.access._limit(c, 'SEARCH', session['user'], 60)
             disclosure = self.store.get_grant(user['user_id'], officer)
             if disclosure['account_version'] != user['version'] or disclosure['source_public_sha256'] != directory['source_public_sha256']:
                 raise AccessError(403, 'DETAILS_WITHHELD')
@@ -34,6 +34,36 @@ class ResearchService:
             if packet['source_public_sha256'] != directory['source_public_sha256']: raise AccessError(503, 'PRESENTATION_SOURCE_DIFFERS')
             self.access._audit(c, 'RESEARCH_VIEW' if not review else 'REVIEW_REQUEST', session['user'])
             return user, disclosure, packet, projection(found)
+
+    def available(self, token):
+        """Bounded connected details within current scope; no global officer counts."""
+        with self.access.transaction() as c:
+            user, session = self.access._session(c, token)
+            directory = self.access._directory(c)
+            self.access._limit(c, 'SEARCH', session['user'], 60)
+            officers = {o['officer_uid']: o for o in directory['officers'] if permitted(user, o)}
+        with self.store.transaction() as c:
+            rows = c.execute('SELECT id,value FROM presentations ORDER BY id').fetchall()
+        items = []
+        for ident, blob in rows:
+            envelope = self.store.open('PACKET', ident, blob)
+            officer = envelope['payload']['officer_uid']
+            if officer not in officers: continue
+            try:
+                _, _, packet, identity = self.authorized(token, officer, charge=False)
+            except AccessError as error:
+                if error.status == 401: raise
+                continue
+            items.append(dict(**identity, expires_at=packet['expires_at']))
+            if len(items) == 100: break
+        # Expiration/revocation and directory replacement during enumeration deny return.
+        with self.access.transaction() as c:
+            current, _ = self.access._session(c, token)
+            latest = self.access._directory(c)
+            if current != user or latest != directory: raise AccessError(409, 'PRESENTATION_CHANGED')
+        return dict(items=items, limit=100, detail_views_only=True,
+                    scope_basis=('EXPLICIT_RESEARCH_SIMULATION' if directory['review_reference'] ==
+                                 'GENERATED_RESEARCH_SCOPE_SIMULATION_V1' else 'SIGNED_CURRENT_MEMBERSHIP'))
 
     def workspace(self, token, officer):
         user, grant, packet, identity = self.authorized(token, officer)

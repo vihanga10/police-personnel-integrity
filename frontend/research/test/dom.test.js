@@ -126,3 +126,16 @@ test('a stalled submission reaches its deadline and retains the exact operation 
     assert.equal(submissions,1);assert.equal(t.d.getElementById('operation-id').value,operation);assert.equal(t.d.getElementById('check-last-request').hidden,false);assert.equal(t.d.getElementById('review-button').textContent,'Retry the exact retained request');
   }finally{t.dom.window.close();}
 });
+
+test('connected detail names render safely and late replies cannot repopulate after sign-out',async()=>{
+  let finish;const t=await setup(u=>u==='/api/research/available'?new Promise(r=>{finish=()=>r(response({items:[{...officer,names:['<img src=x onerror=alert(1)>']}]}));}):router(u));
+  try{t.d.getElementById('load-connected').click();await wait(()=>finish);t.d.getElementById('logout').click();finish();await new Promise(r=>setTimeout(r,20));assert.equal(t.d.getElementById('connected-results').textContent,'');assert.equal(t.d.querySelector('#connected-results img'),null);}finally{t.dom.window.close();}
+});
+test('connected officer names open their scoped workspace and clear on backgrounding',async()=>{
+  const t=await setup(u=>u==='/api/research/available'?response({items:[officer]}):router(u));
+  try{t.d.getElementById('load-connected').click();await wait(()=>t.d.querySelector('#connected-results button'));t.d.querySelector('#connected-results button').click();await wait(()=>!t.d.getElementById('workspace-body').hidden);Object.defineProperty(t.d,'hidden',{configurable:true,value:true});t.d.dispatchEvent(new t.dom.window.Event('visibilitychange'));assert.equal(t.d.getElementById('connected-results').textContent,'');assert.equal(t.d.getElementById('officer-name').textContent,'');}finally{t.dom.window.close();}
+});
+test('first query preserves exact microsecond knowledge boundary despite datetime input precision',async()=>{
+  const end='2026-10-10T12:34:56.123456+00:00';const t=await setup(u=>u.startsWith('/api/research/officers/')?response({...workspace,coverage_start:end,coverage_end:end}):router(u));
+  try{await selected(t);t.submit('history-form');await wait(()=>t.calls.some(([u])=>u==='/api/research/history'));assert.equal(JSON.parse(t.calls.find(([u])=>u==='/api/research/history')[1].body).known_at,end);await wait(()=>!t.d.getElementById('history-button').disabled);}finally{t.dom.window.close();}
+});

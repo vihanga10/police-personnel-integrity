@@ -7,6 +7,7 @@ from copy import deepcopy
 from dataclasses import asdict
 from datetime import date, datetime, timezone
 import json
+import math
 import time
 from app.access.policy import account, permitted, require
 from app.access import research_policy as P
@@ -42,6 +43,22 @@ def export_observed_presentation(args, repo, revision, recording, *, officer_uid
             'Presentation inputs advanced during receipt observation')
     return draft
 
+def _export_second(coverage_end):
+    """Wait for the next real whole second when coverage includes microseconds.
+
+    Never round recording history backwards or issue a future-dated grant.
+    Genuine future coverage/clock rollback stays a hard failure.
+    """
+    coverage = coverage_end.timestamp()
+    current = time.time()
+    require(coverage <= current, 'Export clock/coverage differs')
+    boundary = math.ceil(coverage)
+    if current < boundary:
+        time.sleep(boundary - current)
+    observed = int(time.time())
+    require(coverage <= observed, 'Export clock/coverage differs')
+    return observed
+
 def _export_loaded(snapshot, repo, recording, *, officer_uid, generation, findings=None):
     """Internal only: snapshot must originate from the full original replay loader."""
     permit = AlgorithmPermit(snapshot); permit.check(snapshot)
@@ -67,7 +84,7 @@ def _export_loaded(snapshot, repo, recording, *, officer_uid, generation, findin
         require(sorted(map(J.canonical, expected)) == sorted(map(J.canonical, baseline['claims'])), 'Original baseline claims differ')
         h = state['history']
         wire = json.loads(json.dumps(asdict(h), default=lambda x:x.isoformat(), allow_nan=False)); wire.pop('officer_uid')
-        now = int(time.time()); summaries = []; authority = _reported_authority(snapshot,officer_uid)
+        now = _export_second(h.coverage_end); summaries = []; authority = _reported_authority(snapshot,officer_uid)
         if findings is not None:
             for wrapped in selected_findings['entries']:
                 if wrapped['entry']['kind']!='REVIEW':
