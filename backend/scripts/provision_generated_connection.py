@@ -36,7 +36,7 @@ def stopped_app(repo, app_root):
         require(sock.connect_ex(('127.0.0.1',url.port or 443))!=0, 'Stop the application server before connecting')
 
 
-def audit_and_connect(repo, root, app_root, profile, officers=None):
+def audit_and_connect(repo, root, app_root, profile, officers=None, review_policy=None):
     plan = G.validate_plan(repo, root, app_root)
     from app.identity.audit_read_rpc_profile import load, ENV_NAMES
     require(not any(os.environ.get(name) for name in ENV_NAMES), 'Inherited profile environment refused')
@@ -69,7 +69,7 @@ def audit_and_connect(repo, root, app_root, profile, officers=None):
     ready = R.read_json(attempt/'READY.json',repo)
     require(ready['status']=='READY' and ready['code_revision']==C.revision(repo), 'Fresh READY result differs')
     require(hashlib.sha256(profile.read_bytes()).hexdigest()==profile_sha,'Read profile changed during audit')
-    return G.connect(repo,root,app_root,attempt,selected_officers=officers,progress=lambda stage: print('Stage 3: '+stage,flush=True))
+    return G.connect(repo,root,app_root,attempt,selected_officers=officers,review_policy=review_policy,progress=lambda stage: print('Stage 3: '+stage,flush=True))
 
 
 def main():
@@ -84,13 +84,14 @@ def main():
     parser.add_argument('--audit-gate-attempt',type=Path)
     parser.add_argument('--read-profile',type=Path)
     parser.add_argument('--officer',action='append')
+    parser.add_argument('--stage4-policy',type=Path)
     args=parser.parse_args();os.umask(0o077);stage='SOURCE_AND_ARGUMENTS'
     try:
         repo=args.repository.expanduser().resolve();root=args.state_root.expanduser().absolute();app=args.app_root.expanduser().absolute()
         require(subprocess.check_output(['git','-C',str(repo),'branch','--show-current'],text=True).strip()=='feat/identity-resolution')
         C.revision(repo)
         if args.action=='prepare':
-            require(args.audit_gate_attempt is None and args.read_profile is None and args.officer is None)
+            require(args.audit_gate_attempt is None and args.read_profile is None and args.officer is None and args.stage4_policy is None)
             source=R.read_json(args.source_config,repo) if args.source_config else defaults(repo)
             stage='PRIVATE_PREPARATION';result=G.prepare(repo,root,app,source,detail_limit=args.detail_limit,effective_on=args.effective_on)
         else:
@@ -98,10 +99,10 @@ def main():
             stopped_app(repo,app)
             if args.action=='audit-connect':
                 require(args.read_profile is not None and args.audit_gate_attempt is None)
-                stage='FULL_AUDIT_AND_CONNECTION';result=audit_and_connect(repo,root,app,args.read_profile,args.officer)
+                stage='FULL_AUDIT_AND_CONNECTION';result=audit_and_connect(repo,root,app,args.read_profile,args.officer,args.stage4_policy)
             else:
                 require(args.audit_gate_attempt is not None and args.read_profile is None)
-                stage='VERIFIED_DATASET_CONNECTION';result=G.connect(repo,root,app,args.audit_gate_attempt,selected_officers=args.officer,
+                stage='VERIFIED_DATASET_CONNECTION';result=G.connect(repo,root,app,args.audit_gate_attempt,selected_officers=args.officer,review_policy=args.stage4_policy,
                     progress=lambda value: print('Stage 3: '+value,flush=True))
         print(json.dumps(result,indent=2))
         if args.action!='prepare':print('Restart the existing HTTPS application and sign in again. Open Connected detail views within your scope.')

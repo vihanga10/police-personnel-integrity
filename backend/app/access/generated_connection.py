@@ -302,7 +302,7 @@ def current_accounts(app_root, repo, key):
     return result
 
 
-def connect(repo, root, app_root, audit_attempt, *, selected_officers=None, progress=lambda _: None):
+def connect(repo, root, app_root, audit_attempt, *, selected_officers=None, review_policy=None, progress=lambda _: None):
     """Full original replay -> journals -> signed bounded UI copies -> validated import.
 
     No permit renewal, fallback, historical-date fabrication or chain transaction.
@@ -318,6 +318,15 @@ def connect(repo, root, app_root, audit_attempt, *, selected_officers=None, prog
         presentation_signer = R.signer(app_root / 'keys/research-presentation-signer.key', repo)
         accounts = current_accounts(app_root, repo, access_signer)
         workspace = R.read_json(app_root / 'workspace-config.json', repo)
+        review_permissions = None
+        if review_policy is not None:
+            from app.access.stage4_workflow import request_policy
+            review_policy_pin = C.file_digest(review_policy, repo, C.CONFIG_MAX_BYTES)
+            policy_settings = R.read_json(review_policy, repo)['payload']['settings_file']
+            policy_settings_pin = C.file_digest(policy_settings, repo, C.CONFIG_MAX_BYTES)
+            review_permissions = request_policy(review_policy, repo, app_root, revision, accounts)
+            require(C.file_digest(review_policy, repo, C.CONFIG_MAX_BYTES) == review_policy_pin and
+                    C.file_digest(policy_settings, repo, C.CONFIG_MAX_BYTES) == policy_settings_pin, 'Review request policy changed')
         require(public(presentation_signer) == R.public_keys(workspace['presentation_keys'])[PRESENTATION_ID])
         attempt = root / 'imports' / str(uuid4()); attempt.mkdir(mode=0o700)
         owner, owner_keys = signing(root, repo, OWNER_ID); now = int(time.time())
@@ -410,7 +419,9 @@ def connect(repo, root, app_root, audit_attempt, *, selected_officers=None, prog
                         grant = dict(policy=P.POLICY, kind='DISCLOSURE', issued_at=issued, expires_at=min(issued+3600,user['expires_at']),
                             user_id=user['user_id'], account_version=user['version'], officer_uid=officer,
                             source_public_sha256=C.PUBLIC_SHA, assignment='ORDINARY', classification='ORDINARY',
-                            restricted_clearance=False, request_reviews=False, reviewer_uid=None)
+                            restricted_clearance=False,
+                            request_reviews=bool(review_permissions and user['user_id'] in review_permissions),
+                            reviewer_uid=user['user_id'] if review_permissions and user['user_id'] in review_permissions else None)
                         disclosures.append(signed(presentation_signer, PRESENTATION_ID, grant))
             write(attempt / 'directory.json', directory_envelope)
             for index, envelope in enumerate(packets): write(attempt / ('presentation-' + str(index) + '.json'), envelope)
@@ -418,6 +429,9 @@ def connect(repo, root, app_root, audit_attempt, *, selected_officers=None, prog
             write(attempt / 'import.json', dict(policy=C.POLICY, directory=str(attempt/'directory.json'),
                 presentations=[str(attempt/('presentation-'+str(index)+'.json')) for index in range(len(packets))],
                 disclosures=[str(attempt/('disclosure-'+str(index)+'.json')) for index in range(len(disclosures))]))
+            if review_policy is not None:
+                require(C.file_digest(review_policy, repo, C.CONFIG_MAX_BYTES) == review_policy_pin and
+                    C.file_digest(policy_settings, repo, C.CONFIG_MAX_BYTES) == policy_settings_pin, 'Review request policy changed')
             progress('VALIDATED_SCOPED_CACHE_IMPORT')
             try: result = connection._install_loaded(snapshot, directory_envelope, packets, disclosures)
             except BaseException:
@@ -428,7 +442,7 @@ def connect(repo, root, app_root, audit_attempt, *, selected_officers=None, prog
                 detail_copy_expires_at=min(p['payload']['expires_at'] for p in packets),
                 directory_expires_at=directory['expires_at'], original_source_replay=True,
                 independently_administered_witnesses=False, findings_chain_anchored=False,
-                simulation_disclosures='ORDINARY_READ_ONLY', code_revision=revision,
+                simulation_disclosures='ORDINARY_REQUESTS_ENABLED' if review_permissions else 'ORDINARY_READ_ONLY', code_revision=revision,
                 blockchain_submission=False, import_manifest=str(attempt/'import.json'))
             write(attempt / 'RESULT.json', summary)
             # Publish usable config only after a validated import; retain every earlier attempt.
