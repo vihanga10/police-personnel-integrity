@@ -24,6 +24,34 @@ from app.identity.public_anchor_authorization import PUBLIC_SHA
 
 POLICY = 'OPERATIONAL_RESEARCH_CONNECTION_V1'
 AUTH_POLICY = 'RESEARCH_DATA_USE_AUTHORIZATION_V1'
+CONFIG_MAX_BYTES = 16 * 1024 * 1024
+SOURCE_ARTIFACT_MAX_BYTES = 2 * 1024 * 1024 * 1024
+HASH_CHUNK_BYTES = 1024 * 1024
+
+
+def file_digest(path, repo, maximum):
+    """Hash every byte using bounded chunks; reject replacement/growth during read."""
+    p = private(path, repo=repo)
+    before = p.stat()
+    require(before.st_size <= maximum, 'Bounded configuration input required' if
+            maximum == CONFIG_MAX_BYTES else 'Bounded source artifact required')
+    identity = lambda s: (s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns, s.st_mode, s.st_uid, s.st_nlink)
+    hasher = hashlib.sha256(); total = 0
+    fd = os.open(p, os.O_RDONLY | os.O_NOFOLLOW)
+    with os.fdopen(fd, 'rb') as stream:
+        require(identity(os.fstat(stream.fileno())) == identity(before), 'Connection input changed while opening')
+        while True:
+            chunk = stream.read(HASH_CHUNK_BYTES)
+            if not chunk: break
+            total += len(chunk)
+            require(total <= maximum, 'Connection input exceeded its size bound')
+            hasher.update(chunk)
+        require(total == before.st_size and identity(os.fstat(stream.fileno())) == identity(before),
+                'Connection input changed while hashing')
+    require(identity(private(p, repo=repo).stat()) == identity(before), 'Connection input replaced while hashing')
+    return hasher.hexdigest()
+
+
 SOURCE_FIELDS = ('key_file', 'backup_key_file', 'commitment_key_file',
     'backup_commitment_key_file', 'bundle_attempt', 'binding_attempt',
     'commitment_attempt', 'audit_gate_attempt')
@@ -70,7 +98,7 @@ class Connection:
         require(c['policy'] == POLICY, 'Connection policy differs')
         self.repo = Path(c['repository']).expanduser().resolve()
         private(self.file, repo=self.repo)
-        self.c = deepcopy(c); self.pins = {}; self._watch(self.file)
+        self.c = deepcopy(c); self.pins = {}; self.bounds = {}; self._watch(self.file)
         R.fields(c['source'], SOURCE_FIELDS)
         for name, path in c['source'].items():
             require(type(path) is str and Path(path).is_absolute(), 'Absolute source paths required')
@@ -122,12 +150,17 @@ class Connection:
             if runtime['findings_config'] is not None: self._runtime_pins(runtime['findings_config'])
         self.envelope = R.read_json(c['data_authorization'], self.repo); self._watch(c['data_authorization'])
 
-    def _watch(self, path):
+    def _watch(self, path, *, source_artifact=False):
         p = private(path, repo=self.repo)
-        require(p.stat().st_size <= 16 * 1024 * 1024, 'Bounded configuration input required')
-        pin = hashlib.sha256(p.read_bytes()).hexdigest()
+        require(type(source_artifact) is bool, 'Explicit artifact watch mode required')
+        if source_artifact:
+            require(p == private(self.args.binding_attempt / 'destination-bindings.encrypted.json', repo=self.repo),
+                    'Large artifact watch is reserved for configured destination bindings')
+        maximum = SOURCE_ARTIFACT_MAX_BYTES if source_artifact else CONFIG_MAX_BYTES
+        require(p not in self.bounds or self.bounds[p] == maximum, 'Connection input bound changed')
+        pin = file_digest(p, self.repo, maximum)
         require(p not in self.pins or self.pins[p] == pin, 'Previously pinned connection input changed')
-        self.pins[p] = pin
+        self.pins[p] = pin; self.bounds[p] = maximum
 
     def _runtime_pins(self, path):
         self._watch(path)
@@ -153,7 +186,7 @@ class Connection:
         self.stage = 'INPUT_REVALIDATION'
         require(revision(self.repo) == self.rev, 'Source revision advanced')
         for p, pin in self.pins.items():
-            require(hashlib.sha256(private(p, repo=self.repo).read_bytes()).hexdigest() == pin,
+            require(file_digest(p, self.repo, self.bounds[p]) == pin,
                     'Connection input changed')
         authorization(self.envelope, self.authorization_keys, revision=self.rev, officers=selected)
 
@@ -169,7 +202,9 @@ class Connection:
         public_file = self.args.commitment_attempt / 'public-commitments.json'
         binding_file = self.args.binding_attempt / 'destination-bindings.encrypted.json'
         permit_file = self.args.audit_gate_attempt / 'audit-permit.encrypted.json'
-        for file in (public_file, binding_file, permit_file): self._watch(file)
+        self._watch(public_file)
+        self._watch(binding_file, source_artifact=True)
+        self._watch(permit_file)
         public = R.read_json(public_file, self.repo)
         require(digest(public) == PUBLIC_SHA, 'Exact original publication required')
         from app.identity.audit_gate import require_audit_permit
@@ -184,7 +219,7 @@ class Connection:
                     for c in (self.access_config, self.workspace_config)), 'UI store keys must be separate from source keys')
         context = dict(code_revision=self.rev, bundle_attempt_id=self.args.bundle_attempt.name,
             binding_attempt_id=self.args.binding_attempt.name, commitment_attempt_id=self.args.commitment_attempt.name,
-            binding_artifact_sha256=hashlib.sha256(binding_file.read_bytes()).hexdigest())
+            binding_artifact_sha256=self.pins[private(binding_file, repo=self.repo)])
         self.stage = 'FRESH_AUDIT_PERMIT'
         require_audit_permit(R.read_json(permit_file, self.repo), crypto, backup, public, context)
         self.unchanged(selected)
