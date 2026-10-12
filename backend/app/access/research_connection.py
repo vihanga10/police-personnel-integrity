@@ -80,7 +80,9 @@ class Connection:
         self.access_config = R.read_json(c['access_config'], self.repo); self._watch(c['access_config'])
         self.workspace_config = R.read_json(c['workspace_config'], self.repo); self._watch(c['workspace_config'])
         R.fields(self.access_config, ('policy', 'repository', 'state_directory', 'key_file', 'authority_keys', 'origin'))
-        R.fields(self.workspace_config, ('policy', 'access_config', 'state_directory', 'key_file', 'presentation_keys'))
+        workspace_fields = ('policy', 'access_config', 'state_directory', 'key_file', 'presentation_keys')
+        if 'accountability_config' in self.workspace_config: workspace_fields += ('accountability_config',)
+        R.fields(self.workspace_config, workspace_fields)
         require(self.access_config['policy'] == 'SCOPED_ACCESS_CONFIG_V1' and
             Path(self.access_config['repository']).resolve() == self.repo and
             self.workspace_config['policy'] == 'RESEARCH_WEB_CONFIG_V1' and
@@ -101,6 +103,18 @@ class Connection:
         require(keys[0] != keys[1], 'Separate access/workspace encryption keys required')
         roots = [Path(x['state_directory']).resolve() for x in (self.access_config, self.workspace_config)]
         require(not roots[0].is_relative_to(roots[1]) and not roots[1].is_relative_to(roots[0]), 'UI stores overlap')
+        if 'accountability_config' in self.workspace_config:
+            path = self.workspace_config['accountability_config']; self._watch(path)
+            logs = R.read_json(path, self.repo)
+            R.fields(logs, ('policy', 'state_directory', 'key_file', 'reader_grants'))
+            require(logs['policy'] == 'ACCOUNTABILITY_CONFIG_V1', 'Accountability configuration differs')
+            root = private(logs['state_directory'], directory=True, repo=self.repo)
+            require(all(not root.is_relative_to(r) and not r.is_relative_to(root) for r in roots), 'Log/UI stores overlap')
+            self._watch(logs['key_file'])
+            key = private(logs['key_file'], repo=self.repo).read_bytes()
+            require(len(key) == 32 and key not in keys, 'Separate log encryption key required')
+            require(type(logs['reader_grants']) is list and len(logs['reader_grants']) <= 20, 'Bounded log reader grants required')
+            for grant in logs['reader_grants']: self._watch(grant)
         require(type(c['officers']) is dict and len(c['officers']) <= 6596, 'Bounded per-officer runtime map required')
         for officer, runtime in c['officers'].items():
             uid(officer); R.fields(runtime, ('recording_config', 'findings_config'))

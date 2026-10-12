@@ -15,15 +15,25 @@ from app.access.research_service import ResearchService
 ASSETS = {'/': ('index.html', 'text/html; charset=utf-8'),
           '/assets/app.js': ('app.js', 'text/javascript; charset=utf-8'),
           '/assets/styles.css': ('styles.css', 'text/css; charset=utf-8')}
+LOG_ASSETS = {'/accountability': ('accountability.html', 'text/html; charset=utf-8'),
+              '/assets/accountability.js': ('accountability.js', 'text/javascript; charset=utf-8'),
+              '/assets/accountability.css': ('accountability.css', 'text/css; charset=utf-8')}
 
 def configured(config_file, *, create=False):
     file = private(config_file); config = json.loads(file.read_text())
-    require(type(config) is dict and set(config) == {'policy','access_config','state_directory','key_file','presentation_keys'}, 'Workspace config fields differ')
+    fields = {'policy','access_config','state_directory','key_file','presentation_keys'}
+    require(type(config) is dict and set(config) in (fields, fields | {'accountability_config'}), 'Workspace config fields differ')
     require(config['policy'] == 'RESEARCH_WEB_CONFIG_V1', 'Workspace config policy differs')
     access, origin = configured_store(config['access_config'])
     private(file, repo=access.repo)
     keys = {k: base64.b64decode(v, validate=True) for k,v in config['presentation_keys'].items()}
-    return ResearchStore(config['state_directory'], config['key_file'], keys, access=access, create=create), origin
+    store = ResearchStore(config['state_directory'], config['key_file'], keys, access=access, create=create)
+    store.accountability = None
+    if 'accountability_config' in config:
+        from app.access.accountability import configured as configured_accountability
+        store.accountability = configured_accountability(config['accountability_config'], access=access,
+                                                        workspace_key=config['key_file'], workspace_root=store.root)
+    return store, origin
 
 def create_app(store, *, origin, assets=None):
     require(type(store) is ResearchStore, 'Exact configured workspace store required')
@@ -31,6 +41,9 @@ def create_app(store, *, origin, assets=None):
     assets = Path(assets) if assets else Path(__file__).resolve().parents[3] / 'frontend' / 'research'
     # Load only fixed committed UI files; no path supplied through requests.
     files = {url: (assets.joinpath(file).read_bytes(), media) for url,(file,media) in ASSETS.items()}
+    accountability = getattr(store, 'accountability', None)
+    if accountability is not None:
+        files.update({url: (assets.joinpath(file).read_bytes(), media) for url,(file,media) in LOG_ASSETS.items()})
     api = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
     @api.exception_handler(AccessError)
@@ -50,6 +63,24 @@ def create_app(store, *, origin, assets=None):
             require(type(value) is dict and set(value) == fields)
             return value
         except Exception: raise AccessError(400, 'INVALID_REQUEST') from None
+
+    if accountability is not None:
+        @api.get('/api/accountability/capabilities')
+        async def log_capabilities(request:Request):
+            await run_in_threadpool(accountability.reader, token(request))
+            return {'can_read_access_logs':True, 'independently_anchored':False}
+
+        @api.post('/api/accountability/logs')
+        async def access_logs(request:Request):
+            value=await body(request, {'limit','before_sequence','action','outcome'})
+            return await run_in_threadpool(accountability.read, token(request),
+                request.headers.get('x-csrf-token',''), value)
+
+        @api.post('/api/accountability/legacy')
+        async def legacy_logs(request:Request):
+            value=await body(request, {'limit','before_sequence','action','outcome'})
+            return await run_in_threadpool(accountability.read, token(request),
+                request.headers.get('x-csrf-token',''), value, True)
 
     @api.get('/api/research/officers/{officer_uid}')
     async def workspace(officer_uid:str, request:Request):
@@ -90,8 +121,11 @@ def create_app(store, *, origin, assets=None):
                     event['headers'].append((b'permissions-policy', b'camera=(), microphone=(), geolocation=()'))
                 await send(event)
             return await static_boundary(scope, receive, static_send)
-        if scope['path'].startswith('/api/research/'): return await research(scope, receive, send)
+        if scope['path'].startswith(('/api/research/', '/api/accountability/')): return await research(scope, receive, send)
         return await identity(scope, receive, send)
+    if accountability is not None:
+        from app.access.accountability import AccountabilityBoundary
+        return AccountabilityBoundary(application, accountability)
     return application
 
 def application():

@@ -22,6 +22,21 @@ def test_local_check_authenticates_real_encrypted_permit_without_loader_or_netwo
     assert result['status'] == 'LOCAL_PRECONDITIONS_VERIFIED' and result['source_replay_verified'] is False
     assert t['calls'] == [] and t['store'].path.read_bytes() == before
 
+def test_accountability_config_is_compatible_pinned_and_key_separated(connected):
+    import os
+    t=connected;control=t['workspace_config'].parent
+    root=control/'log-state';root.mkdir(mode=0o700)
+    key=write(control/'log.key',os.urandom(32))
+    file=write(control/'log-config.json',dict(policy='ACCOUNTABILITY_CONFIG_V1',
+        state_directory=str(root),key_file=str(key),reader_grants=[]))
+    cfg=json.loads(t['workspace_config'].read_text());cfg['accountability_config']=str(file)
+    write(t['workspace_config'],cfg)
+    connection=C.Connection(t['configfile'])
+    assert connection.check()['status']=='LOCAL_PRECONDITIONS_VERIFIED'
+    assert file in connection.pins and key in connection.pins
+    write(key,(control/'workspace.key').read_bytes())
+    with pytest.raises(ValueError):C.Connection(t['configfile'])
+
 
 def test_base64_public_key_starting_slash_is_not_a_file_path(connected):
     import base64
