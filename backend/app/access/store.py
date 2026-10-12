@@ -200,7 +200,7 @@ class AccessStore:
         sid = self.session_id(token); row = c.execute('SELECT value FROM sessions WHERE id=?',(sid,)).fetchone()
         if row is None: raise AccessError(401,'LOGIN_REQUIRED')
         s = self.open('SESSION',sid,1,row[0]); now = self.clock()
-        if not s['created'] <= now < s['created']+1800 or not s['last'] <= now < s['last']+600:
+        if not s['created'] <= now < s['created']+1800 or now < s['last']:
             raise AccessError(401,'LOGIN_REQUIRED')
         row = c.execute('SELECT version,value FROM users WHERE id=?',(s['user'],)).fetchone()
         if row is None or row[0] != s['version']: raise AccessError(401,'LOGIN_REQUIRED')
@@ -218,7 +218,7 @@ class AccessStore:
         with self.transaction() as c:
             p,s = self._session(c,token)
             return {'username':p['username'],'role':p['role'],'scope_type':p['scope_type'],
-                    'scope_id':p['scope_id'],'csrf_token':s['csrf'],'expires_at':min(s['created']+1800,p['expires_at'])}
+                    'scope_id':p['scope_id'],'csrf_token':s['csrf'],'expires_at':min(s['created']+1800,p['expires_at']), 'server_time':self.clock(), 'session_duration_seconds':1800}
 
     def logout(self,token,csrf):
         with self.transaction() as c:

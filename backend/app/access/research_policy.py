@@ -16,6 +16,7 @@ from app.identity.bitemporal_reconstruction import EvidenceVersion, RecordingHis
 from app.security.record_protection import AssignmentProtection, RecordClassification
 
 POLICY = 'RESEARCH_WORKSPACE_V1'
+RETAINED_POLICY = 'GENERATED_RETAINED_WORKSPACE_V1'
 DECISIONS = ('NEEDS_MORE_EVIDENCE', 'REPORTED_DISAGREEMENT_SUPPORTED', 'REPORTED_DISAGREEMENT_NOT_SUPPORTED')
 FIELDS = {'rank': {'to_rank', 'entry_rank', 'current_rank', 'floor_rank'}, 'police_number': {'police_no', 'number_type', 'entry_police_no', 'current_police_no'},
           'posting': {'to_unit_name', 'to_station_code', 'to_station_name', 'to_unit_type', 'entry_station_name', 'current_unit_name',
@@ -44,9 +45,13 @@ def signed(envelope, keys, kind, now):
     require(type(envelope) is dict and set(envelope) == {'key_id', 'payload', 'signature'}, 'Signed workspace envelope required')
     require(envelope['key_id'] in keys, 'Unconfigured workspace authority')
     p = envelope['payload']
-    require(type(p) is dict and p.get('policy') == POLICY and p.get('kind') == kind, 'Workspace signing domain differs')
-    require(type(p.get('issued_at')) is int and type(p.get('expires_at')) is int and
-            p['issued_at'] <= now < p['expires_at'] <= p['issued_at'] + 3600, 'Current workspace attestation required')
+    require(type(p) is dict and p.get('kind') == kind and p.get('policy') in (POLICY, RETAINED_POLICY), 'Workspace signing domain differs')
+    require(type(p.get('issued_at')) is int and p['issued_at'] <= now, 'Future workspace issuance refused')
+    if p['policy'] == RETAINED_POLICY and kind == 'PRESENTATION':
+        require(p.get('expires_at') is None and p.get('record_origin') == 'GENERATED_RESEARCH_RECORDS', 'Retained generated presentation required')
+    else:
+        maximum = 86400 if p['policy'] == RETAINED_POLICY and kind == 'DISCLOSURE' else 3600
+        require(type(p.get('expires_at')) is int and now < p['expires_at'] <= p['issued_at'] + maximum, 'Current workspace authorization required')
     Ed25519PublicKey.from_public_bytes(keys[envelope['key_id']]).verify(
         base64.b64decode(envelope['signature'], validate=True), encoded(p))
     return deepcopy(p)
@@ -69,8 +74,12 @@ def history(value, officer):
 
 def packet(envelope, keys, now):
     p = signed(envelope, keys, 'PRESENTATION', now)
-    require(set(p) == {'policy', 'kind', 'issued_at', 'expires_at', 'officer_uid', 'generation',
-        'source_public_sha256', 'observed_at', 'recording_tip_sha256', 'history', 'findings', 'authority', 'anchoring'}, 'Presentation fields differ')
+    fields = {'policy', 'kind', 'issued_at', 'expires_at', 'officer_uid', 'generation',
+        'source_public_sha256', 'observed_at', 'recording_tip_sha256', 'history', 'findings', 'authority', 'anchoring'}
+    if p['policy'] == RETAINED_POLICY:
+        fields |= {'record_origin', 'full_records'}
+        validate_full_records(p['full_records'])
+    require(set(p) == fields, 'Presentation fields differ')
     uid(p['officer_uid']); sha(p['source_public_sha256']); sha(p['recording_tip_sha256'])
     require(type(p['generation']) is int and p['generation'] > 0, 'Positive generation required')
     require(instant(p['observed_at']).timestamp() <= p['issued_at'], 'Observation is in the future')
@@ -145,3 +154,31 @@ def claim_projection(claim):
                 reasons=list(claim.issues), reported_dataset=dataset,
                 provenance_sha256=fingerprint({'source': claim.source_reference}),
                 source_independence_verified=False)
+
+
+def validate_full_records(records):
+    require(type(records) is list and len(records) <= 20000, 'Bounded full officer records required')
+    require(len(encoded(records)) <= 8*1024*1024, 'Full officer record payload exceeds safe display bound')
+    seen=set()
+    for row in records:
+        require(type(row) is dict and set(row)=={'dataset','raw_record_id','fields'}, 'Full record fields differ')
+        text(row['dataset'],160);require(re.fullmatch(r'[A-Za-z0-9_]+\.csv',row['dataset']), 'Dataset name differs')
+        sha(row['raw_record_id']);require(row['raw_record_id'] not in seen,'Duplicate full record');seen.add(row['raw_record_id'])
+        require(type(row['fields']) is dict and 0 < len(row['fields']) <= 300, 'Bounded source columns required')
+        for name,value in row['fields'].items():
+            text(name,160);require(type(value) is str and len(value)<=20000,'Original field value exceeds display bound')
+
+
+def full_records(snapshot, officer):
+    """Original generated subject rows only; recording/authority mentions do not grant ownership."""
+    records=[]
+    for raw,item in sorted(snapshot['catalog'].items()):
+        links=[x for x in item['candidate_links'] if x['officer_uid']==officer and x['role']=='officer_nic_no']
+        if not links:continue
+        require(len(links)==1 and links[0]['state']=='CANDIDATE_NOT_ACCEPTED' and raw==item['raw_record_id'] and
+                item['delivery']['complete'] is True and snapshot['bindings']['raw_bindings'].get(raw), 'Original subject binding differs')
+        original=item['original'];columns=original['columns'];values=original['values']
+        require(len(columns)==len(set(columns))==len(values),'Original source columns differ')
+        records.append(dict(dataset=item['filename'],raw_record_id=raw,fields=dict(zip(columns,values))))
+    validate_full_records(records)
+    return records

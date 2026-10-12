@@ -401,6 +401,8 @@ def connect(repo, root, app_root, audit_attempt, *, selected_officers=None, revi
                 existing = database.execute('SELECT version FROM directory WHERE id=1').fetchone()
                 generation = existing[0] + 1 if existing else 1
             directory = D._from_loaded_snapshot(snapshot, membership_envelope, connection.access_keys, generation=generation)
+            from app.access.policy import RETAINED_DIRECTORY_POLICY
+            directory.update(policy=RETAINED_DIRECTORY_POLICY, expires_at=None, record_origin='GENERATED_RESEARCH_RECORDS')
             directory_envelope = signed(access_signer, ACCESS_ID, directory)
             packets, disclosures = [], []
             members = {entry['officer_uid']: entry for entry in directory['officers']}
@@ -411,12 +413,13 @@ def connect(repo, root, app_root, audit_attempt, *, selected_officers=None, revi
                     existing = database.execute('SELECT version FROM presentations WHERE id=?', (ident,)).fetchone()
                     packet_generation = existing[0] + 1 if existing else 1
                 draft = connection._presentation(snapshot, officer, packet_generation)
+                draft.update(policy=P.RETAINED_POLICY, expires_at=None, record_origin='GENERATED_RESEARCH_RECORDS', full_records=P.full_records(snapshot, officer))
                 packets.append(signed(presentation_signer, PRESENTATION_ID, draft))
                 issued = int(time.time())
                 for user in accounts:
                     if user['active'] and permitted(user, members[officer]):
                         # Explicit generated ordinary-disclosure simulation only.
-                        grant = dict(policy=P.POLICY, kind='DISCLOSURE', issued_at=issued, expires_at=min(issued+3600,user['expires_at']),
+                        grant = dict(policy=P.RETAINED_POLICY, kind='DISCLOSURE', issued_at=issued, expires_at=min(issued+86398,user['expires_at'],approval['expires_at']),
                             user_id=user['user_id'], account_version=user['version'], officer_uid=officer,
                             source_public_sha256=C.PUBLIC_SHA, assignment='ORDINARY', classification='ORDINARY',
                             restricted_clearance=False,
@@ -439,7 +442,7 @@ def connect(repo, root, app_root, audit_attempt, *, selected_officers=None, revi
             event('ALLOWED', 'SIGNED_GENERATED_RECORD_UI_CACHE_IMPORTED')
             summary = dict(**result, record_origin='GENERATED_RESEARCH_RECORDS', scope_basis='EXPLICIT_SIMULATION',
                 all_officer_details_connected=len(selected)==len(officers), connected_detail_officers=len(selected),
-                detail_copy_expires_at=min(p['payload']['expires_at'] for p in packets),
+                detail_copy_expires_at=None, display_lifecycle='RETAINED_LAST_VERIFIED_SNAPSHOT',
                 directory_expires_at=directory['expires_at'], original_source_replay=True,
                 independently_administered_witnesses=False, findings_chain_anchored=False,
                 simulation_disclosures='ORDINARY_REQUESTS_ENABLED' if review_permissions else 'ORDINARY_READ_ONLY', code_revision=revision,

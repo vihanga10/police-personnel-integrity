@@ -1,5 +1,6 @@
 """Encrypted, append-only local request accountability; not independent anchoring."""
 import base64
+import asyncio
 from contextlib import contextmanager
 from datetime import datetime, timezone
 import fcntl
@@ -32,9 +33,10 @@ ACTION_PATHS={'/api/auth/login':'LOGIN','/api/auth/logout':'LOGOUT','/api/auth/s
  '/api/officers/search':'OFFICER_SEARCH','/api/research/history':'HISTORY_QUERY',
  '/api/research/requests':'REVIEW_REQUEST','/api/accountability/logs':'ACCESS_LOG_READ',
  '/api/accountability/legacy':'LEGACY_LOG_READ','/api/accountability/capabilities':'LOG_PERMISSION_CHECK',
+ '/api/accountability/session-signal':'CLIENT_PAGE_EXIT',
  '/api/research/available':'CONNECTED_VIEWS_READ','/accountability':'LOG_PAGE_VIEW'}
 ACTIONS=set(ACTION_PATHS.values())|{'OFFICER_IDENTITY_READ','WORKSPACE_READ','RECENT_REQUESTS_READ',
- 'REQUEST_STATUS_READ','CORRECTION_REQUEST','OTHER_REQUEST','ACCOUNT_RENEWAL','LOG_READER_GRANT','DATASET_CONNECTION'}
+ 'REQUEST_STATUS_READ','CORRECTION_REQUEST','OTHER_REQUEST','ACCOUNT_RENEWAL','LOG_READER_GRANT','DATASET_CONNECTION','SESSION_EXPIRED','SESSION_INTERRUPTED','CLIENT_PAGE_EXIT'}
 
 def canonical_uid(value):
     try:return value if type(value) is str and str(UUID(value))==value else None
@@ -131,18 +133,79 @@ class AccountabilityStore:
         if recover and len(rows)>pin['sequence']:self._checkpoint(len(rows),previous)
         return rows,previous
 
-    def append(self,event):
+    def _append_locked(self,c,event):
         require(event['action'] in ACTIONS and event['phase'] in ('RECEIVED','COMPLETED','ADMINISTRATION'))
         value={**event,'recorded_at':datetime.fromtimestamp(self.clock(),timezone.utc).isoformat(),
                'event_id':str(uuid4()),'policy':POLICY}
-        with self.locked() as c:
-            rows,previous=self.verify(c,recover=True);seq=len(rows)+1
-            nonce=secrets.token_bytes(12)
-            blob=nonce+self.aead.encrypt(nonce,encoded(value),encoded([POLICY,seq,previous]))
-            head=self.digest('EVENT',[seq,previous,blob.hex()])
-            c.execute('INSERT INTO events VALUES(?,?,?,?)',(seq,previous,blob,head));c.commit()
-            self._checkpoint(seq,head)
+        rows,previous=self.verify(c,recover=True);seq=len(rows)+1
+        nonce=secrets.token_bytes(12)
+        blob=nonce+self.aead.encrypt(nonce,encoded(value),encoded([POLICY,seq,previous]))
+        head=self.digest('EVENT',[seq,previous,blob.hex()])
+        c.execute('INSERT INTO events VALUES(?,?,?,?)',(seq,previous,blob,head));c.commit()
+        self._checkpoint(seq,head)
         return seq
+
+    def append(self,event):
+        with self.locked() as c:return self._append_locked(c,event)
+
+    def session_reference(self,token):
+        return self.digest('SESSION_REFERENCE',token) if type(token) is str and 40<=len(token)<=64 else None
+
+    def instance_reference(self):return self.digest('SERVER_INSTANCE',self.access.boot_key.hex())
+
+    def login_metadata(self,token):
+        with self.access.transaction() as c:
+            account_,session=self.access._session(c,token)
+            deadline=min(session['created']+1800,account_['expires_at'])
+            return dict(session_reference=self.session_reference(token),server_instance_reference=self.instance_reference(),
+                session_started_at=datetime.fromtimestamp(session['created'],timezone.utc).isoformat(),
+                session_deadline=datetime.fromtimestamp(deadline,timezone.utc).isoformat(),
+                deadline_reason='FIXED_30_MINUTE_LIMIT' if deadline==session['created']+1800 else 'ACCOUNT_AUTHORIZATION_EXPIRY')
+
+    def session_signal(self,token,csrf,value):
+        if not (type(value) is dict and set(value)=={'event','page','persisted'} and value['event']=='PAGE_EXIT' and
+                value['page'] in ('WORKSPACE','ACCESS_LOGS') and type(value['persisted']) is bool):
+            raise AccessError(400,'INVALID_SESSION_SIGNAL')
+        with self.access.transaction() as c:
+            _,session=self.access._session(c,token,csrf)
+            self.access._limit(c,'SESSION_SIGNAL',session['user'],30)
+        return {'received':True,'logout_confirmed':False}
+
+    def reconcile_sessions(self,*,restart=False,shutdown=False):
+        """Independent expiry; atomic terminal-event dedupe against the encrypted ledger.
+
+        No old login is invented. Prior events without a recorded deadline cannot
+        be upgraded. A page-exit report never ends a server session.
+        """
+        now=self.clock();instance=self.instance_reference();count=0
+        with self.locked() as c:
+            rows,_=self.verify(c,recover=True);active={};ended=set();replacements={}
+            for _,event in rows:
+                ref=event.get('session_reference')
+                if event.get('action')=='LOGIN' and event.get('phase')=='COMPLETED' and event.get('status')==200 and ref and event.get('session_deadline'):
+                    active[ref]=event
+                    prior=event.get('replaced_session_reference')
+                    if prior:replacements[prior]=event
+                if ref and event.get('phase')=='COMPLETED' and ((event.get('action')=='LOGOUT' and event.get('status')==200) or event.get('action') in ('SESSION_EXPIRED','SESSION_INTERRUPTED')):
+                    ended.add(ref)
+            for ref,login in active.items():
+                if ref in ended:continue
+                deadline=datetime.fromisoformat(login['session_deadline']).timestamp()
+                if now>=deadline:
+                    action='SESSION_EXPIRED';reason=login['deadline_reason'];effective=login['session_deadline']
+                elif ref in replacements:
+                    action='SESSION_INTERRUPTED';reason='REPLACED_BY_NEW_LOGIN';effective=replacements[ref]['session_started_at']
+                elif (restart and login['server_instance_reference']!=instance) or (shutdown and login['server_instance_reference']==instance):
+                    action='SESSION_INTERRUPTED';reason='SERVER_RESTART_OBSERVED' if restart else 'SERVER_SHUTDOWN_OBSERVED';effective=None
+                else:continue
+                self._append_locked(c,dict(action=action,phase='COMPLETED',method='SERVER',status=None,outcome='ALLOWED',
+                    request_id=str(uuid4()),actor={**login['actor'],'authenticated':False,'authentication_state':action},
+                    session_reference=ref,session_started_at=login['session_started_at'],session_deadline=login['session_deadline'],
+                    session_effective_end_at=effective,reason=reason,logout_confirmed=False,
+                    explanation='Authorization expired at the recorded deadline.' if action=='SESSION_EXPIRED' else
+                        'Server interruption observed; browser closure and exact human logout time are unknown.'))
+                count+=1
+        return count
 
     def load_grant(self,file,check_time=True):
         value=json.loads(private(file,repo=self.repo).read_text())
@@ -190,11 +253,11 @@ class AccountabilityStore:
                     if not p['active']:state='ACCOUNT_INACTIVE'
                     elif session and session['version']!=row[0]:state='ACCOUNT_VERSION_CHANGED'
                     elif session and not (session['created']<=self.clock()<session['created']+1800 and
-                            session['last']<=self.clock()<session['last']+600):state='SESSION_EXPIRED'
+                            session['last']<=self.clock()):state='SESSION_EXPIRED'
                     elif session:state='ACTIVE'
                     authenticated=bool(session and p['active'] and session['version']==row[0] and
                        session['created']<=self.clock()<session['created']+1800 and
-                       session['last']<=self.clock()<session['last']+600)
+                       session['last']<=self.clock())
                 except Exception:state='ACCOUNT_GRANT_INVALID_OR_EXPIRED'
                 return {'user_id':p['user_id'],'username':p['username'],'role':p['role'],
                         'account_version':row[0],'scope_type':p['scope_type'],'scope_id':p['scope_id'],
@@ -250,8 +313,40 @@ def cookie(headers):
     return parts[0] if len(parts)==1 else None
 
 class AccountabilityBoundary:
-    def __init__(self,app,store):self.app=app;self.store=store
+    def __init__(self,app,store):
+        self.app=app;self.store=store;self.worker_failed=False;self.expiry_poll_seconds=5
+
+    async def lifespan(self,scope,receive,send):
+        stop=asyncio.Event();task=None
+        async def monitor():
+            while not stop.is_set():
+                try:
+                    await run_in_threadpool(self.store.reconcile_sessions)
+                    self.worker_failed=False
+                except Exception:self.worker_failed=True
+                try:await asyncio.wait_for(stop.wait(),timeout=self.expiry_poll_seconds)
+                except asyncio.TimeoutError:pass
+        async def lifecycle_receive():
+            event=await receive()
+            if event['type']=='lifespan.startup':
+                try:await run_in_threadpool(self.store.reconcile_sessions,restart=True)
+                except Exception:raise RuntimeError('Accountability lifecycle unavailable') from None
+            elif event['type']=='lifespan.shutdown':
+                stop.set()
+                if task is not None:await task
+                await run_in_threadpool(self.store.reconcile_sessions,shutdown=True)
+            return event
+        async def lifecycle_send(event):
+            nonlocal task
+            if event['type']=='lifespan.startup.complete':task=asyncio.create_task(monitor())
+            await send(event)
+        try:await self.app(scope,lifecycle_receive,lifecycle_send)
+        finally:
+            stop.set()
+            if task is not None:await task
+
     async def __call__(self,scope,receive,send):
+        if scope['type']=='lifespan':return await self.lifespan(scope,receive,send)
         if scope['type']!='http':return await self.app(scope,receive,send)
         path=scope.get('path','');tracked=path.startswith('/api/') or path=='/accountability'
         if not tracked:return await self.app(scope,receive,send)
@@ -260,7 +355,7 @@ class AccountabilityBoundary:
         peer=scope.get('client');peer_ref=self.store.digest('PEER',str(peer[0]) if peer else 'unknown')
         base={'request_id':ident,'action':action_for(path),'method':scope['method'] if scope['method'] in ('GET','POST','PUT','PATCH','DELETE','HEAD','OPTIONS') else 'OTHER',
               'actor':actor,'peer_reference':peer_ref,'requested_officer_uid':None,'finding_id':None,'operation_id':None,
-              'status':None,'outcome':'ATTEMPT','reason':None}
+              'status':None,'outcome':'ATTEMPT','reason':None,'session_reference':self.store.session_reference(token)}
         for part in path.split('/'):
             if canonical_uid(part):
                 if base['action']=='REQUEST_STATUS_READ':base['operation_id']=part
@@ -269,7 +364,10 @@ class AccountabilityBoundary:
             await JSONResponse({'error':'ACCOUNTABILITY_UNAVAILABLE','request_id':ident,
               'operation_outcome_unknown':scope['method']=='POST'},status_code=503,
               headers={'cache-control':'no-store','x-request-id':ident})(scope,receive,send)
-        try:await run_in_threadpool(self.store.append,{**base,'phase':'RECEIVED'})
+        try:
+            await run_in_threadpool(self.store.reconcile_sessions)
+            if self.worker_failed:raise RuntimeError('Lifecycle worker unavailable')
+            await run_in_threadpool(self.store.append,{**base,'phase':'RECEIVED'})
         except Exception:return await unavailable()
         captured=bytearray();response=[];size=0;overflow=False
         async def recv():
@@ -298,6 +396,12 @@ class AccountabilityBoundary:
             for key in ('officer_uid','finding_id','operation_id'):
                 value=canonical_uid(parsed.get(key))
                 if value:base['requested_officer_uid' if key=='officer_uid' else key]=value
+            if base['action']=='OFFICER_SEARCH' and base['actor'] and base['actor'].get('authenticated'):
+                query=parsed.get('query');kind=parsed.get('kind')
+                if kind in ('NAME','NIC') and type(query) is str and len(query)<=200 and not any(ord(v)<32 for v in query):
+                    base['search']={'kind':kind,'query':query}
+            if base['action']=='CLIENT_PAGE_EXIT' and parsed.get('event')=='PAGE_EXIT' and parsed.get('page') in ('WORKSPACE','ACCESS_LOGS') and type(parsed.get('persisted')) is bool:
+                base['client_page_event']={'event':'PAGE_EXIT','page':parsed['page'],'persisted':parsed['persisted'],'logout_confirmed':False}
             if base['action']=='REVIEW_REQUEST' and parsed.get('kind')=='CORRECTION':base['action']='CORRECTION_REQUEST'
         parsed=None
         start=next((e for e in response if e['type']=='http.response.start'),None)
@@ -308,6 +412,9 @@ class AccountabilityBoundary:
                 if k.lower()==b'set-cookie' and v.startswith((COOKIE+'=').encode()):
                     new_token=v.decode('latin1').split(';',1)[0].split('=',1)[1]
                     base['actor']=await run_in_threadpool(self.store.actor,new_token)
+                    try:base.update(await run_in_threadpool(self.store.login_metadata,new_token))
+                    except Exception:return await unavailable()
+                    if self.store.session_reference(token):base['replaced_session_reference']=self.store.session_reference(token)
         if status>=400:
             try:
                 body=b''.join(e.get('body',b'') for e in response if e['type']=='http.response.body')
@@ -322,6 +429,10 @@ class AccountabilityBoundary:
                     base['returned_officer_uids']=[v['officer_uid'] for v in value['items']
                         if type(v) is dict and canonical_uid(v.get('officer_uid'))]
             except Exception:pass
+        if base['action']=='CLIENT_PAGE_EXIT' and status!=200:base.pop('client_page_event',None)
+        if base['action']=='LOGOUT' and status==200:
+            base.update(logout_confirmed=True,session_end_reason='MANUAL_LOGOUT',
+                session_effective_end_at=datetime.fromtimestamp(self.store.clock(),timezone.utc).isoformat())
         if overflow:base['reason']='RESPONSE_SIZE_LIMIT'
         try:await run_in_threadpool(self.store.append,{**base,'phase':'COMPLETED'})
         except Exception:return await unavailable()

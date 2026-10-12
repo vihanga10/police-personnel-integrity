@@ -70,6 +70,12 @@ def create_app(store, *, origin, assets=None):
             await run_in_threadpool(accountability.reader, token(request))
             return {'can_read_access_logs':True, 'independently_anchored':False}
 
+        @api.post('/api/accountability/session-signal')
+        async def session_signal(request:Request):
+            value=await body(request, {'event','page','persisted'})
+            return await run_in_threadpool(accountability.session_signal,token(request),
+                request.headers.get('x-csrf-token',''),value)
+
         @api.post('/api/accountability/logs')
         async def access_logs(request:Request):
             value=await body(request, {'limit','before_sequence','action','outcome'})

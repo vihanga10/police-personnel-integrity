@@ -57,7 +57,7 @@ def test_logout_and_session_fixation(enrolled):
     s.logout(fresh,newcsrf)
     with pytest.raises(AccessError):s.session(fresh)
 
-@pytest.mark.parametrize('delta',[601,1801,-10])
+@pytest.mark.parametrize('delta',[1801,-10])
 def test_server_clock_timeout_and_reversal(enrolled,delta):
     s,k,c,t,csrf,now=enrolled;now[0]+=delta
     with pytest.raises(AccessError):s.session(t)

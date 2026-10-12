@@ -58,7 +58,8 @@ def test_target_actor_outcome_trace_and_search_privacy(env):
     assert views[1]['requested_officer_uid']==identifier(5) and views[1]['reason']=='NOT_FOUND'
     assert views[0]['actor']['role']=='STATION_OIC' and views[0]['actor']['scope_id']=='S1'
     for v in views:assert any(x['phase']=='RECEIVED' and x['request_id']==v['request_id'] for x in events(logs))
-    assert 'PRIVATE_SEARCH_TEXT' not in json.dumps(events(logs))
+    assert any(e.get('search',{}).get('query')=='PRIVATE_SEARCH_TEXT' for e in events(logs))
+    assert b'PRIVATE_SEARCH_TEXT' not in logs.db.read_bytes()
 
 def test_search_logs_returned_identifiers_without_names_nic_or_query(env):
     _,logs,c,*_=env
@@ -67,7 +68,8 @@ def test_search_logs_returned_identifiers_without_names_nic_or_query(env):
     event=events(logs)[-1]
     assert event['returned_officer_uids']==[item['officer_uid'] for item in answer['items']]
     text=json.dumps(events(logs))
-    assert 'Same Reported Name' not in text
+    assert event['search']=={'kind':'NAME','query':'Same Reported Name'}
+    assert 'Same Reported Name' in text
     for item in answer['items']:assert item['nic'] not in text
 
 def test_log_reader_is_explicit_and_reads_are_logged(env):
@@ -96,10 +98,10 @@ def test_pagination_and_legacy_remain_honest(env):
 
 def test_expired_session_and_logout_attribution(env):
     _,logs,c,_,_,clock,*_=env
-    clock[0]+=601
+    clock[0]+=1801
     assert c.request('/api/auth/session')[0]==401
     assert events(logs)[-1]['actor']['authentication_state']=='SESSION_EXPIRED'
-    clock[0]-=601;c.login();assert c.request('/api/auth/logout','POST',{})[0]==200
+    clock[0]-=1801;c.login();assert c.request('/api/auth/logout','POST',{})[0]==200
     assert events(logs)[-1]['action']=='LOGOUT' and events(logs)[-1]['actor']['authenticated']
 
 def test_reader_expiry_signature_and_version_denial(env):

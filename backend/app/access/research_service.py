@@ -72,6 +72,8 @@ class ResearchService:
             coverage_end=packet['history']['coverage_end'], findings=self.findings_projection(packet['findings']),
             authority=deepcopy(packet['authority']), anchoring=deepcopy(packet['anchoring']),
             can_request_review=grant['request_reviews'], accepted_state=None,
+            full_records=deepcopy(packet.get('full_records', [])),
+            display_lifecycle='RETAINED_LAST_VERIFIED_SNAPSHOT' if packet['expires_at'] is None else 'BOUNDED_OBSERVED_COPY',
             evidence_view='SIGNED_OBSERVED_COPY', coverage_semantics='JOURNAL_OBSERVATIONS_ONLY',
             live_research_ready=False, fresh_live_verification=False,
             public_finality_verified=False, independent_deployment_verified=False)

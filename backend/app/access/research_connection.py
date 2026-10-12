@@ -320,7 +320,9 @@ class Connection:
         AlgorithmPermit(snapshot).check(snapshot)
         self.stage = 'SIGNED_DIRECTORY_BINDING'
         d = D.validate_directory(directory, self.access_keys)
-        require(d['source_public_sha256'] == PUBLIC_SHA and d['expires_at'] <= self.envelope['payload']['expires_at'],
+        generated = self.envelope['payload']['custodian_reference'] == 'GENERATED_RECORD_OWNER_NOT_POLICE_CUSTODIAN'
+        require(d['source_public_sha256'] == PUBLIC_SHA and ((generated and d['expires_at'] is None) or
+                (d['expires_at'] is not None and d['expires_at'] <= self.envelope['payload']['expires_at'])),
                 'Directory source or data-use expiry differs')
         # Authenticate the directory against a complete source replay, not just
         # its trusted administrator signature or an officer-count comparison.
@@ -333,9 +335,13 @@ class Connection:
         for envelope in presentations:
             self.stage = 'SIGNED_PRESENTATION_BINDING'
             p = P.packet(envelope, self.workspace_keys, time.time())
-            require(p['source_public_sha256'] == PUBLIC_SHA and p['expires_at'] <= self.envelope['payload']['expires_at'],
+            require(p['source_public_sha256'] == PUBLIC_SHA and ((generated and p['expires_at'] is None) or
+                    (p['expires_at'] is not None and p['expires_at'] <= self.envelope['payload']['expires_at'])),
                     'Presentation source or data-use expiry differs')
-            require(p['expires_at'] <= p['issued_at'] + 300, 'Operational presentation lifetime exceeds five minutes')
+            if p['expires_at'] is not None:
+                require(p['expires_at'] <= p['issued_at'] + 300, 'Operational presentation lifetime exceeds five minutes')
+            else:
+                require(p['full_records'] == P.full_records(snapshot,p['officer_uid']), 'Full source details differ from original replay')
             current = self._presentation(snapshot, p['officer_uid'], p['generation'])
             require(all(p[k] == current[k] for k in ('history', 'findings', 'authority', 'recording_tip_sha256', 'anchoring')),
                     'Presentation no longer matches current protected observations')

@@ -186,7 +186,7 @@ def test_missing_witness_enrollment_never_reinitializes_and_preserves_previous_i
     assert len(list((d['root']/'officers'/OFFICER/'findings-journal').glob('entry-*')))==1
 
 
-def test_selected_batch_connects_only_requested_original_officer_and_expires_closed(deployment):
+def test_selected_batch_connects_only_requested_original_officer_and_retains_details(deployment):
     d=deployment;prepare(d)
     result=G.connect(d['repo'],d['root'],d['app'],d['t']['config']['source']['audit_gate_attempt'],selected_officers=[SECOND])
     assert result['directory_officers']==2 and result['connected_detail_officers']==1 and not result['all_officer_details_connected']
@@ -194,10 +194,9 @@ def test_selected_batch_connects_only_requested_original_officer_and_expires_clo
     a,_=d['store'].access.login('research.dig.a',PASSWORD,'selected-peer-a')
     b,_=d['store'].access.login('research.dig.b',PASSWORD,'selected-peer-b')
     assert service.available(a)['items']==[] and [item['officer_uid'] for item in service.available(b)['items']]==[SECOND]
-    d['store'].clock=lambda:result['detail_copy_expires_at']+1
-    with pytest.raises(AccessError) as exc:service.workspace(b,SECOND)
-    assert exc.value.code=='PRESENTATION_EXPIRED_OR_INVALID'
-    assert service.available(b)['items']==[]
+    assert result['detail_copy_expires_at'] is None
+    assert service.workspace(b,SECOND)['full_records']
+    assert not service.workspace(b,SECOND)['fresh_live_verification']
 
 
 @pytest.mark.parametrize('fault',['audit_failed','ready_wrong_revision','profile_changed'])

@@ -139,3 +139,29 @@ test('first query preserves exact microsecond knowledge boundary despite datetim
   const end='2026-10-10T12:34:56.123456+00:00';const t=await setup(u=>u.startsWith('/api/research/officers/')?response({...workspace,coverage_start:end,coverage_end:end}):router(u));
   try{await selected(t);t.submit('history-form');await wait(()=>t.calls.some(([u])=>u==='/api/research/history'));assert.equal(JSON.parse(t.calls.find(([u])=>u==='/api/research/history')[1].body).known_at,end);await wait(()=>!t.d.getElementById('history-button').disabled);}finally{t.dom.window.close();}
 });
+
+test('fixed session countdown preserves full details beyond five minutes and clears them at thirty minutes',async()=>{
+  const start=Date.now();let now=start;const intervals=[];
+  const full={...workspace,expires_at:null,display_lifecycle:'RETAINED_LAST_VERIFIED_SNAPSHOT',full_records:[{dataset:'officer_personal_information.csv',raw_record_id:'f'.repeat(64),fields:{full_name:'Reported Officer',address:'<img src=x onerror=alert(1)>'}}]};
+  const t=await setup(u=>u==='/api/auth/session'?response({username:'station.one',role:'STATION_OIC',scope_type:'STATION',scope_id:'S1',csrf_token:'csrf',server_time:start/1000,expires_at:start/1000+1800}):u.startsWith('/api/research/officers/')?response(full):router(u),window=>{
+    const OriginalDate=window.Date;window.Date=class extends OriginalDate{constructor(...args){super(...(args.length?args:[now]));}static now(){return now;}};
+    window.setInterval=callback=>{intervals.push(callback);return intervals.length;};
+  });
+  try{
+    await selected(t);assert.ok(t.d.getElementById('session-countdown').textContent.includes('30:00'));
+    assert.ok(t.d.getElementById('full-records').textContent.includes('<img src=x'));
+    assert.equal(t.d.getElementById('full-records').querySelector('img'),null);
+    now+=601000;intervals[0]();assert.ok(t.d.getElementById('session-countdown').textContent.includes('19:59'));
+    assert.equal(t.d.getElementById('application').hidden,false);assert.ok(t.d.getElementById('full-records').textContent.includes('Reported Officer'));
+    now=start+1800000;intervals[0]();assert.equal(t.d.getElementById('application').hidden,true);
+    assert.equal(t.d.getElementById('full-records').textContent,'');assert.equal(t.d.getElementById('account-name').textContent,'');
+    assert.equal(t.calls.filter(([u])=>u==='/api/auth/logout').length,0);
+  }finally{t.dom.window.close();}
+});
+
+
+test('page-exit signal uses bounded authenticated keepalive and clears protected fields without logging out',async()=>{
+  const t=await setup(router);try{await selected(t);t.dom.window.dispatchEvent(new t.dom.window.PageTransitionEvent('pagehide',{persisted:false}));
+    const signal=t.calls.find(([u])=>u==='/api/accountability/session-signal');assert(signal);assert.equal(signal[1].keepalive,true);assert.equal(signal[1].headers['x-csrf-token'],'csrf');assert.deepEqual(JSON.parse(signal[1].body),{event:'PAGE_EXIT',page:'WORKSPACE',persisted:false});assert.equal(t.d.getElementById('officer-name').textContent,'');assert.equal(t.d.getElementById('account-name').textContent,'');assert.equal(t.d.getElementById('search-results').textContent,'');assert(!t.calls.some(([u])=>u==='/api/auth/logout'));
+  }finally{t.dom.window.close();}
+});

@@ -10,8 +10,11 @@ from app.identity.normalization import normalize_identifier
 
 def validate_directory(envelope, keys, *, now=None):
     p = signed(envelope, keys, 'DIRECTORY', now=now)
-    require(set(p) == {'policy', 'kind', 'issued_at', 'expires_at', 'generation',
-                      'source_public_sha256', 'officers', 'review_reference'}, 'Directory fields differ')
+    from app.access.policy import RETAINED_DIRECTORY_POLICY
+    fields = {'policy', 'kind', 'issued_at', 'expires_at', 'generation',
+              'source_public_sha256', 'officers', 'review_reference'}
+    if p['policy'] == RETAINED_DIRECTORY_POLICY: fields.add('record_origin')
+    require(set(p) == fields, 'Directory fields differ')
     require(type(p['generation']) is int and p['generation'] > 0, 'Positive directory generation required')
     import re
     require(type(p['source_public_sha256']) is str and re.fullmatch('[0-9a-f]{64}', p['source_public_sha256']), 'Source digest required')
