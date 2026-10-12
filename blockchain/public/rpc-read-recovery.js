@@ -59,6 +59,10 @@ function classify(message, code) {
     // Some providers report throttling as numeric JSON-RPC 429 under HTTP 200.
     // Permanent historical/authentication/quota errors above still take precedence.
     if (code === 429) return ['TRANSIENT_PROVIDER_FAILURE', true];
+    // QuickNode's per-second throttle is an HTTP-200 JSON-RPC error.
+    // Require its specific limit message; unrelated -32007 errors stay hard failures.
+    if (code === -32007 && /(?:\/second|per.second|requests? per second|request limit reached)/i.test(message))
+        return ['TRANSIENT_PROVIDER_FAILURE', true];
     if ([-32005, -32016, -32000, -32603].includes(code) &&
         /rate.?limit|too many requests|requests per|temporarily unavailable|server busy|overload|try again/i.test(message))
         return ['TRANSIENT_PROVIDER_FAILURE', true];
@@ -86,7 +90,8 @@ function endpoint(url, options = {}) {
     const fail = (...args) => {
         // HTTP and JSON-RPC throttles cool down this provider only. Neither
         // method parameters nor the fixed finalized block are modified.
-        if (scheduler && READS.has(args[1]) && (args[4] === 429 || args[5] === 429)) scheduler.cooldown();
+        if (scheduler && READS.has(args[1]) && (args[4] === 429 || args[5] === 429 ||
+            (args[5] === -32007 && args[6] === true))) scheduler.cooldown();
         while (args.length < 7) args.push(undefined); return new RpcFailure(...args, provider); };
     let id = 0;
     const { batchReader } = require('./rpc-read-batch');
