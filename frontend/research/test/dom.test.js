@@ -128,11 +128,11 @@ test('a stalled submission reaches its deadline and retains the exact operation 
 });
 
 test('connected detail names render safely and late replies cannot repopulate after sign-out',async()=>{
-  let finish;const t=await setup(u=>u==='/api/research/available'?new Promise(r=>{finish=()=>r(response({items:[{...officer,names:['<img src=x onerror=alert(1)>']}]}));}):router(u));
+  let finish;const t=await setup(u=>u==='/api/research/browse'?new Promise(r=>{finish=()=>r(response({items:[{...officer,names:['<img src=x onerror=alert(1)>']}]}));}):router(u));
   try{t.d.getElementById('load-connected').click();await wait(()=>finish);t.d.getElementById('logout').click();finish();await new Promise(r=>setTimeout(r,20));assert.equal(t.d.getElementById('connected-results').textContent,'');assert.equal(t.d.querySelector('#connected-results img'),null);}finally{t.dom.window.close();}
 });
 test('connected officer names open their scoped workspace and clear on backgrounding',async()=>{
-  const t=await setup(u=>u==='/api/research/available'?response({items:[officer]}):router(u));
+  const t=await setup(u=>u==='/api/research/browse'?response({items:[{...officer,details_available:true}]}):router(u));
   try{t.d.getElementById('load-connected').click();await wait(()=>t.d.querySelector('#connected-results button'));t.d.querySelector('#connected-results button').click();await wait(()=>!t.d.getElementById('workspace-body').hidden);Object.defineProperty(t.d,'hidden',{configurable:true,value:true});t.d.dispatchEvent(new t.dom.window.Event('visibilitychange'));assert.equal(t.d.getElementById('connected-results').textContent,'');assert.equal(t.d.getElementById('officer-name').textContent,'');}finally{t.dom.window.close();}
 });
 test('first query preserves exact microsecond knowledge boundary despite datetime input precision',async()=>{
@@ -164,4 +164,18 @@ test('page-exit signal uses bounded authenticated keepalive and clears protected
   const t=await setup(router);try{await selected(t);t.dom.window.dispatchEvent(new t.dom.window.PageTransitionEvent('pagehide',{persisted:false}));
     const signal=t.calls.find(([u])=>u==='/api/accountability/session-signal');assert(signal);assert.equal(signal[1].keepalive,true);assert.equal(signal[1].headers['x-csrf-token'],'csrf');assert.deepEqual(JSON.parse(signal[1].body),{event:'PAGE_EXIT',page:'WORKSPACE',persisted:false});assert.equal(t.d.getElementById('officer-name').textContent,'');assert.equal(t.d.getElementById('account-name').textContent,'');assert.equal(t.d.getElementById('search-results').textContent,'');assert(!t.calls.some(([u])=>u==='/api/auth/logout'));
   }finally{t.dom.window.close();}
+});
+
+test('scope browser tables include all permitted identities and distinguish unavailable full details',async()=>{
+ const other={...officer,officer_uid:'00000000-0000-0000-0000-000000000002',names:['<img src=x> Second'],nic:'000000002V',details_available:false};
+ const t=await setup((u,o)=>u==='/api/research/browse'?response({items:[{...officer,details_available:true},other],total:2,scope_options:{DIVISION:['A'],STATION:['S1']}}):router(u));
+ try{t.d.getElementById('load-connected').click();await wait(()=>t.d.querySelectorAll('#connected-results tbody tr').length===2);assert.equal(t.d.querySelectorAll('#connected-results button').length,1);assert.ok(t.d.getElementById('connected-results').textContent.includes('000000002V'));assert.ok(t.d.getElementById('connected-results').textContent.includes('Details unavailable'));assert.equal(t.d.querySelector('#connected-results img'),null);const b=JSON.parse(t.calls.find(([u])=>u==='/api/research/browse')[1].body);assert.equal(b.query,'');assert.equal(b.limit,25);assert.equal(b.availability,'ALL');assert.equal(Object.hasOwn(b,'role'),false);}finally{t.dom.window.close();}
+});
+test('scope browser filtering and paging preserve submitted criteria and clear private filters at logout',async()=>{
+ const t=await setup((u,o)=>u==='/api/research/browse'?response({items:[{...officer,details_available:true}],total:50,scope_options:{DIVISION:['A','B']}}):router(u));
+ try{t.d.getElementById('load-connected').click();await wait(()=>!t.d.getElementById('browse-button').disabled);t.d.getElementById('browse-query').value='Reported';t.d.getElementById('browse-level').value='DIVISION';t.d.getElementById('browse-level').dispatchEvent(new t.dom.window.Event('change'));t.d.getElementById('browse-scope').value='B';t.submit('browse-form');await wait(()=>t.calls.filter(([u])=>u==='/api/research/browse').length===2&&!t.d.getElementById('browse-button').disabled);t.d.getElementById('browse-query').value='Unsubmitted edit';t.d.getElementById('browse-next').click();await wait(()=>t.calls.filter(([u])=>u==='/api/research/browse').length===3);const b=JSON.parse(t.calls.filter(([u])=>u==='/api/research/browse')[2][1].body);assert.equal(b.offset,25);assert.equal(b.query,'Reported');assert.equal(b.scope_id,'B');t.d.getElementById('logout').click();assert.equal(t.d.getElementById('browse-query').value,'');assert.equal(t.d.getElementById('browse-scope').options.length,1);assert.equal(t.d.getElementById('connected-results').textContent,'');assert.equal(t.d.getElementById('officer-browser').hidden,true);await new Promise(r=>setTimeout(r,20));}finally{t.dom.window.close();}
+});
+test('late browser response cannot restore table or scoped filter values after background clearing',async()=>{
+ let finish;const t=await setup(u=>u==='/api/research/browse'?new Promise(r=>finish=()=>r(response({items:[officer],total:1,scope_options:{DIVISION:['PRIVATE']}}))):router(u));
+ try{t.d.getElementById('load-connected').click();await wait(()=>finish);Object.defineProperty(t.d,'hidden',{configurable:true,value:true});t.d.dispatchEvent(new t.dom.window.Event('visibilitychange'));finish();await new Promise(r=>setTimeout(r,20));assert.equal(t.d.getElementById('connected-results').textContent,'');assert.equal(t.d.getElementById('browse-scope').textContent,'All permitted scopes');assert.equal(t.d.getElementById('officer-browser').hidden,true);await new Promise(r=>setTimeout(r,20));}finally{t.dom.window.close();}
 });

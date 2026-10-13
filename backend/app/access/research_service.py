@@ -65,6 +65,70 @@ class ResearchService:
                     scope_basis=('EXPLICIT_RESEARCH_SIMULATION' if directory['review_reference'] ==
                                  'GENERATED_RESEARCH_SCOPE_SIMULATION_V1' else 'SIGNED_CURRENT_MEMBERSHIP'))
 
+    def browse(self, token, csrf, request):
+        """Page the signed identity directory inside current account scope only."""
+        from app.access.policy import LEVELS, name
+        try:
+            require(type(request) is dict and set(request) ==
+                    {'kind','query','availability','level','scope_id','limit','offset'})
+            kind, text = request['kind'], request['query']
+            require(kind in ('NAME','NIC','REFERENCE') and type(text) is str and len(text) <= 200)
+            require(not any(ord(v) < 32 for v in text))
+            require(request['availability'] in ('ALL','AVAILABLE','UNAVAILABLE'))
+            require(request['level'] in ('ALL', *LEVELS) and type(request['scope_id']) is str)
+            require(len(request['scope_id']) <= 64)
+            require(type(request['limit']) is int and 1 <= request['limit'] <= 50)
+            require(type(request['offset']) is int and 0 <= request['offset'] <= 10000)
+            require(request['level'] != 'ALL' or request['scope_id'] == '')
+            needle = name(text) if kind == 'NAME' and text.strip() else text.strip()
+        except Exception:
+            raise AccessError(400, 'INVALID_QUERY') from None
+        with self.access.transaction() as c:
+            user, session = self.access._session(c, token, csrf)
+            directory = self.access._directory(c)
+            self.access._limit(c, 'SEARCH', session['user'], 60)
+            officers = [o for o in directory['officers'] if permitted(user, o)]
+            self.access._audit(c, 'IDENTITY_SEARCH', session['user'])
+        options = {level: sorted({o['membership'][level] for o in officers
+                                 if o['membership'][level] is not None}) for level in LEVELS}
+        if request['level'] != 'ALL' and request['scope_id'] not in options[request['level']]:
+            filtered = []
+        else:
+            filtered = [o for o in officers if
+                (request['level'] == 'ALL' or o['membership'][request['level']] == request['scope_id']) and
+                (not needle or
+                 (kind == 'NAME' and any(needle in name(n) for n in o['names'])) or
+                 (kind == 'NIC' and needle in o['nic']) or
+                 (kind == 'REFERENCE' and needle == o['officer_uid']))]
+        # Only inspect presentations for officers already within this user's scope.
+        with self.store.transaction() as c:
+            retained = {row[0] for row in c.execute('SELECT id FROM presentations')}
+        available = set()
+        for officer in filtered:
+            if self.store.index('OFFICER', officer['officer_uid']) not in retained: continue
+            try:
+                self.authorized(token, officer['officer_uid'], charge=False)
+                available.add(officer['officer_uid'])
+            except AccessError as error:
+                if error.status == 401: raise
+                # Missing, denied and expired details share the same UI status.
+        if request['availability'] != 'ALL':
+            filtered = [o for o in filtered if
+                (o['officer_uid'] in available) == (request['availability'] == 'AVAILABLE')]
+        filtered.sort(key=lambda o: (name(o['names'][0]), o['nic'], o['officer_uid']))
+        offset, limit = request['offset'], request['limit']
+        items = [dict(**projection(o), membership=deepcopy(o['membership']),
+                      details_available=o['officer_uid'] in available)
+                 for o in filtered[offset:offset+limit]]
+        with self.access.transaction() as c:
+            current, _ = self.access._session(c, token, csrf)
+            latest = self.access._directory(c)
+            if current != user or latest != directory: raise AccessError(409, 'PRESENTATION_CHANGED')
+        return dict(items=items, total=len(filtered), offset=offset, limit=limit,
+                    scope_options=options, directory_generation=directory['generation'],
+                    scope_basis=('EXPLICIT_RESEARCH_SIMULATION' if directory['review_reference'] ==
+                                 'GENERATED_RESEARCH_SCOPE_SIMULATION_V1' else 'SIGNED_CURRENT_MEMBERSHIP'))
+
     def workspace(self, token, officer):
         user, grant, packet, identity = self.authorized(token, officer)
         return dict(identity=identity, generation=packet['generation'], observed_at=packet['observed_at'],

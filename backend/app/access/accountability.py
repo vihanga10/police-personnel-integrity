@@ -30,7 +30,7 @@ CREATE TRIGGER no_event_delete BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT,
 PRAGMA user_version=1;'''
 UUID_RE=r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 ACTION_PATHS={'/api/auth/login':'LOGIN','/api/auth/logout':'LOGOUT','/api/auth/session':'SESSION_CHECK',
- '/api/officers/search':'OFFICER_SEARCH','/api/research/history':'HISTORY_QUERY',
+ '/api/research/browse':'OFFICER_SEARCH','/api/officers/search':'OFFICER_SEARCH','/api/research/history':'HISTORY_QUERY',
  '/api/research/requests':'REVIEW_REQUEST','/api/accountability/logs':'ACCESS_LOG_READ',
  '/api/accountability/legacy':'LEGACY_LOG_READ','/api/accountability/capabilities':'LOG_PERMISSION_CHECK',
  '/api/accountability/session-signal':'CLIENT_PAGE_EXIT',

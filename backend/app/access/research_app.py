@@ -92,6 +92,12 @@ def create_app(store, *, origin, assets=None):
     async def available(request:Request):
         return await run_in_threadpool(service.available, token(request))
 
+    @api.post('/api/research/browse')
+    async def browse(request:Request):
+        value = await body(request, {'kind','query','availability','level','scope_id','limit','offset'})
+        return await run_in_threadpool(service.browse, token(request),
+            request.headers.get('x-csrf-token',''), value)
+
     @api.get('/api/research/officers/{officer_uid}')
     async def workspace(officer_uid:str, request:Request):
         return await run_in_threadpool(service.workspace, token(request), officer_uid)
