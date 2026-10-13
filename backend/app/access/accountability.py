@@ -30,13 +30,14 @@ CREATE TRIGGER no_event_delete BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT,
 PRAGMA user_version=1;'''
 UUID_RE=r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 ACTION_PATHS={'/api/auth/login':'LOGIN','/api/auth/logout':'LOGOUT','/api/auth/session':'SESSION_CHECK',
+ '/api/research/authority':'AUTHORITY_QUERY','/api/research/contradictions':'CONTRADICTION_QUERY',
  '/api/research/browse':'OFFICER_SEARCH','/api/officers/search':'OFFICER_SEARCH','/api/research/history':'HISTORY_QUERY',
  '/api/research/requests':'REVIEW_REQUEST','/api/accountability/logs':'ACCESS_LOG_READ',
  '/api/accountability/legacy':'LEGACY_LOG_READ','/api/accountability/capabilities':'LOG_PERMISSION_CHECK',
  '/api/accountability/session-signal':'CLIENT_PAGE_EXIT',
  '/api/research/available':'CONNECTED_VIEWS_READ','/accountability':'LOG_PAGE_VIEW'}
 ACTIONS=set(ACTION_PATHS.values())|{'OFFICER_IDENTITY_READ','WORKSPACE_READ','RECENT_REQUESTS_READ',
- 'REQUEST_STATUS_READ','CORRECTION_REQUEST','OTHER_REQUEST','ACCOUNT_RENEWAL','LOG_READER_GRANT','DATASET_CONNECTION','SESSION_EXPIRED','SESSION_INTERRUPTED','CLIENT_PAGE_EXIT'}
+ 'REQUEST_STATUS_READ','CORRECTION_REQUEST','OTHER_REQUEST','ACCOUNT_RENEWAL','LOG_READER_GRANT','DATASET_CONNECTION','AUTHORITY_ASSESSMENT_RECORD','AUTHORITY_TRUST_SETUP','SESSION_EXPIRED','SESSION_INTERRUPTED','CLIENT_PAGE_EXIT'}
 
 def canonical_uid(value):
     try:return value if type(value) is str and str(UUID(value))==value else None
@@ -403,6 +404,9 @@ class AccountabilityBoundary:
             if base['action']=='CLIENT_PAGE_EXIT' and parsed.get('event')=='PAGE_EXIT' and parsed.get('page') in ('WORKSPACE','ACCESS_LOGS') and type(parsed.get('persisted')) is bool:
                 base['client_page_event']={'event':'PAGE_EXIT','page':parsed['page'],'persisted':parsed['persisted'],'logout_confirmed':False}
             if base['action']=='REVIEW_REQUEST' and parsed.get('kind')=='CORRECTION':base['action']='CORRECTION_REQUEST'
+            if base['action'] in ('AUTHORITY_QUERY','CONTRADICTION_QUERY') and base['actor'] and base['actor'].get('authenticated'):
+                base['workflow_query']={k:v for k in ('effective_on','known_at','action_on','status','dimension','relationship')
+                    if (v:=parsed.get(k)) is None or (type(v) is str and len(v)<=80 and re.fullmatch('[A-Za-z0-9_:+. -]+',v))}
         parsed=None
         start=next((e for e in response if e['type']=='http.response.start'),None)
         status=start['status'] if start and not overflow else 503
@@ -430,6 +434,14 @@ class AccountabilityBoundary:
                         if type(v) is dict and canonical_uid(v.get('officer_uid'))]
             except Exception:pass
         if base['action']=='CLIENT_PAGE_EXIT' and status!=200:base.pop('client_page_event',None)
+        if base['action'] in ('AUTHORITY_QUERY','CONTRADICTION_QUERY') and status==200 and 'workflow_query' in base:
+            try:
+                payload=b''.join(e.get('body',b'') for e in response if e['type']=='http.response.body')
+                value=json.loads(payload)
+                for key in ('known_at','query_digest','comparison_digest'):
+                    item=value.get(key)
+                    if type(item) is str and len(item)<=80 and re.fullmatch('[A-Za-z0-9_:+. -]+',item):base['workflow_query'][key]=item
+            except Exception:pass
         if base['action']=='LOGOUT' and status==200:
             base.update(logout_confirmed=True,session_end_reason='MANUAL_LOGOUT',
                 session_effective_end_at=datetime.fromtimestamp(self.store.clock(),timezone.utc).isoformat())

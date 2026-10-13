@@ -144,6 +144,7 @@ class ResearchService:
             display_lifecycle='RETAINED_LAST_VERIFIED_SNAPSHOT' if packet['expires_at'] is None else 'BOUNDED_OBSERVED_COPY',
             evidence_view='SIGNED_OBSERVED_COPY', coverage_semantics='JOURNAL_OBSERVATIONS_ONLY',
             historical_workspace_available=True, history_baseline_only=packet['history']['coverage_start']==packet['history']['coverage_end'],
+            priority2_available=True,
             live_research_ready=False, fresh_live_verification=False,
             public_finality_verified=False, independent_deployment_verified=False)
 
@@ -165,6 +166,8 @@ class ResearchService:
             h = P.history(packet['history'], officer); on = date.fromisoformat(effective); at = P.instant(known)
             if not h.coverage_start <= at <= h.coverage_end: raise AccessError(422, 'KNOWN_DATE_OUTSIDE_COVERAGE')
             answer = query(h, effective_on=on, known_at=at)
+            counts={d:sum(v.claim.dimension==d and not v.withdrawn for v in answer.visible_versions) for d in P.FIELDS}
+            if sum(n*(n-1)//2 for n in counts.values())>20000:raise AccessError(422,'COMPARISON_LIMIT_EXCEEDED')
             comparisons = compare_history(h, effective_on=on, known_at=at)
         except AccessError: raise
         except Exception: raise AccessError(400, 'INVALID_QUERY') from None
@@ -179,8 +182,13 @@ class ResearchService:
                 withdrawn=v.withdrawn, supersedes=P.fingerprint({'version_id':v.supersedes}) if v.supersedes else None,
                 claim=P.claim_projection(v.claim)) for v in answer.visible_versions],
             comparisons=[dict(dimension=p.dimension, status=p.status, reasons=list(p.reasons),
-                evidence_references=[P.fingerprint({'claim_id':r}) for r in p.claim_ids], accepted_contradiction=False)
+                evidence_references=[P.fingerprint({'claim_id':r}) for r in p.claim_ids], accepted_contradiction=False,
+                comparison_reference=P.fingerprint({'digest':comparisons.comparison_digest,'versions':p.version_ids}),
+                version_references=[P.fingerprint({'version_id':v}) for v in p.version_ids],
+                destination_references=list(p.destination_digests),receipt_references=list(p.receipt_digests),
+                cross_reported_source=p.cross_reported_source)
                 for p in comparisons.comparisons], comparison_digest=comparisons.comparison_digest)
+        result['excluded_versions']=[dict(reference=P.fingerprint({'version_id':v}),reason=reason) for v,reason in comparisons.exclusions]
         visible = {v.claim.claim_id: v.claim for v in answer.visible_versions}
         for projected, comparison in zip(result['comparisons'], comparisons.comparisons):
             projected['evidence'] = [P.claim_projection(visible[r]) for r in comparison.claim_ids if r in visible]

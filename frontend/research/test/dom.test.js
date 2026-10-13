@@ -222,3 +222,40 @@ test('recorded-boundary selection never enables an unconnected source history',a
  try{await selected(t);t.d.getElementById('use-recorded-boundary').click();assert.equal(t.d.getElementById('history-button').disabled,true);t.submit('history-form');assert.equal(t.calls.filter(([u])=>u==='/api/research/history').length,0);
  }finally{t.dom.window.close();}
 });
+
+const authorityAnswer={known_at:'2026-10-13T06:00:00.123456Z',total:1,offset:0,limit:25,items:[{
+ action_reference:'a'.repeat(64),action_type:'AUTHORIZE_PROMOTION',action_on:'2024-01-01',status:'VALID',mode:'EXPLICIT_ASSESSED_INPUTS',
+ reasons:['EXPLICIT_RESEARCH_ASSESSMENT'],actors:[{identity:null,on:'2024-01-01',state_reference:'b'.repeat(64),assessment_supplied:true}],
+ rules:[{reference:'<img src=x>',powers:['AUTHORIZE_PROMOTION'],ranks:['SP'],roles:['Reviewed role'],actor_scopes:['Reviewed scope'],target_scopes:['Reviewed target'],start:'2020-01-01',end:null,may_delegate:true}],
+ delegations:[{reference:'Delegation D1',parent_reference:'Rule R1',issuer:null,recipient:null,powers:['AUTHORIZE_PROMOTION'],target_scopes:['Reviewed target'],issued_on:'2023-01-01',start:'2023-01-01',end:null,revoked_from:null}],
+ successful_paths:['Delegation D1'],assessment_versions:[{reference:'c'.repeat(64),recorded_at:'2026-10-13T05:59:00Z',version:1,supersedes:null}],
+ assessment_reference:'c'.repeat(64),source_reference:'d'.repeat(64),destination_reference:'e'.repeat(64),dataset:'promotion_history.csv'}]};
+const comparisonAnswer={effective_on:'2024-12-31',known_at:'2026-10-10T00:00:00Z',generation:1,query_digest:'a'.repeat(64),comparison_digest:'b'.repeat(64),
+ total:1,unfiltered_total:1,offset:0,limit:25,excluded_versions:[{reference:'c'.repeat(64),reason:'WITHDRAWN'}],items:[{dimension:'rank',status:'REPORTED_CONTRADICTION_CANDIDATE',
+ cross_reported_source:true,reasons:['SOURCE_INDEPENDENCE_UNVERIFIED'],comparison_reference:'d'.repeat(64),version_references:['e'.repeat(64),'f'.repeat(64)],destination_references:['a'.repeat(64)],receipt_references:['b'.repeat(64)],evidence:[]}]};
+
+test('operational authority tab inspects rules, delegation dates and retained versions safely',async()=>{
+ const t=await setup((u,o)=>u.startsWith('/api/research/officers/')?response({...workspace,priority2_available:true}):u==='/api/research/authority'?response(authorityAnswer):router(u,o));
+ try{await selected(t);t.d.getElementById('tab-authority').click();await wait(()=>t.d.getElementById('authority-message').textContent.includes('1 reported actions'));const root=t.d.getElementById('authority-workflow-results');assert.ok(root.textContent.includes('Delegation D1'));assert.ok(root.textContent.includes('2023-01-01'));assert.ok(root.textContent.includes('No police action is approved'));assert.ok(root.textContent.includes('<img src=x>'));assert.equal(root.querySelector('img'),null);
+ const body=JSON.parse(t.calls.find(([u])=>u==='/api/research/authority')[1].body);assert.equal(body.known_at,null);assert.deepEqual(Object.keys(body).sort(),['action_on','known_at','limit','officer_uid','offset','status']);
+ }finally{t.dom.window.close();}
+});
+
+test('direct contradiction form filters reported sources and retains explicit evidence bindings',async()=>{
+ const t=await setup((u,o)=>u==='/api/research/contradictions'?response(comparisonAnswer):router(u,o));
+ try{await selected(t);t.d.getElementById('contradiction-effective').value='2024-12-31';t.d.getElementById('contradiction-zone').value='COLOMBO';t.d.getElementById('contradiction-known').value='2026-10-10T05:30';t.d.getElementById('contradiction-source').value='CROSS_REPORTED';t.submit('contradiction-form');await wait(()=>!t.d.getElementById('contradiction-button').disabled);
+ const body=JSON.parse(t.calls.find(([u])=>u==='/api/research/contradictions')[1].body);assert.equal(body.known_at,'2026-10-10T00:00:00.000Z');assert.equal(body.relationship,'CROSS_REPORTED');assert.equal(body.dimension,'ALL');const text=t.d.getElementById('contradiction-results').textContent;assert.ok(text.includes('Different reported sources'));assert.ok(text.includes('Recorded receipts'));assert.ok(text.includes('Withdrawn'));assert.ok(text.includes('do not establish an accepted contradiction'));
+ }finally{t.dom.window.close();}
+});
+
+test('late authority response cannot reveal actor or assessment details after logout',async()=>{
+ let finish;const t=await setup((u,o)=>u.startsWith('/api/research/officers/')?response({...workspace,priority2_available:true}):u==='/api/research/authority'?new Promise(r=>{finish=()=>r(response(authorityAnswer));}):router(u,o));
+ try{await selected(t);t.d.getElementById('tab-authority').click();await wait(()=>finish);t.d.getElementById('logout').click();finish();await wait(()=>t.d.getElementById('login-message').textContent.includes('Signed out securely'));await new Promise(r=>setTimeout(r,20));assert.equal(t.d.getElementById('authority-workflow-results').textContent,'');assert.equal(t.d.getElementById('authority-known').value,'');assert.equal(t.d.getElementById('authority-message').textContent,'');
+ }finally{t.dom.window.close();}
+});
+
+test('late contradiction response cannot replace the next officer or background-cleared page',async()=>{
+ let finish;const t=await setup((u,o)=>u==='/api/research/contradictions'?new Promise(r=>{finish=()=>r(response(comparisonAnswer));}):router(u,o));
+ try{await selected(t);t.submit('contradiction-form');await wait(()=>finish);Object.defineProperty(t.d,'hidden',{configurable:true,value:true});t.d.dispatchEvent(new t.dom.window.Event('visibilitychange'));finish();await new Promise(r=>setTimeout(r,20));assert.equal(t.d.getElementById('contradiction-results').textContent,'');assert.equal(t.d.getElementById('contradiction-effective').value,'');assert.equal(t.d.getElementById('contradiction-message').textContent,'');
+ }finally{t.dom.window.close();}
+});

@@ -22,12 +22,16 @@ LOG_ASSETS = {'/accountability': ('accountability.html', 'text/html; charset=utf
 def configured(config_file, *, create=False):
     file = private(config_file); config = json.loads(file.read_text())
     fields = {'policy','access_config','state_directory','key_file','presentation_keys'}
-    require(type(config) is dict and set(config) in (fields, fields | {'accountability_config'}), 'Workspace config fields differ')
+    require(type(config) is dict and fields<=set(config)<=fields|{'accountability_config','workflow_assessment_keys'}, 'Workspace config fields differ')
     require(config['policy'] == 'RESEARCH_WEB_CONFIG_V1', 'Workspace config policy differs')
     access, origin = configured_store(config['access_config'])
     private(file, repo=access.repo)
     keys = {k: base64.b64decode(v, validate=True) for k,v in config['presentation_keys'].items()}
     store = ResearchStore(config['state_directory'], config['key_file'], keys, access=access, create=create)
+    from app.access.research_connection_runtime import public_keys
+    store.workflow_keys=public_keys(config['workflow_assessment_keys']) if 'workflow_assessment_keys' in config else {}
+    require(len(store.workflow_keys)<=16,'Bounded workflow assessor trust required')
+    require(not (set(store.workflow_keys.values()) & (set(keys.values())|set(access.keys.values()))), 'Separate workflow assessor key required')
     store.accountability = None
     if 'accountability_config' in config:
         from app.access.accountability import configured as configured_accountability
@@ -38,6 +42,8 @@ def configured(config_file, *, create=False):
 def create_app(store, *, origin, assets=None):
     require(type(store) is ResearchStore, 'Exact configured workspace store required')
     service = ResearchService(store)
+    from app.access.workflow_service import WorkflowService
+    workflows=WorkflowService(service)
     assets = Path(assets) if assets else Path(__file__).resolve().parents[3] / 'frontend' / 'research'
     # Load only fixed committed UI files; no path supplied through requests.
     files = {url: (assets.joinpath(file).read_bytes(), media) for url,(file,media) in ASSETS.items()}
@@ -111,6 +117,16 @@ def create_app(store, *, origin, assets=None):
         b = await body(request, {'officer_uid','effective_on','known_at'})
         return await run_in_threadpool(service.history, token(request), request.headers.get('x-csrf-token',''),
             b['officer_uid'], b['effective_on'], b['known_at'])
+
+    @api.post('/api/research/authority')
+    async def authority(request:Request):
+        b=await body(request,{'officer_uid','known_at','action_on','status','limit','offset'})
+        return await run_in_threadpool(workflows.authority,token(request),request.headers.get('x-csrf-token',''),b)
+
+    @api.post('/api/research/contradictions')
+    async def contradictions(request:Request):
+        b=await body(request,{'officer_uid','effective_on','known_at','dimension','status','relationship','limit','offset'})
+        return await run_in_threadpool(workflows.contradictions,token(request),request.headers.get('x-csrf-token',''),b)
 
     @api.post('/api/research/requests')
     async def review(request:Request):

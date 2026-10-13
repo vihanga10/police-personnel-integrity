@@ -110,6 +110,7 @@ class Connection:
         R.fields(self.access_config, ('policy', 'repository', 'state_directory', 'key_file', 'authority_keys', 'origin'))
         workspace_fields = ('policy', 'access_config', 'state_directory', 'key_file', 'presentation_keys')
         if 'accountability_config' in self.workspace_config: workspace_fields += ('accountability_config',)
+        if 'workflow_assessment_keys' in self.workspace_config:workspace_fields+=('workflow_assessment_keys',)
         R.fields(self.workspace_config, workspace_fields)
         require(self.access_config['policy'] == 'SCOPED_ACCESS_CONFIG_V1' and
             Path(self.access_config['repository']).resolve() == self.repo and
@@ -121,6 +122,11 @@ class Connection:
         self.access_keys = R.public_keys(self.access_config['authority_keys'])
         self.workspace_keys = R.public_keys(self.workspace_config['presentation_keys'])
         self.authorization_keys = R.public_keys(c['authorization_keys'])
+        if 'workflow_assessment_keys' in self.workspace_config:
+            workflow_keys=R.public_keys(self.workspace_config['workflow_assessment_keys'])
+            require(len(workflow_keys)<=16 and not set(workflow_keys.values()) &
+                (set(self.access_keys.values())|set(self.workspace_keys.values())|set(self.authorization_keys.values())),
+                'Separate workflow assessor authority required')
         require(not set(self.authorization_keys.values()) & (set(self.access_keys.values()) | set(self.workspace_keys.values())),
             'Data-use approval key domain must be separate')
         keys = []
