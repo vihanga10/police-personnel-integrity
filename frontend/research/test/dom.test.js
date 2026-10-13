@@ -179,3 +179,13 @@ test('late browser response cannot restore table or scoped filter values after b
  let finish;const t=await setup(u=>u==='/api/research/browse'?new Promise(r=>finish=()=>r(response({items:[officer],total:1,scope_options:{DIVISION:['PRIVATE']}}))):router(u));
  try{t.d.getElementById('load-connected').click();await wait(()=>finish);Object.defineProperty(t.d,'hidden',{configurable:true,value:true});t.d.dispatchEvent(new t.dom.window.Event('visibilitychange'));finish();await new Promise(r=>setTimeout(r,20));assert.equal(t.d.getElementById('connected-results').textContent,'');assert.equal(t.d.getElementById('browse-scope').textContent,'All permitted scopes');assert.equal(t.d.getElementById('officer-browser').hidden,true);await new Promise(r=>setTimeout(r,20));}finally{t.dom.window.close();}
 });
+
+test('all-source profile shows full source values without inventing journal coverage',async()=>{
+ const source={...workspace,evidence_view:'SIGNED_FULL_SOURCE_PROFILE',coverage_start:null,coverage_end:null,can_request_review:false,findings:[],full_records:[{dataset:'officer_service_information.csv',raw_record_id:'a'.repeat(64),fields:{current_station:'<img src=x> Station',current_police_no:'1234'}}]};
+ const t=await setup(u=>u.startsWith('/api/research/officers/')?response(source):router(u));
+ try{await selected(t);assert.ok(t.d.getElementById('full-records').textContent.includes('1234'));assert.equal(t.d.querySelector('#full-records img'),null);assert.equal(t.d.getElementById('history-button').disabled,true);assert.equal(t.d.getElementById('review-button').disabled,true);assert.ok(t.d.getElementById('history-results').textContent.includes('not connected'));}finally{t.dom.window.close();}
+});
+test('table shows reported posting rather than simulated access membership',async()=>{
+ const t=await setup(u=>u==='/api/research/browse'?response({items:[{...officer,details_available:true,membership:{DIVISION:'RESEARCH_DIVISION_A',STATION:'RESEARCH_STATION_A'},reported_posting:{division:'Reported division',station:'Reported Police Station'}}],total:1}):router(u));
+ try{t.d.getElementById('load-connected').click();await wait(()=>t.d.querySelector('#connected-results tbody tr'));const text=t.d.getElementById('connected-results').textContent;assert.ok(text.includes('Reported Police Station'));assert.equal(text.includes('RESEARCH_DIVISION_A'),false);t.d.querySelector('#connected-results tbody tr td:nth-child(2)').click();await wait(()=>!t.d.getElementById('workspace-body').hidden);assert.equal(t.calls.filter(([u])=>u.startsWith('/api/research/officers/')).length,1);}finally{t.dom.window.close();}
+});

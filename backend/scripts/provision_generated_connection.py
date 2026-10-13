@@ -36,7 +36,7 @@ def stopped_app(repo, app_root):
         require(sock.connect_ex(('127.0.0.1',url.port or 443))!=0, 'Stop the application server before connecting')
 
 
-def audit_and_connect(repo, root, app_root, profile, officers=None, review_policy=None):
+def audit_and_connect(repo, root, app_root, profile, officers=None, review_policy=None, *, all_source_profiles=False):
     plan = G.validate_plan(repo, root, app_root)
     from app.identity.audit_read_rpc_profile import load, ENV_NAMES
     require(not any(os.environ.get(name) for name in ENV_NAMES), 'Inherited profile environment refused')
@@ -69,12 +69,15 @@ def audit_and_connect(repo, root, app_root, profile, officers=None, review_polic
     ready = R.read_json(attempt/'READY.json',repo)
     require(ready['status']=='READY' and ready['code_revision']==C.revision(repo), 'Fresh READY result differs')
     require(hashlib.sha256(profile.read_bytes()).hexdigest()==profile_sha,'Read profile changed during audit')
+    if all_source_profiles:
+        from app.access.full_source_connection import connect_all
+        return connect_all(repo,root,app_root,attempt,progress=lambda stage:print('Full profiles: '+stage,flush=True))
     return G.connect(repo,root,app_root,attempt,selected_officers=officers,review_policy=review_policy,progress=lambda stage: print('Stage 3: '+stage,flush=True))
 
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action',choices=('prepare','connect','audit-connect'))
+    parser.add_argument('action',choices=('prepare','connect','audit-connect','audit-connect-all'))
     parser.add_argument('--repository',type=Path,required=True)
     parser.add_argument('--state-root',type=Path,required=True)
     parser.add_argument('--app-root',type=Path,required=True)
@@ -97,9 +100,10 @@ def main():
         else:
             require(args.source_config is None and args.effective_on is None and args.detail_limit==2,'Preparation-only arguments refused')
             stopped_app(repo,app)
-            if args.action=='audit-connect':
+            if args.action in ('audit-connect','audit-connect-all'):
                 require(args.read_profile is not None and args.audit_gate_attempt is None)
-                stage='FULL_AUDIT_AND_CONNECTION';result=audit_and_connect(repo,root,app,args.read_profile,args.officer,args.stage4_policy)
+                require(args.action!='audit-connect-all' or (args.officer is None and args.stage4_policy is None),'All source profiles use read-only disclosure; scoped review policy remains separate')
+                stage='FULL_AUDIT_AND_CONNECTION';result=audit_and_connect(repo,root,app,args.read_profile,args.officer,args.stage4_policy,all_source_profiles=args.action=='audit-connect-all')
             else:
                 require(args.audit_gate_attempt is not None and args.read_profile is None)
                 stage='VERIFIED_DATASET_CONNECTION';result=G.connect(repo,root,app,args.audit_gate_attempt,selected_officers=args.officer,review_policy=args.stage4_policy,

@@ -30,7 +30,11 @@ class ResearchService:
             if decision.level is ProtectionLevel.WITHHOLD or (decision.level is ProtectionLevel.RESTRICTED and not disclosure['restricted_clearance']):
                 raise AccessError(403, 'DETAILS_WITHHELD')
             if review and not disclosure['request_reviews']: raise AccessError(403, 'REVIEW_REQUEST_FORBIDDEN')
-            packet = self.store.get_packet(officer)
+            try:packet = self.store.get_packet(officer)
+            except AccessError as error:
+                if error.code != 'PRESENTATION_NOT_CONFIGURED':raise
+                from app.access.full_source_profiles import profile
+                packet = profile(self.store, officer, directory['source_public_sha256'])
             if packet['source_public_sha256'] != directory['source_public_sha256']: raise AccessError(503, 'PRESENTATION_SOURCE_DIFFERS')
             self.access._audit(c, 'RESEARCH_VIEW' if not review else 'REVIEW_REQUEST', session['user'])
             return user, disclosure, packet, projection(found)
@@ -100,26 +104,21 @@ class ResearchService:
                  (kind == 'NAME' and any(needle in name(n) for n in o['names'])) or
                  (kind == 'NIC' and needle in o['nic']) or
                  (kind == 'REFERENCE' and needle == o['officer_uid']))]
-        # Only inspect presentations for officers already within this user's scope.
-        with self.store.transaction() as c:
-            retained = {row[0] for row in c.execute('SELECT id FROM presentations')}
-        available = set()
-        for officer in filtered:
-            if self.store.index('OFFICER', officer['officer_uid']) not in retained: continue
-            try:
-                self.authorized(token, officer['officer_uid'], charge=False)
-                available.add(officer['officer_uid'])
-            except AccessError as error:
-                if error.status == 401: raise
-                # Missing, denied and expired details share the same UI status.
+        from app.access import full_source_profiles as F
+        available=F.capabilities(self.store,user,directory,filtered)
         if request['availability'] != 'ALL':
             filtered = [o for o in filtered if
                 (o['officer_uid'] in available) == (request['availability'] == 'AVAILABLE')]
         filtered.sort(key=lambda o: (name(o['names'][0]), o['nic'], o['officer_uid']))
         offset, limit = request['offset'], request['limit']
-        items = [dict(**projection(o), membership=deepcopy(o['membership']),
-                      details_available=o['officer_uid'] in available)
-                 for o in filtered[offset:offset+limit]]
+        items=[]
+        for o in filtered[offset:offset+limit]:
+            reported=None
+            if o['officer_uid'] in available:
+                try:reported=F.profile(self.store,o['officer_uid'],directory['source_public_sha256'])['reported_posting']
+                except AccessError:pass
+            items.append(dict(**projection(o),membership=deepcopy(o['membership']),
+                details_available=o['officer_uid'] in available,reported_posting=reported))
         with self.access.transaction() as c:
             current, _ = self.access._session(c, token, csrf)
             latest = self.access._directory(c)
@@ -131,6 +130,8 @@ class ResearchService:
 
     def workspace(self, token, officer):
         user, grant, packet, identity = self.authorized(token, officer)
+        from app.access.full_source_profiles import POLICY, source_workspace
+        if packet.get('policy')==POLICY:return source_workspace(packet,identity)
         return dict(identity=identity, generation=packet['generation'], observed_at=packet['observed_at'],
             expires_at=packet['expires_at'], coverage_start=packet['history']['coverage_start'],
             coverage_end=packet['history']['coverage_end'], findings=self.findings_projection(packet['findings']),
@@ -154,6 +155,7 @@ class ResearchService:
 
     def history(self, token, csrf, officer, effective, known):
         _, _, packet, _ = self.authorized(token, officer, csrf=csrf)
+        if packet.get('kind')=='SOURCE_PROFILE':raise AccessError(503,'HISTORICAL_WORKSPACE_NOT_CONNECTED')
         try:
             require(type(effective) is str and date.fromisoformat(effective).isoformat() == effective)
             h = P.history(packet['history'], officer); on = date.fromisoformat(effective); at = P.instant(known)
