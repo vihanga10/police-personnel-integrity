@@ -14,7 +14,8 @@ def initialize(store):
     with store.transaction() as c:
         c.execute('CREATE TABLE IF NOT EXISTS application_review_policies(version INTEGER PRIMARY KEY,value BLOB NOT NULL)')
         c.execute('CREATE TABLE IF NOT EXISTS application_review_entries(seq INTEGER PRIMARY KEY,id TEXT UNIQUE NOT NULL,value BLOB NOT NULL)')
-        for table in ('application_review_policies','application_review_entries'):
+        c.execute('CREATE TABLE IF NOT EXISTS application_review_sources(sha TEXT PRIMARY KEY,value BLOB NOT NULL)')
+        for table in ('application_review_policies','application_review_entries','application_review_sources'):
             for action in ('UPDATE','DELETE'):
                 c.execute(f"CREATE TRIGGER IF NOT EXISTS {table}_{action} BEFORE {action} ON {table} BEGIN SELECT RAISE(ABORT,'immutable research review'); END")
 
@@ -155,6 +156,14 @@ class ReviewWorkflow:
                 e=dict(kind=kind,input=deepcopy(body),finding_id=fid,by={k:user[k] for k in ('user_id','username','role','scope_type','scope_id','version')},recorded_at=datetime.fromtimestamp(self.store.clock(),timezone.utc).isoformat(),source_sha256=P.fingerprint(packet),policy_reference=P.fingerprint(policy),**extra)
                 if len(rows)>=20000 or len(encoded(e))>8*1024*1024:raise AccessError(422,'REVIEW_STORAGE_LIMIT')
                 ident=self.store.index('APPLICATION_REVIEW_OPERATION',body['operation_id'])
+                source_sha=P.fingerprint(packet)
+                source_id=self.store.index('OFFICER',body['officer_uid'])
+                source_row=c.execute('SELECT value FROM presentations WHERE id=?',(source_id,)).fetchone()
+                source_envelope=self.store.open('PACKET',source_id,source_row[0])
+                require(P.packet(source_envelope,self.store.keys,self.store.clock())==packet,'Source archive differs')
+                prior=c.execute('SELECT value FROM application_review_sources WHERE sha=?',(source_sha,)).fetchone()
+                if prior:require(self.store.open('APPLICATION_REVIEW_SOURCE',source_sha,prior[0])==source_envelope,'Immutable source archive differs')
+                else:c.execute('INSERT INTO application_review_sources VALUES(?,?)',(source_sha,self.store.seal('APPLICATION_REVIEW_SOURCE',source_sha,source_envelope)))
                 c.execute('INSERT INTO application_review_entries VALUES(?,?,?)',(len(rows)+1,ident,self.store.seal('APPLICATION_REVIEW_ENTRY',ident,e)))
                 self.store.event(c,dict(kind='APPLICATION_REVIEW_ENTRY',reference=P.fingerprint(e),operation_id=body['operation_id']))
                 check();return self.result(e)

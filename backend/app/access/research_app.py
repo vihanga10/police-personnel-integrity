@@ -121,6 +121,11 @@ def create_app(store, *, origin, assets=None):
     async def recent_requests(officer_uid:str, request:Request):
         return await run_in_threadpool(service.recent_requests, token(request), officer_uid)
 
+    @api.get('/api/research/officers/{officer_uid}/application-anchoring')
+    async def application_anchoring(officer_uid:str,request:Request):
+        from app.access.application_anchor_observations import status
+        return await run_in_threadpool(status,service,token(request),officer_uid)
+
     @api.post('/api/research/history')
     async def history(request:Request):
         b = await body(request, {'officer_uid','effective_on','known_at'})

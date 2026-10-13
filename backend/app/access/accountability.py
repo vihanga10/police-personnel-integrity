@@ -53,6 +53,7 @@ def action_for(path):
     if path in ACTION_PATHS:return ACTION_PATHS[path]
     for pattern,action in [(r'/api/officers/'+UUID_RE,'OFFICER_IDENTITY_READ'),
       (r'/api/research/officers/'+UUID_RE+r'/requests','RECENT_REQUESTS_READ'),
+      (r'/api/research/officers/'+UUID_RE+r'/application-anchoring','WORKSPACE_READ'),
       (r'/api/research/officers/'+UUID_RE,'WORKSPACE_READ'),
       (r'/api/research/requests/'+UUID_RE,'REQUEST_STATUS_READ')]:
         if re.fullmatch(pattern,path):return action
