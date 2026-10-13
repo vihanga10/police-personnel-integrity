@@ -22,7 +22,7 @@ LOG_ASSETS = {'/accountability': ('accountability.html', 'text/html; charset=utf
 def configured(config_file, *, create=False):
     file = private(config_file); config = json.loads(file.read_text())
     fields = {'policy','access_config','state_directory','key_file','presentation_keys'}
-    require(type(config) is dict and fields<=set(config)<=fields|{'accountability_config','workflow_assessment_keys'}, 'Workspace config fields differ')
+    require(type(config) is dict and fields<=set(config)<=fields|{'accountability_config','workflow_assessment_keys','review_workflow_keys'}, 'Workspace config fields differ')
     require(config['policy'] == 'RESEARCH_WEB_CONFIG_V1', 'Workspace config policy differs')
     access, origin = configured_store(config['access_config'])
     private(file, repo=access.repo)
@@ -32,11 +32,17 @@ def configured(config_file, *, create=False):
     store.workflow_keys=public_keys(config['workflow_assessment_keys']) if 'workflow_assessment_keys' in config else {}
     require(len(store.workflow_keys)<=16,'Bounded workflow assessor trust required')
     require(not (set(store.workflow_keys.values()) & (set(keys.values())|set(access.keys.values()))), 'Separate workflow assessor key required')
+    store.review_keys=public_keys(config['review_workflow_keys']) if 'review_workflow_keys' in config else {}
+    require(len(store.review_keys)<=16 and not set(store.review_keys.values()) & (set(keys.values())|set(access.keys.values())|set(store.workflow_keys.values())), 'Separate review policy key required')
     store.accountability = None
     if 'accountability_config' in config:
         from app.access.accountability import configured as configured_accountability
         store.accountability = configured_accountability(config['accountability_config'], access=access,
                                                         workspace_key=config['key_file'], workspace_root=store.root)
+    if store.review_keys:
+        require(store.accountability is not None,'Review accountability required')
+        from app.access.review_workflow import initialize
+        initialize(store)
     return store, origin
 
 def create_app(store, *, origin, assets=None):
@@ -44,12 +50,15 @@ def create_app(store, *, origin, assets=None):
     service = ResearchService(store)
     from app.access.workflow_service import WorkflowService
     workflows=WorkflowService(service)
+    from app.access.review_workflow import ReviewWorkflow
+    reviews=ReviewWorkflow(service)
     assets = Path(assets) if assets else Path(__file__).resolve().parents[3] / 'frontend' / 'research'
     # Load only fixed committed UI files; no path supplied through requests.
     files = {url: (assets.joinpath(file).read_bytes(), media) for url,(file,media) in ASSETS.items()}
     accountability = getattr(store, 'accountability', None)
     if accountability is not None:
         files.update({url: (assets.joinpath(file).read_bytes(), media) for url,(file,media) in LOG_ASSETS.items()})
+    for url,file,media in [('/reviews','reviews.html','text/html; charset=utf-8'),('/assets/reviews.js','reviews.js','text/javascript; charset=utf-8'),('/assets/reviews.css','reviews.css','text/css; charset=utf-8')]:files[url]=(assets.joinpath(file).read_bytes(),media)
     api = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
     @api.exception_handler(AccessError)
@@ -136,6 +145,22 @@ def create_app(store, *, origin, assets=None):
     @api.get('/api/research/requests/{operation_id}')
     async def status(operation_id:str, request:Request):
         return await run_in_threadpool(service.request_status, token(request), operation_id)
+
+    @api.get('/api/research/reviews/capabilities')
+    async def review_capabilities(request:Request):
+        return await run_in_threadpool(reviews.capabilities,token(request))
+
+    @api.post('/api/research/reviews/{kind}')
+    async def review_operation(kind:str,request:Request):
+        fields={'save':{'officer_uid','operation_id','finding_id','effective_on','known_at','reason'},'request':{'officer_uid','operation_id','finding_id','target_head','request_kind','effective_on','known_at','reason','prior_request'},'decide':{'officer_uid','operation_id','request_reference','decision','reason'},'inspect':{'officer_uid','status','offset'}}
+        if kind not in fields:raise AccessError(404,'NOT_FOUND')
+        b=await body(request,fields[kind]);csrf=request.headers.get('x-csrf-token','')
+        if kind=='inspect':return await run_in_threadpool(reviews.inspect,token(request),csrf,b)
+        return await run_in_threadpool(reviews.mutate,token(request),csrf,kind.upper(),b)
+
+    @api.get('/api/research/reviews/operations/{operation}')
+    async def recover_review(operation:str,request:Request):
+        return await run_in_threadpool(reviews.recover,token(request),operation)
 
     research = RequestBoundary(api, origin); identity = identity_app(store.access, origin=origin)
     async def static(scope, receive, send):

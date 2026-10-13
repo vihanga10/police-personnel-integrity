@@ -107,7 +107,7 @@ def test_correction_request_preserves_original_evidence_and_no_automatic_run(env
 
 def test_expiry_signature_scope_and_source_fail_closed(tmp_path):
     clock=[time.time()];s,k,_=initialize(tmp_path,clock=lambda:clock[0]);t,csrf=s.access.login('station.one',PASSWORD,'fixture')
-    service=ResearchService(s);s.import_packet(presentation(k,generation=2))
+    service=ResearchService(s);s.import_packet(presentation(k,generation=2,now=clock[0]))
     clock[0]+=1801
     t,csrf=s.access.login('station.one',PASSWORD,'fixture-new-session')
     with pytest.raises(AccessError,match='DETAILS_WITHHELD'):service.workspace(t,identifier(1))

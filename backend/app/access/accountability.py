@@ -39,11 +39,17 @@ ACTION_PATHS={'/api/auth/login':'LOGIN','/api/auth/logout':'LOGOUT','/api/auth/s
 ACTIONS=set(ACTION_PATHS.values())|{'OFFICER_IDENTITY_READ','WORKSPACE_READ','RECENT_REQUESTS_READ',
  'REQUEST_STATUS_READ','CORRECTION_REQUEST','OTHER_REQUEST','ACCOUNT_RENEWAL','LOG_READER_GRANT','DATASET_CONNECTION','AUTHORITY_ASSESSMENT_RECORD','AUTHORITY_TRUST_SETUP','SESSION_EXPIRED','SESSION_INTERRUPTED','CLIENT_PAGE_EXIT'}
 
+ACTIONS.update({'RESEARCH_REVIEW_'+n for n in ('PAGE','SAVE','REQUEST','DECIDE','INSPECT','OPERATIONS','CAPABILITIES','POLICY')})
+
 def canonical_uid(value):
     try:return value if type(value) is str and str(UUID(value))==value else None
     except Exception:return None
 
 def action_for(path):
+    if path=='/reviews':return 'RESEARCH_REVIEW_PAGE'
+    if path.startswith('/api/research/reviews/'):
+        name=path.split('/')[4].upper()
+        return 'RESEARCH_REVIEW_'+name if name in ('SAVE','REQUEST','DECIDE','INSPECT','OPERATIONS','CAPABILITIES') else 'OTHER_REQUEST'
     if path in ACTION_PATHS:return ACTION_PATHS[path]
     for pattern,action in [(r'/api/officers/'+UUID_RE,'OFFICER_IDENTITY_READ'),
       (r'/api/research/officers/'+UUID_RE+r'/requests','RECENT_REQUESTS_READ'),
@@ -349,7 +355,7 @@ class AccountabilityBoundary:
     async def __call__(self,scope,receive,send):
         if scope['type']=='lifespan':return await self.lifespan(scope,receive,send)
         if scope['type']!='http':return await self.app(scope,receive,send)
-        path=scope.get('path','');tracked=path.startswith('/api/') or path=='/accountability'
+        path=scope.get('path','');tracked=path.startswith('/api/') or path in ('/accountability','/reviews')
         if not tracked:return await self.app(scope,receive,send)
         ident=str(uuid4());token=cookie(scope.get('headers',[]))
         actor=await run_in_threadpool(self.store.actor,token)
@@ -359,7 +365,7 @@ class AccountabilityBoundary:
               'status':None,'outcome':'ATTEMPT','reason':None,'session_reference':self.store.session_reference(token)}
         for part in path.split('/'):
             if canonical_uid(part):
-                if base['action']=='REQUEST_STATUS_READ':base['operation_id']=part
+                if base['action'] in ('REQUEST_STATUS_READ','RESEARCH_REVIEW_OPERATIONS'):base['operation_id']=part
                 else:base['requested_officer_uid']=part
         async def unavailable():
             await JSONResponse({'error':'ACCOUNTABILITY_UNAVAILABLE','request_id':ident,
@@ -391,6 +397,8 @@ class AccountabilityBoundary:
         except Exception:pass
         captured.clear()
         if parsed:
+            if base['action']=='RESEARCH_REVIEW_DECIDE' and parsed.get('decision') in ('APPROVE','REJECT','NEEDS_MORE_EVIDENCE'):
+                base['reason']='RESEARCH_DECISION_'+parsed['decision']
             if base['action']=='LOGIN':
                 login=parsed.get('username');base['actor']=await run_in_threadpool(self.store.actor,None,login)
                 if type(login) is str and len(login)<=200:base['attempted_login_reference']=self.store.digest('LOGIN',login)
