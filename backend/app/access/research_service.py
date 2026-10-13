@@ -111,6 +111,8 @@ class ResearchService:
                 (o['officer_uid'] in available) == (request['availability'] == 'AVAILABLE')]
         filtered.sort(key=lambda o: (name(o['names'][0]), o['nic'], o['officer_uid']))
         offset, limit = request['offset'], request['limit']
+        with self.store.transaction() as c:
+            recorded={row[0] for row in c.execute('SELECT id FROM presentations')}
         items=[]
         for o in filtered[offset:offset+limit]:
             reported=None
@@ -118,7 +120,8 @@ class ResearchService:
                 try:reported=F.profile(self.store,o['officer_uid'],directory['source_public_sha256'])['reported_posting']
                 except AccessError:pass
             items.append(dict(**projection(o),membership=deepcopy(o['membership']),
-                details_available=o['officer_uid'] in available,reported_posting=reported))
+                details_available=o['officer_uid'] in available,reported_posting=reported,
+                historical_workspace_available=o['officer_uid'] in available and self.store.index('OFFICER',o['officer_uid']) in recorded))
         with self.access.transaction() as c:
             current, _ = self.access._session(c, token, csrf)
             latest = self.access._directory(c)
@@ -140,6 +143,7 @@ class ResearchService:
             full_records=deepcopy(packet.get('full_records', [])),
             display_lifecycle='RETAINED_LAST_VERIFIED_SNAPSHOT' if packet['expires_at'] is None else 'BOUNDED_OBSERVED_COPY',
             evidence_view='SIGNED_OBSERVED_COPY', coverage_semantics='JOURNAL_OBSERVATIONS_ONLY',
+            historical_workspace_available=True, history_baseline_only=packet['history']['coverage_start']==packet['history']['coverage_end'],
             live_research_ready=False, fresh_live_verification=False,
             public_finality_verified=False, independent_deployment_verified=False)
 

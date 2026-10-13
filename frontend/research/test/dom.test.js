@@ -204,3 +204,21 @@ test('personal and service source sections appear first and expanded',async()=>{
  const t=await setup(u=>u.startsWith('/api/research/officers/')?response(source):router(u));
  try{await selected(t);const sections=[...t.d.querySelectorAll('#full-records > details')];assert.ok(sections[0].querySelector('summary').textContent.includes('Officer personal information'));assert.ok(sections[1].querySelector('summary').textContent.includes('Officer service information'));assert.equal(sections[0].open,true);assert.equal(sections[1].open,true);assert.equal(sections[2].open,false);}finally{t.dom.window.close();}
 });
+
+test('new baseline history uses the exact recorded boundary after changing time zone',async()=>{
+ const boundary='2026-10-13T03:00:00.123456+00:00';
+ const baseline={...workspace,coverage_start:boundary,coverage_end:boundary,findings:[],can_request_review:false,historical_workspace_available:true};
+ const t=await setup(u=>u.startsWith('/api/research/officers/')?response(baseline):router(u));
+ try{await selected(t);assert.equal(t.d.getElementById('history-button').disabled,false);assert.ok(t.d.getElementById('coverage-label').textContent.includes(boundary));assert.ok(t.d.getElementById('coverage-label').textContent.includes('earlier effective dates'));
+ t.d.getElementById('query-timezone').value='COLOMBO';t.d.getElementById('known-date').value='2020-01-01T00:00';t.d.getElementById('use-recorded-boundary').click();assert.equal(t.d.getElementById('query-timezone').value,'UTC');
+ t.d.getElementById('effective-date').value='2024-12-31';t.submit('history-form');await wait(()=>t.calls.some(([u])=>u==='/api/research/history'));
+ const body=JSON.parse(t.calls.find(([u])=>u==='/api/research/history')[1].body);assert.equal(body.known_at,boundary);assert.equal(body.effective_on,'2024-12-31');assert.equal(t.d.getElementById('review-button').disabled,true);await wait(()=>!t.d.getElementById('history-button').disabled);
+ }finally{t.dom.window.close();}
+});
+
+test('recorded-boundary selection never enables an unconnected source history',async()=>{
+ const source={...workspace,evidence_view:'SIGNED_FULL_SOURCE_PROFILE',coverage_start:null,coverage_end:null,findings:[],can_request_review:false};
+ const t=await setup(u=>u.startsWith('/api/research/officers/')?response(source):router(u));
+ try{await selected(t);t.d.getElementById('use-recorded-boundary').click();assert.equal(t.d.getElementById('history-button').disabled,true);t.submit('history-form');assert.equal(t.calls.filter(([u])=>u==='/api/research/history').length,0);
+ }finally{t.dom.window.close();}
+});

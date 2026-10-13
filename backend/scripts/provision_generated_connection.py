@@ -36,7 +36,8 @@ def stopped_app(repo, app_root):
         require(sock.connect_ex(('127.0.0.1',url.port or 443))!=0, 'Stop the application server before connecting')
 
 
-def audit_and_connect(repo, root, app_root, profile, officers=None, review_policy=None, *, all_source_profiles=False):
+def audit_and_connect(repo, root, app_root, profile, officers=None, review_policy=None, *, all_source_profiles=False, all_history=False):
+    require(not (all_source_profiles and all_history))
     plan = G.validate_plan(repo, root, app_root)
     from app.identity.audit_read_rpc_profile import load, ENV_NAMES
     require(not any(os.environ.get(name) for name in ENV_NAMES), 'Inherited profile environment refused')
@@ -69,6 +70,9 @@ def audit_and_connect(repo, root, app_root, profile, officers=None, review_polic
     ready = R.read_json(attempt/'READY.json',repo)
     require(ready['status']=='READY' and ready['code_revision']==C.revision(repo), 'Fresh READY result differs')
     require(hashlib.sha256(profile.read_bytes()).hexdigest()==profile_sha,'Read profile changed during audit')
+    if all_history:
+        from app.access.all_history_connection import connect_all
+        return connect_all(repo,root,app_root,attempt,progress=lambda stage:print('All histories: '+stage,flush=True))
     if all_source_profiles:
         from app.access.full_source_connection import connect_all
         return connect_all(repo,root,app_root,attempt,progress=lambda stage:print('Full profiles: '+stage,flush=True))
@@ -77,7 +81,7 @@ def audit_and_connect(repo, root, app_root, profile, officers=None, review_polic
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action',choices=('prepare','connect','audit-connect','audit-connect-all'))
+    parser.add_argument('action',choices=('prepare','connect','audit-connect','audit-connect-all','audit-connect-history','connect-history'))
     parser.add_argument('--repository',type=Path,required=True)
     parser.add_argument('--state-root',type=Path,required=True)
     parser.add_argument('--app-root',type=Path,required=True)
@@ -100,14 +104,20 @@ def main():
         else:
             require(args.source_config is None and args.effective_on is None and args.detail_limit==2,'Preparation-only arguments refused')
             stopped_app(repo,app)
-            if args.action in ('audit-connect','audit-connect-all'):
+            if args.action in ('audit-connect','audit-connect-all','audit-connect-history'):
                 require(args.read_profile is not None and args.audit_gate_attempt is None)
-                require(args.action!='audit-connect-all' or (args.officer is None and args.stage4_policy is None),'All source profiles use read-only disclosure; scoped review policy remains separate')
-                stage='FULL_AUDIT_AND_CONNECTION';result=audit_and_connect(repo,root,app,args.read_profile,args.officer,args.stage4_policy,all_source_profiles=args.action=='audit-connect-all')
+                require(args.action=='audit-connect' or (args.officer is None and args.stage4_policy is None),'Bulk connection does not grant reviewer authority')
+                stage='FULL_AUDIT_AND_CONNECTION';result=audit_and_connect(repo,root,app,args.read_profile,args.officer,args.stage4_policy,
+                    all_source_profiles=args.action=='audit-connect-all',all_history=args.action=='audit-connect-history')
             else:
                 require(args.audit_gate_attempt is not None and args.read_profile is None)
-                stage='VERIFIED_DATASET_CONNECTION';result=G.connect(repo,root,app,args.audit_gate_attempt,selected_officers=args.officer,review_policy=args.stage4_policy,
-                    progress=lambda value: print('Stage 3: '+value,flush=True))
+                stage='VERIFIED_DATASET_CONNECTION'
+                if args.action=='connect-history':
+                    require(args.officer is None and args.stage4_policy is None)
+                    from app.access.all_history_connection import connect_all
+                    result=connect_all(repo,root,app,args.audit_gate_attempt,progress=lambda value:print('All histories: '+value,flush=True))
+                else:result=G.connect(repo,root,app,args.audit_gate_attempt,selected_officers=args.officer,review_policy=args.stage4_policy,
+                        progress=lambda value: print('Stage 3: '+value,flush=True))
         print(json.dumps(result,indent=2))
         if args.action!='prepare':print('Restart the existing HTTPS application and sign in again. Open Connected detail views within your scope.')
         return 0
