@@ -29,12 +29,17 @@ def origin_url(value):
 def configured_store(config_file, *, create=False):
     f = private(config_file)
     config = json.loads(f.read_text())
-    require(type(config) is dict and set(config)=={'policy','repository','state_directory','key_file','authority_keys','origin'}, 'Access config fields differ')
+    require(type(config) is dict and {'policy','repository','state_directory','key_file','authority_keys','origin'}<=set(config)<={'policy','repository','state_directory','key_file','authority_keys','origin','totp_required'}, 'Access config fields differ')
     require(config['policy']=='SCOPED_ACCESS_CONFIG_V1','Access config policy differs')
     private(f,repo=config['repository'])
     keys={k:base64.b64decode(v,validate=True) for k,v in config['authority_keys'].items()}
     origin=origin_url(config['origin'])
-    return AccessStore(config['state_directory'],config['key_file'],keys,repo=config['repository'],create=create),origin
+    require('totp_required' not in config or config['totp_required'] is True,'Mandatory TOTP configuration differs')
+    store=AccessStore(config['state_directory'],config['key_file'],keys,repo=config['repository'],create=create)
+    store.require_totp=config.get('totp_required',False)
+    from app.access import totp
+    with store.transaction() as c:totp.required(store,c)
+    return store,origin
 
 
 def _json_object(pairs):
@@ -116,8 +121,8 @@ def create_app(store, *, origin):
 
     @app.post('/api/auth/login')
     async def login(request:Request):
-        b=await body(request,{'username','password'})
-        t,c=await run_in_threadpool(store.login,b['username'],b['password'],request.client.host if request.client else 'unknown',token(request))
+        b=await body(request,{'username','password'},{'totp_code'})
+        t,c=await run_in_threadpool(store.login,b['username'],b['password'],request.client.host if request.client else 'unknown',token(request),b.get('totp_code'))
         response=JSONResponse({'authenticated':True,'csrf_token':c})
         response.set_cookie(COOKIE,t,max_age=1800,secure=True,httponly=True,samesite='strict',path='/')
         return response

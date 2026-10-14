@@ -163,7 +163,7 @@ class AccessStore:
         if c.execute('SELECT COUNT(*) FROM throttle').fetchone()[0] > 10000:
             raise AccessError(429,'RATE_LIMITED')
 
-    def login(self, login, password, peer, previous=None):
+    def login(self, login, password, peer, previous=None, totp_code=None):
         try: username(login)
         except ValueError: raise AccessError(401,'INVALID_CREDENTIALS') from None
         ident = self.index('USER',login)
@@ -179,13 +179,14 @@ class AccessStore:
             if value:
                 try: p = account(value['grant'],self.keys,now=self.clock())
                 except Exception: pass
-            if not match or not p or not p['active']:
+            from app.access import totp
+            if not match or not p or not p['active'] or not totp.verify(self,c,ident,p['user_id'],totp_code):
                 self._audit(c,'LOGIN_DENIED',ident)
                 result = None
             else:
                 token,csrf = secrets.token_urlsafe(32),secrets.token_urlsafe(32)
                 sid = self.session_id(token)
-                s = {'user':ident,'version':row[0],'csrf':csrf,'created':self.clock(),'last':self.clock()}
+                s = {'user':ident,'version':row[0],'csrf':csrf,'created':self.clock(),'last':self.clock(),'totp_verified':totp.required(self,c)}
                 c.execute('INSERT INTO sessions VALUES(?,?)',(sid,self.seal('SESSION',sid,1,s)))
                 if previous: c.execute('DELETE FROM sessions WHERE id=?',(self.session_id(previous),))
                 self._audit(c,'LOGIN_OK',ident); result = (token,csrf)
@@ -200,6 +201,8 @@ class AccessStore:
         sid = self.session_id(token); row = c.execute('SELECT value FROM sessions WHERE id=?',(sid,)).fetchone()
         if row is None: raise AccessError(401,'LOGIN_REQUIRED')
         s = self.open('SESSION',sid,1,row[0]); now = self.clock()
+        from app.access import totp
+        if totp.required(self,c) and s.get('totp_verified') is not True:raise AccessError(401,'LOGIN_REQUIRED')
         if not s['created'] <= now < s['created']+1800 or now < s['last']:
             raise AccessError(401,'LOGIN_REQUIRED')
         row = c.execute('SELECT version,value FROM users WHERE id=?',(s['user'],)).fetchone()

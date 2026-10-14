@@ -9,7 +9,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 POLICY = 'SCOPED_PERSONNEL_ACCESS_V1'
 RETAINED_DIRECTORY_POLICY = 'GENERATED_RETAINED_DIRECTORY_V1'
-ROLES = {'IGP': {'ALL'}, 'HQ_ADMIN': {'ALL'}, 'SDIG': {'PROVINCE'},
+ROLES = {'IGP': {'ALL'}, 'HQ_ADMIN': {'ALL'}, 'SDIG': {'PROVINCE', 'UNIT'},
          'DIG': {'DISTRICT', 'DIVISION'}, 'SSP': {'DISTRICT', 'DIVISION'},
          'SP': {'DISTRICT', 'DIVISION'}, 'STATION_OIC': {'STATION'}}
 LEVELS = ('PROVINCE', 'DISTRICT', 'DIVISION', 'STATION')
@@ -75,6 +75,7 @@ def account(envelope, keys, *, now=None):
         require(p['scope_id'] is None, 'ALL scope must not carry an ID')
     else:
         label(p['scope_id'])
+        if p['scope_type']=='UNIT':require(p['scope_id'] in {'CID','CCIB','CRIMINAL_DIVISION'}, 'Unit scope forbidden')
     return p
 
 def permitted(grant, officer):

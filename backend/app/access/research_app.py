@@ -103,6 +103,11 @@ def create_app(store, *, origin, assets=None):
             return await run_in_threadpool(accountability.read, token(request),
                 request.headers.get('x-csrf-token',''), value, True)
 
+    @api.get('/api/research/unit-dashboard')
+    async def unit_dashboard(request:Request):
+        from app.access.unit_dashboard import dashboard
+        return await run_in_threadpool(dashboard,service,token(request))
+
     @api.get('/api/research/available')
     async def available(request:Request):
         return await run_in_threadpool(service.available, token(request))

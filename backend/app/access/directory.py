@@ -28,7 +28,8 @@ def validate_directory(envelope, keys, *, now=None):
                 normalize_identifier(o['nic'], identifier_type='NIC').value == o['nic'], 'Exact NIC required')
         require(type(o['names']) is list and 1 <= len(o['names']) <= 2, 'Reported names required')
         for n in o['names']: require(bool(name(n)), 'Name empty')
-        require(type(o['membership']) is dict and set(o['membership']) == set(LEVELS), 'Explicit current membership required')
+        require(type(o['membership']) is dict and set(LEVELS)<=set(o['membership'])<=set(LEVELS)|{'UNIT'}, 'Explicit current membership required')
+        if 'UNIT' in o['membership']:require(o['membership']['UNIT'] in (None,'CID','CCIB','CRIMINAL_DIVISION'), 'Unknown unit membership')
         for value in o['membership'].values():
             if value is not None: label(value)
         require(type(o['source_raw_id']) is str and re.fullmatch('[0-9a-f]{64}', o['source_raw_id']), 'Source reference required')

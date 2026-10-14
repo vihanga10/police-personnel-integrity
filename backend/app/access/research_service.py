@@ -120,7 +120,7 @@ class ResearchService:
                 try:reported=F.profile(self.store,o['officer_uid'],directory['source_public_sha256'])['reported_posting']
                 except AccessError:pass
             items.append(dict(**projection(o),membership=deepcopy(o['membership']),
-                details_available=o['officer_uid'] in available,reported_posting=reported,
+                unit_type=o['membership'].get('UNIT'),details_available=o['officer_uid'] in available,reported_posting=reported,
                 historical_workspace_available=o['officer_uid'] in available and self.store.index('OFFICER',o['officer_uid']) in recorded))
         with self.access.transaction() as c:
             current, _ = self.access._session(c, token, csrf)

@@ -35,7 +35,7 @@ ACTION_PATHS={'/api/auth/login':'LOGIN','/api/auth/logout':'LOGOUT','/api/auth/s
  '/api/research/requests':'REVIEW_REQUEST','/api/accountability/logs':'ACCESS_LOG_READ',
  '/api/accountability/legacy':'LEGACY_LOG_READ','/api/accountability/capabilities':'LOG_PERMISSION_CHECK',
  '/api/accountability/session-signal':'CLIENT_PAGE_EXIT',
- '/api/research/available':'CONNECTED_VIEWS_READ','/accountability':'LOG_PAGE_VIEW'}
+ '/api/research/unit-dashboard':'UNIT_DASHBOARD_READ','/api/research/available':'CONNECTED_VIEWS_READ','/accountability':'LOG_PAGE_VIEW'}
 ACTIONS=set(ACTION_PATHS.values())|{'OFFICER_IDENTITY_READ','WORKSPACE_READ','RECENT_REQUESTS_READ',
  'REQUEST_STATUS_READ','CORRECTION_REQUEST','OTHER_REQUEST','ACCOUNT_RENEWAL','LOG_READER_GRANT','DATASET_CONNECTION','AUTHORITY_ASSESSMENT_RECORD','AUTHORITY_TRUST_SETUP','SESSION_EXPIRED','SESSION_INTERRUPTED','CLIENT_PAGE_EXIT'}
 
