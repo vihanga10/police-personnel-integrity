@@ -1,4 +1,4 @@
-import {collectDirectory} from '../directory-overview.js';
+import {createPersonnelDashboard} from '../personnel-dashboard.js';
 import {updateShell,clearShell} from '../shell.js';
 import {mountChart,clearChart,clearCharts,countBy} from '../charts.jsx';
 export default function initialize(){
@@ -72,7 +72,7 @@ export default function initialize(){
   async function api(path,body){
     const requestEpoch=state.epoch,hadSession=Boolean(state.csrf);
     const controller=new AbortController();
-    const deadline=setTimeout(()=>controller.abort(),20000);
+    const deadline=setTimeout(()=>controller.abort(),path==='/api/research/personnel-dashboard'?55000:20000);
     try{
       let response;
       try{response=await fetch(path,{method:body===undefined?'GET':'POST',credentials:'same-origin',cache:'no-store',
@@ -102,19 +102,9 @@ export default function initialize(){
   let browseSequence=0,browseOffset=0,browseOptions={},browseBusy=false,browseCriteria=null;
   function clearBrowse(){clearChart("browse-chart");browseSequence++;browseBusy=false;browseCriteria=null;browseOffset=0;browseOptions={};$('officer-browser').hidden=true;$('browse-query').value='';$('browse-kind').value='NAME';$('browse-availability').value='ALL';$('browse-level').value='ALL';$('browse-scope').replaceChildren(new Option('All permitted scopes',''));$('browse-scope').disabled=true;$('browse-pagination').hidden=true;$('browse-page').textContent='';$('browse-message').textContent='';$('browse-button').disabled=false;$('browse-previous').disabled=false;$('browse-next').disabled=false;}
 
-  let directorySequence=0;
-  function clearDirectoryDashboard(){directorySequence++;$('directory-dashboard').hidden=true;for(const id of ['directory-units','directory-divisions','directory-stations'])clearChart(id);$('directory-metrics').replaceChildren();$('directory-dashboard-status').textContent='';$('load-directory-dashboard').disabled=false;}
-  function directoryMetrics(value){$('directory-metrics').replaceChildren();for(const [title,count,note]of [['Permitted officers',value.total,'Full permitted directory'],['Officers loaded',value.loaded,value.loaded===value.total?'Complete directory loaded':'Complete overview is being prepared'],['Connected details',value.available,'Details available among the loaded officers'],['Reported stations',value.stations,'Distinct stations among the loaded officers']]){const card=node('article',null,'metric-card');card.append(node('p',title),node('strong',count.toLocaleString()),node('small',note,'muted'));$('directory-metrics').append(card);}}
-  async function loadDirectoryDashboard(){const epoch=state.epoch,sequence=++directorySequence;for(const id of ['directory-units','directory-divisions','directory-stations'])clearChart(id);$('directory-metrics').replaceChildren();$('directory-dashboard').hidden=false;$('load-directory-dashboard').disabled=true;$('directory-dashboard-status').textContent='Preparing the complete permitted officer overview…';
-   const current=()=>epoch===state.epoch&&sequence===directorySequence&&Boolean(state.csrf)&&!document.hidden;
-   try{const result=await collectDirectory({request:criteria=>api('/api/research/browse',criteria),isCurrent:current,pause:ms=>new Promise(resolve=>setTimeout(resolve,ms)),progress:value=>{if(!current())return;directoryMetrics(value);$('directory-dashboard-status').textContent='Loading all permitted officers: '+value.loaded.toLocaleString()+' / '+value.total.toLocaleString()+'. Charts appear after every page is checked. You can keep using the application; leaving this page cancels loading.';}});
-    if(!result||!current())return;const basis='All '+result.total.toLocaleString()+' officers in your permitted directory';
-    mountChart('directory-units',result.units,'Unit access groups',basis+' · signed access membership','donut');
-    mountChart('directory-divisions',result.divisions,'Reported current divisions',basis);
-    mountChart('directory-stations',result.stations,'Reported current stations',basis);
-    $('directory-dashboard-status').textContent='Complete overview · '+result.loaded.toLocaleString()+' / '+result.total.toLocaleString()+' permitted officers · loaded '+new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Colombo',hour:'2-digit',minute:'2-digit'}).format(new Date())+' (Colombo).';
-   }catch(e){if(current()){for(const id of ['directory-units','directory-divisions','directory-stations'])clearChart(id);$('directory-metrics').replaceChildren();$('directory-dashboard-status').textContent='Overview unavailable: '+e.message+' Select Load overview to try again; no partial chart is shown.';}}
-   finally{if(epoch===state.epoch&&sequence===directorySequence)$('load-directory-dashboard').disabled=false;}}
+  const personnelDashboard=createPersonnelDashboard({api,current:()=>state.csrf,epoch:()=>state.epoch,selectOfficer});
+  function clearDirectoryDashboard(){personnelDashboard.clear();}
+  function loadDirectoryDashboard(){return personnelDashboard.load();}
   $('load-directory-dashboard').addEventListener('click',loadDirectoryDashboard);
   function renderPosting(w){const rows=(w.full_records||[]).filter(r=>r.dataset==='officer_service_information.csv');const root=$('posting-fields');root.replaceChildren();$('posting-dashboard').hidden=rows.length===0;if(!rows.length)return;
     if(rows.length!==1){$('posting-dashboard-note').textContent='Multiple service records were returned. Review the source records below; no current assignment was selected.';return;}

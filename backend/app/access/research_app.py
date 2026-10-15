@@ -47,6 +47,10 @@ def configured(config_file, *, create=False):
 
 def create_app(store, *, origin, assets=None):
     require(type(store) is ResearchStore, 'Exact configured workspace store required')
+    # Reuse the established dashboard-read audit action without changing
+    # the pinned accountability worker source or any private configuration.
+    from app.access.accountability import ACTION_PATHS
+    ACTION_PATHS['/api/research/personnel-dashboard']='UNIT_DASHBOARD_READ'
     service = ResearchService(store)
     from app.access.workflow_service import WorkflowService
     workflows=WorkflowService(service)
@@ -116,6 +120,11 @@ def create_app(store, *, origin, assets=None):
             value=await body(request, {'limit','before_sequence','action','outcome'}, {'account','request_id'})
             return await run_in_threadpool(accountability.read, token(request),
                 request.headers.get('x-csrf-token',''), value, True)
+
+    @api.get('/api/research/personnel-dashboard')
+    async def personnel_dashboard(request:Request):
+        from app.access.personnel_dashboard import dashboard
+        return await run_in_threadpool(dashboard,service,token(request))
 
     @api.get('/api/research/unit-dashboard')
     async def unit_dashboard(request:Request):
