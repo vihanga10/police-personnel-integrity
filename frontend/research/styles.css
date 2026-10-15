@@ -32,3 +32,16 @@ html[data-page=reviews] main,html[data-page=accountability] main{max-width:1450p
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important;animation:none!important}}
 
 body,h1,h2,h3,h4{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,"DejaVu Sans",sans-serif}.legend-button{color:var(--ink)}.dashboard-breakdowns>.card>h3{display:none}#timer:empty,#session-countdown:empty{display:none}
+
+/* Compact, consistent sign-in fields and accessible password visibility. */
+.login-card input::placeholder{font-size:14px;font-family:inherit;letter-spacing:normal;opacity:1;color:#728394}
+.login-card #totp-code{font-family:inherit;letter-spacing:normal}
+.login-card .password-row{position:relative;display:block}
+.login-card .password-row input{width:100%;padding-right:52px}
+.login-card .password-toggle{position:absolute;right:3px;top:3px;bottom:3px;width:42px;min-width:42px;min-height:40px;padding:10px;border:0;background:transparent;display:flex;align-items:center;justify-content:center;color:#526b80}
+.password-toggle svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.password-toggle[aria-pressed=false] .eye-open,.password-toggle[aria-pressed=true] .eye-off{display:none}
+.password-toggle[aria-pressed=true] .eye-open,.password-toggle[aria-pressed=false] .eye-off{display:block}
+.login-card .login-help,.login-card .login-note{text-align:center;font-size:12px;line-height:1.7}
+.login-card .login-help{margin:4px 0 22px}
+.login-card .password-toggle:focus-visible{outline:2px solid var(--gold);outline-offset:0;border-radius:6px}
