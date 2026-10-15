@@ -146,7 +146,7 @@ class Connection:
         if 'accountability_config' in self.workspace_config:
             path = self.workspace_config['accountability_config']; self._watch(path)
             logs = R.read_json(path, self.repo)
-            R.fields(logs, ('policy', 'state_directory', 'key_file', 'reader_grants'))
+            require(type(logs) is dict and {'policy','state_directory','key_file','reader_grants'}<=set(logs)<={'policy','state_directory','key_file','reader_grants','anchor_config'}, 'Accountability configuration fields differ')
             require(logs['policy'] == 'ACCOUNTABILITY_CONFIG_V1', 'Accountability configuration differs')
             root = private(logs['state_directory'], directory=True, repo=self.repo)
             require(all(not root.is_relative_to(r) and not r.is_relative_to(root) for r in roots), 'Log/UI stores overlap')
@@ -155,6 +155,16 @@ class Connection:
             require(len(key) == 32 and key not in keys, 'Separate log encryption key required')
             require(type(logs['reader_grants']) is list and len(logs['reader_grants']) <= 20, 'Bounded log reader grants required')
             for grant in logs['reader_grants']: self._watch(grant)
+            if 'anchor_config' in logs:
+                self._watch(logs['anchor_config'])
+                from app.access.accountability_anchor import FIELDS, POLICY as ANCHOR_POLICY
+                anchor=R.read_json(logs['anchor_config'],self.repo)
+                R.fields(anchor,FIELDS)
+                require(anchor['policy']==ANCHOR_POLICY,'Dedicated accountability anchoring policy required')
+                for path in (anchor['key_file'],anchor['gateway_config']):self._watch(path)
+                anchor_key=private(anchor['key_file'],repo=self.repo).read_bytes()
+                require(len(anchor_key)==32 and anchor_key not in (*keys,key),'Independent accountability anchor key required')
+
         require(type(c['officers']) is dict and len(c['officers']) <= 6596, 'Bounded per-officer runtime map required')
         for officer, runtime in c['officers'].items():
             uid(officer); R.fields(runtime, ('recording_config', 'findings_config'))

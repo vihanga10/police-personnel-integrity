@@ -1,0 +1,25 @@
+{
+  "payload": {
+    "merkle_root": "b5e94746d4c35485beb5f0decde62a47efefe01233d8b4a8156ef416c72c4c2b",
+    "namespace": "accountability-anchor-v1",
+    "policy": "ACCOUNTABILITY_FABRIC_ANCHOR_V1",
+    "public_sha256": "d8f0fbda8601a27fb5fbfb56b3c32733688c82b569f3fa2ffe21568808290057",
+    "publication_commitment": "a7b4860430ed1f20b83befc883462c33a3fe98a8873673c57739657b07bf6a7a",
+    "publication_id": "0f73153b36b1efef6e652edc5e78a3927b1f70c2de1d6ef99102da6ab96cccc6"
+  },
+  "public": {
+    "commitment_version": 1,
+    "entries": [
+      {
+        "commitment": "11f930625ec9d2f402dc1768c235c5325e3e523388b2404f9893aa3ad256b996",
+        "publication_id": "60b7b4b9daed796866248e131ee556ecdb8dda77079bbccc8edd291fc50590b7"
+      }
+    ],
+    "history_commitment": "18bbf45aba52e4b5161cb4d736570f00f5b96f5bce672310c12f4adf283b9c49",
+    "key_version": "accountability-commit-v1",
+    "merkle_root": "b5e94746d4c35485beb5f0decde62a47efefe01233d8b4a8156ef416c72c4c2b",
+    "policy": "ACCOUNTABILITY_PROTECTED_COMMITMENTS_V1",
+    "publication_commitment": "a7b4860430ed1f20b83befc883462c33a3fe98a8873673c57739657b07bf6a7a",
+    "publication_id": "0f73153b36b1efef6e652edc5e78a3927b1f70c2de1d6ef99102da6ab96cccc6"
+  }
+}

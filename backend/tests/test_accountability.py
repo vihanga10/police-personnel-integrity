@@ -143,13 +143,14 @@ def test_completion_failure_does_not_claim_rollback_or_retry(env,monkeypatch):
     assert 'private secret' not in json.dumps(body)
     assert events(logs)[-1]['phase']=='RECEIVED'
 
-def test_review_and_correction_metadata_do_not_retain_reasons(env):
+def test_review_and_correction_reasons_are_retained_only_in_encrypted_events(env):
     _,logs,c,*_=env
     value=review_body(reason='PRIVATE_REVIEW_REASON')
     assert c.request('/api/research/requests','POST',value)[0]==200
     done=events(logs)[-1]
     assert done['operation_id']==value['operation_id'] and done['finding_id']==value['finding_id']
-    assert 'PRIVATE_REVIEW_REASON' not in json.dumps(events(logs))
+    assert done['request_details']['reason']=='PRIVATE_REVIEW_REASON'
+    assert b'PRIVATE_REVIEW_REASON' not in logs.db.read_bytes()
     value=review_body(kind='CORRECTION',operation_id=identifier(302),reason='PRIVATE_CORRECTION_REASON')
     assert c.request('/api/research/requests','POST',value)[0]==200
     assert events(logs)[-1]['action']=='CORRECTION_REQUEST'

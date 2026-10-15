@@ -71,11 +71,11 @@ def create_app(store, *, origin, assets=None):
             raise AccessError(401, 'LOGIN_REQUIRED')
         return request.cookies.get(COOKIE)
 
-    async def body(request, fields):
+    async def body(request, fields, optional=frozenset()):
         try:
             value = json.loads(await request.body(), object_pairs_hook=_json_object,
                 parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
-            require(type(value) is dict and set(value) == fields)
+            require(type(value) is dict and fields <= set(value) <= fields | optional)
             return value
         except Exception: raise AccessError(400, 'INVALID_REQUEST') from None
 
@@ -85,6 +85,20 @@ def create_app(store, *, origin, assets=None):
             await run_in_threadpool(accountability.reader, token(request))
             return {'can_read_access_logs':True, 'independently_anchored':False}
 
+        @api.get('/api/accountability/anchoring')
+        async def log_anchor_status(request:Request):
+            from app.access.accountability_anchor import status
+            await run_in_threadpool(accountability.reader,token(request))
+            result=await run_in_threadpool(status,accountability)
+            await run_in_threadpool(accountability.reader,token(request))
+            return result
+
+        @api.post('/api/accountability/activity')
+        async def client_section(request:Request):
+            from app.access.accountability_activity import section_display
+            value=await body(request,{'officer_uid','section','event_id'})
+            return await run_in_threadpool(section_display,service,token(request),request.headers.get('x-csrf-token',''),value)
+
         @api.post('/api/accountability/session-signal')
         async def session_signal(request:Request):
             value=await body(request, {'event','page','persisted'})
@@ -93,13 +107,13 @@ def create_app(store, *, origin, assets=None):
 
         @api.post('/api/accountability/logs')
         async def access_logs(request:Request):
-            value=await body(request, {'limit','before_sequence','action','outcome'})
+            value=await body(request, {'limit','before_sequence','action','outcome'}, {'account','request_id'})
             return await run_in_threadpool(accountability.read, token(request),
                 request.headers.get('x-csrf-token',''), value)
 
         @api.post('/api/accountability/legacy')
         async def legacy_logs(request:Request):
-            value=await body(request, {'limit','before_sequence','action','outcome'})
+            value=await body(request, {'limit','before_sequence','action','outcome'}, {'account','request_id'})
             return await run_in_threadpool(accountability.read, token(request),
                 request.headers.get('x-csrf-token',''), value, True)
 

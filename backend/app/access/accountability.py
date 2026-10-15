@@ -35,9 +35,10 @@ ACTION_PATHS={'/api/auth/login':'LOGIN','/api/auth/logout':'LOGOUT','/api/auth/s
  '/api/research/requests':'REVIEW_REQUEST','/api/accountability/logs':'ACCESS_LOG_READ',
  '/api/accountability/legacy':'LEGACY_LOG_READ','/api/accountability/capabilities':'LOG_PERMISSION_CHECK',
  '/api/accountability/session-signal':'CLIENT_PAGE_EXIT',
+ '/api/accountability/activity':'CLIENT_SECTION_DISPLAY','/api/accountability/anchoring':'ACCOUNTABILITY_ANCHOR_STATUS',
  '/api/research/unit-dashboard':'UNIT_DASHBOARD_READ','/api/research/available':'CONNECTED_VIEWS_READ','/accountability':'LOG_PAGE_VIEW'}
 ACTIONS=set(ACTION_PATHS.values())|{'OFFICER_IDENTITY_READ','WORKSPACE_READ','RECENT_REQUESTS_READ',
- 'REQUEST_STATUS_READ','CORRECTION_REQUEST','OTHER_REQUEST','ACCOUNT_RENEWAL','LOG_READER_GRANT','DATASET_CONNECTION','AUTHORITY_ASSESSMENT_RECORD','AUTHORITY_TRUST_SETUP','SESSION_EXPIRED','SESSION_INTERRUPTED','CLIENT_PAGE_EXIT'}
+ 'REQUEST_STATUS_READ','CORRECTION_REQUEST','OTHER_REQUEST','ACCOUNT_RENEWAL','LOG_READER_GRANT','DATASET_CONNECTION','AUTHORITY_ASSESSMENT_RECORD','AUTHORITY_TRUST_SETUP','SESSION_EXPIRED','SESSION_INTERRUPTED','CLIENT_PAGE_EXIT','APPLICATION_ANCHOR_READ'}
 
 ACTIONS.update({'RESEARCH_REVIEW_'+n for n in ('PAGE','SAVE','REQUEST','DECIDE','INSPECT','OPERATIONS','CAPABILITIES','POLICY')})
 
@@ -53,7 +54,7 @@ def action_for(path):
     if path in ACTION_PATHS:return ACTION_PATHS[path]
     for pattern,action in [(r'/api/officers/'+UUID_RE,'OFFICER_IDENTITY_READ'),
       (r'/api/research/officers/'+UUID_RE+r'/requests','RECENT_REQUESTS_READ'),
-      (r'/api/research/officers/'+UUID_RE+r'/application-anchoring','WORKSPACE_READ'),
+      (r'/api/research/officers/'+UUID_RE+r'/application-anchoring','APPLICATION_ANCHOR_READ'),
       (r'/api/research/officers/'+UUID_RE,'WORKSPACE_READ'),
       (r'/api/research/requests/'+UUID_RE,'REQUEST_STATUS_READ')]:
         if re.fullmatch(pattern,path):return action
@@ -61,7 +62,7 @@ def action_for(path):
 
 def configured(file,*,access,workspace_key=None,workspace_root=None,create=False):
     file=private(file,repo=access.repo);c=json.loads(file.read_text())
-    require(type(c) is dict and set(c)=={'policy','state_directory','key_file','reader_grants'})
+    require(type(c) is dict and {'policy','state_directory','key_file','reader_grants'}<=set(c)<={'policy','state_directory','key_file','reader_grants','anchor_config'})
     require(c['policy']=='ACCOUNTABILITY_CONFIG_V1' and type(c['reader_grants']) is list and len(c['reader_grants'])<=20)
     store=AccountabilityStore(c['state_directory'],c['key_file'],access=access,create=create)
     if workspace_key is not None:require(store.key!=private(workspace_key,repo=access.repo).read_bytes(),'Independent log key required')
@@ -69,6 +70,7 @@ def configured(file,*,access,workspace_key=None,workspace_root=None,create=False
         other=private(workspace_root,directory=True,repo=access.repo)
         require(not store.root.is_relative_to(other) and not other.is_relative_to(store.root),'Separate workspace/log stores required')
     store.grant_files=tuple(c['reader_grants'])
+    store.anchor_config=c.get('anchor_config')
     # Configuration cannot silently ignore an invalid configured grant.
     for p in store.grant_files:store.load_grant(p,check_time=False)
     return store
@@ -276,11 +278,14 @@ class AccountabilityStore:
     def read(self,token,csrf,filters,legacy=False):
         self.reader(token,csrf)
         try:
-            require(type(filters) is dict and set(filters)=={'limit','before_sequence','action','outcome'})
+            require(type(filters) is dict and {'limit','before_sequence','action','outcome'}<=set(filters)<={'limit','before_sequence','action','outcome','account','request_id'})
             limit=filters['limit'];before=filters['before_sequence']
             require(type(limit) is int and 1<=limit<=100)
             require(before is None or type(before) is int and before>0)
             require(filters['action'] in (None,*ACTIONS) and filters['outcome'] in (None,'ALLOWED','DENIED','FAILED','ATTEMPT'))
+            if filters.get('account') is not None:username(filters['account'])
+            if filters.get('request_id') is not None:require(canonical_uid(filters['request_id']))
+            if legacy:require(filters.get('account') is None and filters.get('request_id') is None)
             if legacy:require(filters['action'] is None and filters['outcome'] is None)
         except ValueError:raise AccessError(400,'INVALID_LOG_FILTERS') from None
         if legacy:
@@ -306,6 +311,8 @@ class AccountabilityStore:
             rows,head=self.verify(c,recover=True);items=[]
             for seq,v in reversed(rows):
                 if before is not None and seq>=before:continue
+                if filters.get('account') is not None and (v.get('actor') or {}).get('username')!=filters['account']:continue
+                if filters.get('request_id') is not None and v.get('request_id')!=filters['request_id']:continue
                 if filters['action'] is not None and filters['action']!=v['action']:continue
                 if filters['outcome'] is not None and filters['outcome']!=v['outcome']:continue
                 items.append({'sequence':seq,**v})
@@ -325,7 +332,7 @@ class AccountabilityBoundary:
         self.app=app;self.store=store;self.worker_failed=False;self.expiry_poll_seconds=5
 
     async def lifespan(self,scope,receive,send):
-        stop=asyncio.Event();task=None
+        stop=asyncio.Event();task=None;anchor_task=None
         async def monitor():
             while not stop.is_set():
                 try:
@@ -333,6 +340,13 @@ class AccountabilityBoundary:
                     self.worker_failed=False
                 except Exception:self.worker_failed=True
                 try:await asyncio.wait_for(stop.wait(),timeout=self.expiry_poll_seconds)
+                except asyncio.TimeoutError:pass
+        async def anchor_monitor():
+            from app.access.accountability_anchor import tick
+            while not stop.is_set():
+                try:await run_in_threadpool(tick,self.store)
+                except Exception:pass # Status endpoint retains pending/failure; local logging continues.
+                try:await asyncio.wait_for(stop.wait(),timeout=2)
                 except asyncio.TimeoutError:pass
         async def lifecycle_receive():
             event=await receive()
@@ -342,16 +356,20 @@ class AccountabilityBoundary:
             elif event['type']=='lifespan.shutdown':
                 stop.set()
                 if task is not None:await task
+                if anchor_task is not None:await anchor_task
                 await run_in_threadpool(self.store.reconcile_sessions,shutdown=True)
             return event
         async def lifecycle_send(event):
-            nonlocal task
-            if event['type']=='lifespan.startup.complete':task=asyncio.create_task(monitor())
+            nonlocal task,anchor_task
+            if event['type']=='lifespan.startup.complete':
+                task=asyncio.create_task(monitor())
+                if getattr(self.store,'anchor_config',None):anchor_task=asyncio.create_task(anchor_monitor())
             await send(event)
         try:await self.app(scope,lifecycle_receive,lifecycle_send)
         finally:
             stop.set()
             if task is not None:await task
+            if anchor_task is not None:await anchor_task
 
     async def __call__(self,scope,receive,send):
         if scope['type']=='lifespan':return await self.lifespan(scope,receive,send)
@@ -401,6 +419,7 @@ class AccountabilityBoundary:
             if base['action']=='RESEARCH_REVIEW_DECIDE' and parsed.get('decision') in ('APPROVE','REJECT','NEEDS_MORE_EVIDENCE'):
                 base['reason']='RESEARCH_DECISION_'+parsed['decision']
             if base['action']=='LOGIN':
+                base['authentication_factors_submitted']=['PASSWORD']+(['TOTP'] if 'totp_code' in parsed else [])
                 login=parsed.get('username');base['actor']=await run_in_threadpool(self.store.actor,None,login)
                 if type(login) is str and len(login)<=200:base['attempted_login_reference']=self.store.digest('LOGIN',login)
             for key in ('officer_uid','finding_id','operation_id'):
@@ -413,9 +432,35 @@ class AccountabilityBoundary:
             if base['action']=='CLIENT_PAGE_EXIT' and parsed.get('event')=='PAGE_EXIT' and parsed.get('page') in ('WORKSPACE','ACCESS_LOGS') and type(parsed.get('persisted')) is bool:
                 base['client_page_event']={'event':'PAGE_EXIT','page':parsed['page'],'persisted':parsed['persisted'],'logout_confirmed':False}
             if base['action']=='REVIEW_REQUEST' and parsed.get('kind')=='CORRECTION':base['action']='CORRECTION_REQUEST'
-            if base['action'] in ('AUTHORITY_QUERY','CONTRADICTION_QUERY') and base['actor'] and base['actor'].get('authenticated'):
-                base['workflow_query']={k:v for k in ('effective_on','known_at','action_on','status','dimension','relationship')
-                    if (v:=parsed.get(k)) is None or (type(v) is str and len(v)<=80 and re.fullmatch('[A-Za-z0-9_:+. -]+',v))}
+            if base['action'] in ('AUTHORITY_QUERY','CONTRADICTION_QUERY','HISTORY_QUERY') and base['actor'] and base['actor'].get('authenticated'):
+                base['workflow_query']={}
+                for field in ('effective_on','known_at','action_on','status','dimension','relationship'):
+                    value=parsed.get(field)
+                    if field in ('effective_on','known_at','action_on') and value not in (None,''):
+                        try:datetime.fromisoformat(value.replace('Z','+00:00'))
+                        except Exception:continue
+                    if value is None or type(value) is str and len(value)<=80 and (value=='' or re.fullmatch('[A-Za-z0-9_:+. -]+',value)):base['workflow_query'][field]=value
+        if parsed and base['actor'] and base['actor'].get('authenticated'):
+            permitted_fields={
+                'OFFICER_SEARCH':('kind','query','availability','level','scope_id','limit','offset'),
+                'HISTORY_QUERY':('effective_on','known_at'),
+                'AUTHORITY_QUERY':('action_on','known_at','status','limit','offset'),
+                'CONTRADICTION_QUERY':('effective_on','known_at','dimension','status','relationship','limit','offset'),
+                'ACCESS_LOG_READ':('limit','before_sequence','action','outcome','account','request_id'),
+                'LEGACY_LOG_READ':('limit','before_sequence'),
+                'CLIENT_SECTION_DISPLAY':('section','event_id'),
+                **{n:('kind','decision','reason','finding_id','operation_id','expected_version') for n in ('RESEARCH_REVIEW_SAVE','RESEARCH_REVIEW_REQUEST','RESEARCH_REVIEW_DECIDE','REVIEW_REQUEST','CORRECTION_REQUEST')},
+            }.get(base['action'],())
+            detail={}
+            for field in permitted_fields:
+                value=parsed.get(field)
+                if field in ('effective_on','known_at','action_on') and value not in (None,''):
+                    try:datetime.fromisoformat(value.replace('Z','+00:00'))
+                    except Exception:continue
+                if value is None or type(value) is int and 0<=value<=10000 or type(value) is str and len(value)<=(4000 if field=='reason' else 200) and not any(ord(x)<32 and x not in '\n\t' for x in value):detail[field]=value
+            if detail:base['request_details']=detail
+            if base['action']=='OFFICER_SEARCH':base['request_details']['entry_point']='DIRECTORY_BROWSER' if path=='/api/research/browse' else 'IDENTITY_SEARCH'
+            if base['action']=='CLIENT_SECTION_DISPLAY':base['observation_basis']='AUTHENTICATED_CLIENT_REPORT_NOT_PROOF_OF_HUMAN_READING'
         parsed=None
         start=next((e for e in response if e['type']=='http.response.start'),None)
         status=start['status'] if start and not overflow else 503
@@ -443,13 +488,25 @@ class AccountabilityBoundary:
                         if type(v) is dict and canonical_uid(v.get('officer_uid'))]
             except Exception:pass
         if base['action']=='CLIENT_PAGE_EXIT' and status!=200:base.pop('client_page_event',None)
-        if base['action'] in ('AUTHORITY_QUERY','CONTRADICTION_QUERY') and status==200 and 'workflow_query' in base:
+        if base['action'] in ('AUTHORITY_QUERY','CONTRADICTION_QUERY','HISTORY_QUERY') and status==200 and 'workflow_query' in base:
             try:
                 payload=b''.join(e.get('body',b'') for e in response if e['type']=='http.response.body')
                 value=json.loads(payload)
                 for key in ('known_at','query_digest','comparison_digest'):
                     item=value.get(key)
                     if type(item) is str and len(item)<=80 and re.fullmatch('[A-Za-z0-9_:+. -]+',item):base['workflow_query'][key]=item
+            except Exception:pass
+        if status==200 and base['actor'] and base['actor'].get('authenticated'):
+            try:
+                answer=json.loads(b''.join(e.get('body',b'') for e in response if e['type']=='http.response.body'))
+                identity=answer.get('identity')
+                if type(identity) is dict:
+                    base['officer_identity']={k:identity[k] for k in ('officer_uid','names','nic') if k in identity}
+                if base['action']=='OFFICER_SEARCH' and type(answer.get('items')) is list:
+                    base['result_count']=len(answer['items'])
+                    base['matching_total']=answer.get('total')
+                    base['returned_officer_uids']=[v['officer_uid'] for v in answer['items'] if canonical_uid(v.get('officer_uid'))][:100]
+                    if path=='/api/research/browse':base['result_order']='NAME_NIC_UID_ASCENDING'
             except Exception:pass
         if base['action']=='LOGOUT' and status==200:
             base.update(logout_confirmed=True,session_end_reason='MANUAL_LOGOUT',
