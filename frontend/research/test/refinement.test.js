@@ -7,7 +7,7 @@ function page(html,script,handler){const dom=new JSDOM(fs.readFileSync(path.join
 const session=()=>({username:'research.hq',role:'HQ_ADMIN',scope_type:'ALL',scope_id:null,csrf_token:'proof',server_time:Date.now()/1000,expires_at:Date.now()/1000+1800});
 
 test('all pages have visible-navigation semantics and skip destinations',()=>{
- for(const name of ['index','reviews','accountability']){const dom=new JSDOM(fs.readFileSync(path.join(root,name+'.html'),'utf8'));try{const d=dom.window.document;assert(d.querySelector('nav[aria-label="Research workspace navigation"]'));assert.equal(d.querySelectorAll('nav [aria-current="page"]').length,1);const target=name==='index'?'login-main':'main';assert(d.querySelector('a.skip[href="#'+target+'"]'));assert(d.getElementById(target));for(const a of d.querySelectorAll('nav a'))assert(['/','/reviews','/accountability'].includes(a.getAttribute('href')));}finally{dom.window.close();}}
+ for(const name of ['index','reviews','accountability']){const dom=new JSDOM(fs.readFileSync(path.join(root,name+'.html'),'utf8'));try{const d=dom.window.document;assert(d.querySelector('nav[aria-label="Research workspace navigation"]'));assert.equal(d.querySelectorAll('nav [aria-current="page"]').length,1);const target=name==='index'?'login-main':'main';assert(d.querySelector('a.skip[href="#'+target+'"]'));assert(d.getElementById(target));for(const a of d.querySelectorAll('nav a'))assert(['/','/reviews','/accountability','/imports'].includes(a.getAttribute('href')));}finally{dom.window.close();}}
 });
 test('workspace navigation uses server permission responses instead of the login role',async()=>{
  const dom=page('index.html','app.js',async url=>url==='/api/auth/session'?response(session()):url==='/api/research/reviews/capabilities'?response({can_request:true,can_review:false}):response({error:'LOG_ACCESS_DENIED'},403));
@@ -15,7 +15,7 @@ test('workspace navigation uses server permission responses instead of the login
 });
 test('late permission responses cannot restore navigation after logout',async()=>{
  const pending=[];const dom=page('index.html','app.js',url=>url==='/api/auth/session'?Promise.resolve(response(session())):url.endsWith('capabilities')?new Promise(resolve=>pending.push(resolve)):Promise.resolve(response({authenticated:false})));
- try{const d=dom.window.document;await wait(()=>pending.length===2);d.getElementById('logout').click();pending[0](response({can_request:true}));pending[1](response({can_read_access_logs:true}));await new Promise(r=>setTimeout(r,20));assert([...d.querySelectorAll('[data-private-nav]')].every(a=>a.hidden));assert(d.getElementById('application').hidden);}finally{dom.window.close();}
+ try{const d=dom.window.document;await wait(()=>pending.length===3);d.getElementById('logout').click();pending[0](response({can_request:true}));pending[1](response({can_read_access_logs:true}));pending[2](response({configured:true,can_inspect:true}));await new Promise(r=>setTimeout(r,20));assert([...d.querySelectorAll('[data-private-nav]')].every(a=>a.hidden));assert(d.getElementById('application').hidden);assert(d.getElementById('nav-imports').hidden);}finally{dom.window.close();}
 });
 test('review evidence renders readable labels, preserves exact JSON and resists HTML injection',async()=>{
  const finding={finding_id:'finding-reference',head:'head-reference',versions:Array.from({length:30},(_,n)=>({operation_id:'operation-'+n,reason:'<img src=x onerror=alert(1)>',known_at:'2026-10-13T05:00:00.123456+00:00'}))};

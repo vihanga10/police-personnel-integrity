@@ -52,8 +52,9 @@ def _json_object(pairs):
 
 class RequestBoundary:
     """Outer ASGI guard bounds bodies and applies headers even to server errors."""
-    def __init__(self,app,origin):
+    def __init__(self,app,origin,*,body_limits=None):
         self.app,self.origin=app,origin
+        self.body_limits=dict(body_limits or {})
 
     async def __call__(self,scope,receive,send):
         if scope['type']!='http': return await self.app(scope,receive,send)
@@ -73,7 +74,7 @@ class RequestBoundary:
                 event=await receive()
                 if event['type']=='http.disconnect': return
                 body+=event.get('body',b'')
-                if len(body)>4096: status,code=413,'BODY_TOO_LARGE';break
+                if len(body)>self.body_limits.get(scope.get('path',''),4096): status,code=413,'BODY_TOO_LARGE';break
                 if not event.get('more_body'): break
         async def security_send(event):
             if event['type']=='http.response.start':

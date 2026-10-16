@@ -1,4 +1,5 @@
 import React from 'react';
+import ImportsPage from './pages/Imports.jsx';
 import {createRoot} from 'react-dom/client';
 import {flushSync} from 'react-dom';
 import OfficersPage from './pages/Officers.jsx';
@@ -10,7 +11,7 @@ import initializeAccountability from './controllers/accountability.js';
 import {clearCharts} from './charts.jsx';
 
 const page=document.documentElement.dataset.page||'officers';
-const chosen=page==='reviews'?[ReviewsPage,initializeReviews]:page==='accountability'?[AccountabilityPage,initializeAccountability]:[OfficersPage,initializeOfficers];
+const chosen=page==='imports'?[ImportsPage,()=>{}]:page==='reviews'?[ReviewsPage,initializeReviews]:page==='accountability'?[AccountabilityPage,initializeAccountability]:[OfficersPage,initializeOfficers];
 const root=createRoot(document.getElementById('react-root'));
 flushSync(()=>root.render(React.createElement(chosen[0])));
 chosen[1]();

@@ -1,0 +1,67 @@
+{
+  "test_only": true,
+  "key_hex": "7878787878787878787878787878787878787878787878787878787878787878",
+  "batch": {
+    "batch_id": "11111111-1111-4111-8111-111111111111",
+    "file_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "received_at": "2026-10-15T00:00:00+00:00",
+    "actor": {
+      "username": "fixture-only"
+    },
+    "source_reference": "Generated test order",
+    "rows": [
+      {
+        "status": "READY",
+        "row": 1,
+        "officer_uid": "fixture-officer-1",
+        "source": {
+          "promotion_id": "fixture-1"
+        }
+      },
+      {
+        "status": "READY",
+        "row": 2,
+        "officer_uid": "fixture-officer-2",
+        "source": {
+          "promotion_id": "fixture-2"
+        }
+      },
+      {
+        "status": "READY",
+        "row": 3,
+        "officer_uid": "fixture-officer-3",
+        "source": {
+          "promotion_id": "fixture-3"
+        }
+      }
+    ]
+  },
+  "manifest": {
+    "policy": "PROMOTION_INTAKE_V1",
+    "batch_id": "11111111-1111-4111-8111-111111111111",
+    "file_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "received_at": "2026-10-15T00:00:00+00:00",
+    "actor": {
+      "username": "fixture-only"
+    },
+    "source_reference": "Generated test order",
+    "source_system": "PF_REGISTRY",
+    "rows": [
+      "7a8142dd5a8559e65edcf76540aa63c8cc1cb0f65bfbccbfebc1bba080f7aa32",
+      "5c48f4aa132523b69b1703038691fc45cb02df3670141e121cd95abd2d72aca7",
+      "3f8341da8a49047e3698e757917304871f49dea6dd23361f065d435ab436eede"
+    ],
+    "row_count": 3,
+    "duplicate_count": 0,
+    "authority": "NOT_ASSESSED",
+    "source_custody": "UPLOADER_REPORTED"
+  },
+  "payload": {
+    "policy": "PROMOTIONS_FABRIC_ANCHOR_V1",
+    "namespace": "promotions-anchor-v1",
+    "publication_id": "c2c903742e1e0fb468168e53775a677600f021b7fc026d583120a9558de8d998",
+    "public_sha256": "404c773b6e0c95716fe79ac0161b62e86ea855ebd94d0f2fe54479e17a502938",
+    "merkle_root": "a9436b126e5376add6b1aa98172a6f5f10fb838df1589cea3c9d04a5e8c55476",
+    "publication_commitment": "9e1d017fec5f2d3f8d62f34f1f0566ffb54445b44efd64ae5c20d20122f01ee9"
+  }
+}
