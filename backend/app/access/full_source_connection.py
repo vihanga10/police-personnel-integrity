@@ -68,8 +68,7 @@ def connect_all(repo,root,app_root,audit_attempt,*,progress=lambda _:None):
             profiles.append(G.signed(signer,G.PRESENTATION_ID,payload))
             for user in accounts:
                 if user['active'] and permitted(user,members[officer]):
-                    grant=dict(policy=P.RETAINED_POLICY,kind='DISCLOSURE',issued_at=now,
-                        expires_at=min(now+86398,user['expires_at'],approval['expires_at']),
+                    grant=dict(**P.disclosure_lifetime(user,now,approval['expires_at']),kind='DISCLOSURE',issued_at=now,
                         user_id=user['user_id'],account_version=user['version'],officer_uid=officer,
                         source_public_sha256=C.PUBLIC_SHA,assignment='ORDINARY',classification='ORDINARY',
                         restricted_clearance=False,request_reviews=False,reviewer_uid=None)

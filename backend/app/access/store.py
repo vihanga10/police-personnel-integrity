@@ -221,7 +221,7 @@ class AccessStore:
         with self.transaction() as c:
             p,s = self._session(c,token)
             return {'username':p['username'],'role':p['role'],'scope_type':p['scope_type'],
-                    'scope_id':p['scope_id'],'csrf_token':s['csrf'],'expires_at':min(s['created']+1800,p['expires_at']), 'server_time':self.clock(), 'session_duration_seconds':1800}
+                    'scope_id':p['scope_id'],'csrf_token':s['csrf'],'expires_at':min(s['created']+1800,p['expires_at']) if p['expires_at'] is not None else s['created']+1800, 'server_time':self.clock(), 'session_duration_seconds':1800}
 
     def logout(self,token,csrf):
         with self.transaction() as c:

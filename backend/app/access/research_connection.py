@@ -374,7 +374,8 @@ class Connection:
             self.stage = 'SIGNED_DISCLOSURE_BINDING'
             p = P.grant(envelope, self.workspace_keys, time.time())
             require(p['officer_uid'] in packets and p['source_public_sha256'] == PUBLIC_SHA and
-                    p['expires_at'] <= self.envelope['payload']['expires_at'],
+                    ((generated and p['policy']==P.PERSISTENT_DISCLOSURE_POLICY and p['expires_at'] is None) or
+                     (p['expires_at'] is not None and p['expires_at'] <= self.envelope['payload']['expires_at'])),
                     'Disclosure needs a selected original-source presentation')
             pair = (p['user_id'], p['officer_uid']); require(pair not in seen, 'Duplicate disclosure'); seen.add(pair)
             grants.append((envelope, p))

@@ -285,14 +285,15 @@ def connect_all(repo,root,app_root,audit_attempt,*,progress=lambda _:None):
                         old_envelope=store.open('GRANT',ident,blob);old=P.grant(old_envelope,store.keys,old_envelope['payload']['issued_at'])
                         require(old['user_id']==user['user_id'] and old['officer_uid']==officer and old['source_public_sha256']==C.PUBLIC_SHA and
                             old['account_version']<=user['version'] and old['issued_at']<=now)
-                        grant={**old,'policy':P.RETAINED_POLICY,'issued_at':now,
-                            'expires_at':min(now+86398,user['expires_at'],approval['expires_at']),
+                        grant={**old,**P.disclosure_lifetime(user,now,approval['expires_at']),'issued_at':now,
                             'account_version':user['version']}
                         # New histories have no stored finding or authenticated reviewer.
                         # Expired review-request policy is never automatically extended.
-                        if officer not in job['preserved_packets'] or now>=old['expires_at'] or old['account_version']!=user['version']:
+                        if officer not in job['preserved_packets'] or (old['expires_at'] is not None and now>=old['expires_at']) or old['account_version']!=user['version']:
                             grant.update(request_reviews=False,reviewer_uid=None)
-                        else:grant['expires_at']=min(grant['expires_at'],old['expires_at']) if old['request_reviews'] else grant['expires_at']
+                        elif old['request_reviews'] and old['expires_at'] is not None:
+                            grant['expires_at']=min(grant['expires_at'],old['expires_at']) if grant['expires_at'] is not None else old['expires_at']
+                            grant['policy']=old['policy']
                         grants.append(G.signed(signer,G.PRESENTATION_ID,grant))
                 def unchanged(database=None):
                     batch.check(full=True);connection.unchanged([])

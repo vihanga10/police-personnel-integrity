@@ -16,6 +16,7 @@ from app.identity.bitemporal_reconstruction import EvidenceVersion, RecordingHis
 from app.security.record_protection import AssignmentProtection, RecordClassification
 
 POLICY = 'RESEARCH_WORKSPACE_V1'
+PERSISTENT_DISCLOSURE_POLICY = 'GENERATED_RETAINED_DISCLOSURE_V1'
 RETAINED_POLICY = 'GENERATED_RETAINED_WORKSPACE_V1'
 DECISIONS = ('NEEDS_MORE_EVIDENCE', 'REPORTED_DISAGREEMENT_SUPPORTED', 'REPORTED_DISAGREEMENT_NOT_SUPPORTED')
 FIELDS = {'rank': {'to_rank', 'entry_rank', 'current_rank', 'floor_rank'}, 'police_number': {'police_no', 'number_type', 'entry_police_no', 'current_police_no'},
@@ -45,9 +46,11 @@ def signed(envelope, keys, kind, now):
     require(type(envelope) is dict and set(envelope) == {'key_id', 'payload', 'signature'}, 'Signed workspace envelope required')
     require(envelope['key_id'] in keys, 'Unconfigured workspace authority')
     p = envelope['payload']
-    require(type(p) is dict and p.get('kind') == kind and p.get('policy') in (POLICY, RETAINED_POLICY), 'Workspace signing domain differs')
+    require(type(p) is dict and p.get('kind') == kind and p.get('policy') in (POLICY, RETAINED_POLICY, PERSISTENT_DISCLOSURE_POLICY), 'Workspace signing domain differs')
     require(type(p.get('issued_at')) is int and p['issued_at'] <= now, 'Future workspace issuance refused')
-    if p['policy'] == RETAINED_POLICY and kind == 'PRESENTATION':
+    if p['policy']==PERSISTENT_DISCLOSURE_POLICY:
+        require(kind=='DISCLOSURE' and p.get('expires_at') is None,'Signed retained disclosure required')
+    elif p['policy'] == RETAINED_POLICY and kind == 'PRESENTATION':
         require(p.get('expires_at') is None and p.get('record_origin') == 'GENERATED_RESEARCH_RECORDS', 'Retained generated presentation required')
     else:
         maximum = 86400 if p['policy'] == RETAINED_POLICY and kind == 'DISCLOSURE' else 3600
@@ -182,3 +185,12 @@ def full_records(snapshot, officer):
         records.append(dict(dataset=item['filename'],raw_record_id=raw,fields=dict(zip(columns,values))))
     validate_full_records(records)
     return records
+
+
+def disclosure_lifetime(user, issued, approval_expires):
+    """Account policy controls disclosure lifetime; import approval stays separately checked."""
+    from .policy import PERSISTENT_ACCOUNT_POLICY
+    if user['policy']==PERSISTENT_ACCOUNT_POLICY:
+        require(user['expires_at'] is None, 'Persistent account lifetime differs')
+        return dict(policy=PERSISTENT_DISCLOSURE_POLICY,expires_at=None)
+    return dict(policy=RETAINED_POLICY,expires_at=min(issued+86398,user['expires_at'],approval_expires))

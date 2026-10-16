@@ -24,6 +24,7 @@ from app.access.policy import AccessError, account, encoded, require, username
 from app.access.store import private
 
 POLICY='PERSONNEL_ACCOUNTABILITY_V1'
+PERSISTENT_READER_POLICY='GENERATED_RETAINED_LOG_READER_V1'
 SCHEMA='''CREATE TABLE events(seq INTEGER PRIMARY KEY,previous TEXT NOT NULL,value BLOB NOT NULL,digest TEXT NOT NULL);
 CREATE TRIGGER no_event_update BEFORE UPDATE ON events BEGIN SELECT RAISE(ABORT,'immutable event'); END;
 CREATE TRIGGER no_event_delete BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT,'immutable event'); END;
@@ -166,7 +167,7 @@ class AccountabilityStore:
     def login_metadata(self,token):
         with self.access.transaction() as c:
             account_,session=self.access._session(c,token)
-            deadline=min(session['created']+1800,account_['expires_at'])
+            deadline=min(session['created']+1800,account_['expires_at']) if account_['expires_at'] is not None else session['created']+1800
             return dict(session_reference=self.session_reference(token),server_instance_reference=self.instance_reference(),
                 session_started_at=datetime.fromtimestamp(session['created'],timezone.utc).isoformat(),
                 session_deadline=datetime.fromtimestamp(deadline,timezone.utc).isoformat(),
@@ -223,14 +224,15 @@ class AccountabilityStore:
         require(value['key_id'] in self.access.keys)
         p=value['payload']
         require(type(p) is dict and set(p)=={'policy','kind','user_id','account_version','issued_at','expires_at','review_reference'})
-        require(p['policy']==POLICY and p['kind']=='READ_ACCESS_LOGS' and canonical_uid(p['user_id']))
+        require(p['policy'] in (POLICY,PERSISTENT_READER_POLICY) and p['kind']=='READ_ACCESS_LOGS' and canonical_uid(p['user_id']))
         require(type(p['account_version']) is int and p['account_version']>0)
-        require(type(p['issued_at']) is int and type(p['expires_at']) is int and
-                p['issued_at']<p['expires_at']<=p['issued_at']+86400)
+        require(type(p['issued_at']) is int)
+        if p['policy']==PERSISTENT_READER_POLICY:require(p['expires_at'] is None)
+        else:require(type(p['expires_at']) is int and p['issued_at']<p['expires_at']<=p['issued_at']+86400)
         require(type(p['review_reference']) is str and re.fullmatch('[A-Za-z0-9_-]{1,64}',p['review_reference']))
         Ed25519PublicKey.from_public_bytes(self.access.keys[value['key_id']]).verify(
             base64.b64decode(value['signature'],validate=True),encoded(p))
-        if check_time:require(p['issued_at']<=self.clock()<p['expires_at'])
+        if check_time:require(p['issued_at']<=self.clock() and (p['expires_at'] is None or self.clock()<p['expires_at']))
         return p
 
     def reader(self,token,csrf=None):

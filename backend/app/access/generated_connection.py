@@ -419,7 +419,7 @@ def connect(repo, root, app_root, audit_attempt, *, selected_officers=None, revi
                 for user in accounts:
                     if user['active'] and permitted(user, members[officer]):
                         # Explicit generated ordinary-disclosure simulation only.
-                        grant = dict(policy=P.RETAINED_POLICY, kind='DISCLOSURE', issued_at=issued, expires_at=min(issued+86398,user['expires_at'],approval['expires_at']),
+                        grant = dict(**P.disclosure_lifetime(user,issued,approval['expires_at']), kind='DISCLOSURE', issued_at=issued,
                             user_id=user['user_id'], account_version=user['version'], officer_uid=officer,
                             source_public_sha256=C.PUBLIC_SHA, assignment='ORDINARY', classification='ORDINARY',
                             restricted_clearance=False,

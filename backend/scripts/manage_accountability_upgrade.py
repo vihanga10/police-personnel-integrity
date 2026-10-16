@@ -7,7 +7,7 @@ from cryptography.hazmat.primitives.serialization import Encoding,PublicFormat
 from app.access.policy import require,encoded,account
 from app.access.store import private
 from app.access.api import configured_store
-from app.access.accountability import configured,POLICY
+from app.access.accountability import configured,POLICY,PERSISTENT_READER_POLICY
 from app.access.accountability_anchor import POLICY as ANCHOR
 from provision_accountability import write,stored,administration
 
@@ -27,8 +27,8 @@ def prepare(repo,root,execute=False,gateway=None,sha=None,anchor_root=None):
         # Do not renew account authorizations or change versions/roles to issue log access.
         user_env={'key_id':kid,'payload':user,'signature':base64.b64encode(signer.sign(encoded(user))).decode()}
         account(user_env,access.keys,now=now)
-        payload={'policy':POLICY,'kind':'READ_ACCESS_LOGS','user_id':user['user_id'],'account_version':user['version'],
-          'issued_at':now-1,'expires_at':min(user['expires_at'],now+86398),'review_reference':'EXPLICIT_IGP_HQ_ACCOUNTABILITY_V2'}
+        payload={'policy':PERSISTENT_READER_POLICY if user['expires_at'] is None else POLICY,'kind':'READ_ACCESS_LOGS','user_id':user['user_id'],'account_version':user['version'],
+          'issued_at':now-1,'expires_at':None if user['expires_at'] is None else min(user['expires_at'],now+86398),'review_reference':'EXPLICIT_IGP_HQ_ACCOUNTABILITY_V2'}
         grants.append((root/(login.replace('.','-')+'-log-reader.json'),{'key_id':kid,'payload':payload,'signature':base64.b64encode(signer.sign(encoded(payload))).decode()}))
     if gateway is not None:
         require(sha and anchor_root,'Gateway hash and separate anchor root required')

@@ -8,6 +8,7 @@ from uuid import UUID
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 POLICY = 'SCOPED_PERSONNEL_ACCESS_V1'
+PERSISTENT_ACCOUNT_POLICY = 'GENERATED_RETAINED_ACCOUNT_V1'
 RETAINED_DIRECTORY_POLICY = 'GENERATED_RETAINED_DIRECTORY_V1'
 ROLES = {'IGP': {'ALL'}, 'HQ_ADMIN': {'ALL'}, 'SDIG': {'PROVINCE', 'UNIT'},
          'DIG': {'DISTRICT', 'DIVISION'}, 'SSP': {'DISTRICT', 'DIVISION'},
@@ -51,7 +52,9 @@ def signed(envelope, keys, kind, *, now=None):
     require(type(envelope['key_id']) is str and envelope['key_id'] in keys, 'Unknown authority')
     p = envelope['payload']
     require(type(p) is dict and p.get('kind') == kind, 'Wrong administrative domain')
-    if p.get('policy') == RETAINED_DIRECTORY_POLICY:
+    if p.get('policy') == PERSISTENT_ACCOUNT_POLICY:
+        require(kind=='ACCOUNT' and p.get('expires_at') is None and type(p.get('issued_at')) is int and p['issued_at']<=now,'Signed retained account required')
+    elif p.get('policy') == RETAINED_DIRECTORY_POLICY:
         require(kind == 'DIRECTORY' and p.get('record_origin') == 'GENERATED_RESEARCH_RECORDS' and
                 p.get('expires_at') is None and type(p.get('issued_at')) is int and p['issued_at'] <= now,
                 'Retained generated directory required')

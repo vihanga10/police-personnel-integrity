@@ -18,6 +18,8 @@ from app.access.store import private
 
 BASE='068502879ec5a8ccd14b9ce6c40f7954b5fa3b4c'
 
+from app.access.accountability import PERSISTENT_READER_POLICY
+
 def repository(repo):
     repo=repo.expanduser().absolute()
     require(not any(p.is_symlink() for p in (repo,*repo.parents)))
@@ -69,8 +71,8 @@ def reader(access,signer,login):
     require(p['role'] in ('HQ_ADMIN','IGP') and p['active'],'Explicit national log reader required')
     now=int(time.time())
     account(envelope(signer,p),access.keys,now=now)
-    return envelope(signer,{'policy':POLICY,'kind':'READ_ACCESS_LOGS','user_id':p['user_id'],
-        'account_version':p['version'],'issued_at':now-1,'expires_at':min(p['expires_at'],now+86398),
+    return envelope(signer,{'policy':PERSISTENT_READER_POLICY if p['expires_at'] is None else POLICY,'kind':'READ_ACCESS_LOGS','user_id':p['user_id'],
+        'account_version':p['version'],'issued_at':now-1,'expires_at':None if p['expires_at'] is None else min(p['expires_at'],now+86398),
         'review_reference':'GENERATED_RESEARCH_ACCOUNTABILITY_REVIEW'})
 
 def administration(logs,action,outcome,subject=None,reason=None,request_id=None):

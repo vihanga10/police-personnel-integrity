@@ -1,6 +1,6 @@
 """Stopped-app unit-scope/TOTP migration for generated records; encrypted recovery.
 Existing source profiles, histories, findings and past logs remain unchanged.
-Rerun preview/execute later to renew the same bounded grants; TOTP seeds persist.
+Existing until-revoked lifetime policies are preserved when rerun; TOTP seeds persist.
 """
 import argparse,base64,hashlib,json,os,secrets,sqlite3,sys,time,fcntl
 from datetime import datetime,timezone
@@ -10,7 +10,7 @@ from urllib.parse import quote
 sys.dont_write_bytecode=True
 sys.path[:0]=[str(Path(__file__).resolve().parents[1]),str(Path(__file__).resolve().parent)]
 import _unit_setup_support as S
-from app.access import policy as A,research_policy as P,full_source_profiles as F,totp,review_workflow as W
+from app.access import policy as A,research_policy as P,full_source_profiles as F,totp,review_workflow as W,accountability as L
 from app.access.store import private,password_hash
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
@@ -25,7 +25,9 @@ class SQL:
         return self.c.execute(sql,args)
 
 def plan(x,c,expected=EXPECTED):
-    now=int(time.time());expiry=now+86398
+    now=int(time.time());persistent=any(u['policy']==A.PERSISTENT_ACCOUNT_POLICY for u in x.manifest['accounts'])
+    A.require(not persistent or all(u['policy']==A.PERSISTENT_ACCOUNT_POLICY for u in x.manifest['accounts']),'Mixed account lifetime policies')
+    expiry=None if persistent else now+86398
     x.a._verify_audit(c);x.w._events(SQL(c,'ui'));x.l.verify(SQL(c,'logs'),recover=False)
     directory=x.a._directory(c)
     A.require(directory['policy']==A.RETAINED_DIRECTORY_POLICY,'Retained generated membership required')
@@ -73,7 +75,7 @@ def plan(x,c,expected=EXPECTED):
     A.require(set(oldusers)==set(declared) and 'research.sdig' in oldusers,'Account manifest differs')
     for login,unit in UNIT_ACCOUNTS.items():
         if login in newusers:continue
-        fresh=dict(policy=A.POLICY,kind='ACCOUNT',issued_at=now-1,expires_at=expiry,user_id=str(uuid4()),username=login,
+        fresh=dict(policy=A.PERSISTENT_ACCOUNT_POLICY if persistent else A.POLICY,kind='ACCOUNT',issued_at=now-1,expires_at=expiry,user_id=str(uuid4()),username=login,
                    role='SDIG',scope_type='UNIT',scope_id=unit,version=1,active=True,review_reference='GENERATED_UNIT_SCOPE_V1')
         password=secrets.token_urlsafe(24);passwords[login]=password;newusers[login]=fresh
         ident=x.a.index('USER',login)
@@ -83,12 +85,13 @@ def plan(x,c,expected=EXPECTED):
     grants={};templates={}
     for ident,issued,blob in c.execute('SELECT id,issued,value FROM ui.disclosures'):
         env=x.w.open('GRANT',ident,blob);p=P.grant(env,x.w.keys,env['payload']['issued_at'])
-        A.require(p['policy']==P.RETAINED_POLICY and p['source_public_sha256']==meta['source_public_sha256'] and
+        A.require(p['policy'] in (P.RETAINED_POLICY,P.PERSISTENT_DISCLOSURE_POLICY) and p['source_public_sha256']==meta['source_public_sha256'] and
                   ident==x.w.index('GRANT',p['user_id'],p['officer_uid']) and issued==p['issued_at'],'Disclosure source differs')
         user=byid.get(p['user_id']);A.require(user and p['officer_uid'] in members,'Disclosure owner differs')
         if oldbyid.get(p['user_id'],{}).get('role')=='HQ_ADMIN':templates[p['officer_uid']]=p
         if not user['active'] or not A.permitted(user,members[p['officer_uid']]):continue
-        fresh={**p,'issued_at':now,'expires_at':expiry,'account_version':user['version'],'request_reviews':False,'reviewer_uid':None}
+        fresh={**p,'policy':P.PERSISTENT_DISCLOSURE_POLICY if persistent else P.RETAINED_POLICY,'issued_at':now,'expires_at':expiry,'account_version':user['version']}
+        if not persistent:fresh.update(request_reviews=False,reviewer_uid=None)
         grants[ident]=S.sign(x.wsk,x.workspace_id,fresh)
     for login,unit in UNIT_ACCOUNTS.items():
         user=newusers[login]
@@ -96,7 +99,7 @@ def plan(x,c,expected=EXPECTED):
             if not A.permitted(user,member):continue
             A.require(officer in templates,'Existing HQ detail assessment required for every unit officer')
             p=templates[officer]
-            fresh={**p,'user_id':user['user_id'],'account_version':user['version'],'issued_at':now,'expires_at':expiry,
+            fresh={**p,'policy':P.PERSISTENT_DISCLOSURE_POLICY if persistent else P.RETAINED_POLICY,'user_id':user['user_id'],'account_version':user['version'],'issued_at':now,'expires_at':expiry,
                    'request_reviews':False,'reviewer_uid':None}
             # Explicit generated unit clearance: retain assessed protection labels.
             from app.access.full_source_profiles import grant_allows
@@ -106,7 +109,7 @@ def plan(x,c,expected=EXPECTED):
     readerfiles=[]
     for file in x.l.grant_files:
         p=x.l.load_grant(file,check_time=False);user=byid.get(p['user_id']);A.require(user and user['active'],'Log reader owner differs')
-        readerfiles.append((file,S.sign(x.ask,x.access_id,{**p,'account_version':user['version'],'issued_at':now-1,'expires_at':expiry})))
+        readerfiles.append((file,S.sign(x.ask,x.access_id,{**p,'policy':L.PERSISTENT_READER_POLICY if persistent else p['policy'],'account_version':user['version'],'issued_at':now-1,'expires_at':expiry})))
     wc=json.loads(private(x.root/'workspace-config.json',repo=x.repo).read_text())
     x.w.review_keys={k:base64.b64decode(v,validate=True) for k,v in wc['review_workflow_keys'].items()}
     seed=private(x.root/'keys/research-review-policy.key',repo=x.repo).read_bytes()
@@ -137,7 +140,7 @@ def plan(x,c,expected=EXPECTED):
     filejobs=[dict(path=str(path),old_sha=hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None,new=value) for path,value in files]
     return dict(directory=directory_env,updates=updates,grants=grants,policy=policy,factors=factors,files=filejobs,
         summary=dict(accounts=12,active_accounts=11,inactive_accounts=1,unit_counts=counts,
-             unit_accounts=UNIT_ACCOUNTS,totp_required=True,authorization_expires_at_utc=datetime.fromtimestamp(expiry,timezone.utc).isoformat(),
+             unit_accounts=UNIT_ACCOUNTS,totp_required=True,authorization_expires_at_utc=datetime.fromtimestamp(expiry,timezone.utc).isoformat() if expiry is not None else None,
              sessions_minutes=30,original_passwords_preserved=True,police_authority_issued=False,source_reimported=False,chain_submitted=False))
 
 def finalize(x,directory,job):
