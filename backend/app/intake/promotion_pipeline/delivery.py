@@ -57,9 +57,10 @@ class MongoDestination:
         check(collection.name == COLLECTION, 'MONGO_DESTINATION_DIFFERS')
         self.collection = collection
     def expected(self, document):
-        from bson import Binary
+        # PyMongo decodes BSON binary subtype 0 to bytes. Encode bytes using
+        # that same subtype so exact readback survives a real BSON round trip.
         return {'_id':document['record_id'],'batch_id':document['batch_id'],
-                'ciphertext':Binary(base64.b64decode(document['ciphertext'])),
+                'ciphertext':base64.b64decode(document['ciphertext']),
                 'ciphertext_sha256':document['ciphertext_sha256']}
     def put(self, document):
         from pymongo.errors import DuplicateKeyError
