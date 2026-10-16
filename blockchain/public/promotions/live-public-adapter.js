@@ -1,7 +1,7 @@
 'use strict';
 const {Interface,Transaction,AbiCoder}=require('ethers');
 const N=require('./network'),L=require('./live-network'),{artifact}=require('./artifact'),{argumentsFor,POLICY,NAMESPACE}=require('./payload');
-const PLAN='PROMOTIONS_LIVE_PUBLIC_SIGNED_PLAN_V1',MAX_GAS=500000n;
+const PLAN='PROMOTIONS_LIVE_PUBLIC_SIGNED_PLAN_V1',MAX_GAS=1000000n;
 const address=v=>{N.check(typeof v==='string'&&/^0x[0-9a-f]{40}$/.test(v)&&v!=='0x'+'0'.repeat(40),'Nonzero lowercase address required');return v;};
 function destination(d){
     N.exact(d,['chain_id','contract','runtime_sha256','writer','namespace','finality']);
