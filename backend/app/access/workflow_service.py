@@ -52,6 +52,7 @@ class WorkflowService:
             needed=set(action.actor_candidates)|(A.assessment_actors(typed) if typed else set())
             stale=assessment is not None and (needed.intersection(missing) or
                 {u:assessment['actor_packets'].get(u) for u in needed}!={u:pins[u] for u in needed if u in pins})
+            if typed and any(s.state.actor_uid not in history.buckets or history.project(s.state.actor_uid,s.state.on)[0]!=s.state_id for s in typed.states):stale=True
             future=action.reported_date is not None and date.fromisoformat(action.reported_date)>known.date()
             if future:typed=None
             if stale:typed=None

@@ -106,7 +106,18 @@ def dashboard(service,token):
         current,_=access._session(c,token)
         if current!=user or access._directory(c)!=directory:raise AccessError(409,'DASHBOARD_SOURCE_CHANGED')
     if F.active_set(store)!=metadata or F.capabilities(store,user,directory,officers)!=allowed:raise AccessError(409,'DASHBOARD_SOURCE_CHANGED')
+    acceptance=getattr(service,'promotion_acceptance',None)
+    if acceptance is not None:
+        affected=acceptance.affected_officers()
+        for row in rows:
+            if row['officer_uid'] not in affected:continue
+            decision=acceptance.current(row['officer_uid']);accepted=decision['accepted_promotion']
+            if accepted:
+                row.update(rank_code=accepted['rank_code'],rank_label=accepted['to_rank'],accepted_promotion_reference=accepted['acceptance_reference'],rank_basis='ACCEPTED_PROMOTION_EFFECTIVE_NOW')
+        with access.transaction() as c:
+            latest,_=access._session(c,token)
+            if latest!=user or access._directory(c)!=directory:raise AccessError(409,'DASHBOARD_SOURCE_CHANGED')
     result=summarize(rows,len(officers),len(officers)-len(visible),len(visible)-len(rows))
     return dict(policy='SCOPED_REPORTED_PERSONNEL_DASHBOARD_V1',**result,source_generation=metadata['generation'],directory_generation=directory['generation'],
         source_public_sha256=metadata['source_public_sha256'],scope_type=user['scope_type'],scope_id=user['scope_id'],
-        basis='SIGNED_CONNECTED_SERVICE_RECORDS',authority_established=False,verified_at=int(store.clock()),build_seconds=round(time.monotonic()-started,3))
+        basis='SIGNED_SERVICE_RECORDS_WITH_ACCEPTED_PROMOTIONS' if any(r.get('accepted_promotion_reference') for r in rows) else 'SIGNED_CONNECTED_SERVICE_RECORDS',authority_established=False,verified_at=int(store.clock()),build_seconds=round(time.monotonic()-started,3))

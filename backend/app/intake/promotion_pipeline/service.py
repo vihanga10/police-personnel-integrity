@@ -11,6 +11,7 @@ class PromotionService:
     def __init__(self, research, store, config):
         self.research, self.workspace, self.access = research, research.store, research.access
         self.store, self.config = store, config
+        self.approvals=getattr(research,'promotion_acceptance',None)
 
     def actor(self, token, csrf=None, *, upload=False):
         with self.access.transaction() as c:
@@ -98,7 +99,41 @@ class PromotionService:
             activation=analysis.journal.get(batch['batch_id'])
             answer['analysis_status']='CONNECTED_TO_ANALYSIS' if activation else 'WAITING_FOR_VERIFIED_AVAILABILITY'
             answer['analysis_recorded_at']=activation['available_at'] if activation else None
+        if self.approvals is not None:
+            decision=self.approvals.approval(batch)
+            answer['processing_approval_reference']=digest(decision) if decision else None
+            answer['processing_approval']=decision
+            answer['processing_approval_version']=decision['version'] if decision else 0
+            answer['legacy_processing']=batch['batch_id'] in self.approvals.config['legacy_queued']
+            if decision and decision['kind']!='APPROVE':answer['status']={'SUBMIT':'AWAITING_IGP_APPROVAL','REJECT':'REJECTED','REQUEST_CHANGES':'CHANGES_REQUESTED'}[decision['kind']]
+            heads=[self.approvals.journal.head('ROW:'+batch['batch_id']+':'+str(r['row'])) for r in batch['rows'] if r['status']=='READY']
+            current={}
+            for head in heads:
+                if head is not None and head['result']['officer_uid'] not in current:
+                    current[head['result']['officer_uid']]={r['raw_record_id']:r for r in self.approvals.evaluate_officer(head['result']['officer_uid'])}
+            answer['promotion_acceptance']=[]
+            for head in heads:
+                if head is None:continue
+                latest=current[head['result']['officer_uid']].get(head['result']['raw_record_id'])
+                head['decision_reference']=digest(head)
+                head['current_evidence_matches']=latest is not None and head['result']=={k:v for k,v in latest.items() if k!='effective_now'}
+                head['effective_now']=bool(latest and latest['effective_now'])
+                answer['promotion_acceptance'].append(head)
+            answer['accepted_current_rank_changed']=any(h['current_evidence_matches'] and h['effective_now'] and h['result']['status']=='ACCEPTED' for h in answer['promotion_acceptance'])
         return answer
+
+    def decide(self,token,csrf,request):
+        user=self.actor(token,csrf)
+        if self.approvals is None:raise AccessError(503,'IGP_APPROVAL_NOT_CONFIGURED')
+        if not self.approvals.reviewer(user):raise AccessError(403,'IGP_APPROVAL_FORBIDDEN')
+        batch=self.store.get(request['batch_id'])
+        self.source_state()
+        for officer in sorted({r['officer_uid'] for r in batch['rows'] if r['status']=='READY'}):self.research.authorized(token,officer,csrf=csrf,charge=False)
+        check(self.actor(token,csrf)==user,'ACCOUNT_CHANGED')
+        decision=self.approvals.decide(batch,user,request)
+        self.approvals.audit_outbox()
+        if decision['kind']=='APPROVE':self.approvals.queue(batch)
+        return self.summary(batch)
 
     def commit(self,token,csrf,request):
         user=self.actor(token,csrf,upload=True)
@@ -111,6 +146,10 @@ class PromotionService:
         for officer in sorted({r['officer_uid'] for r in batch['rows'] if r['status']=='READY'}):
             self.research.authorized(token,officer,csrf=csrf,charge=False)
         self.actor(token,csrf,upload=True)
+        if self.approvals is not None:
+            self.approvals.request(batch,user)
+            self.approvals.audit_outbox()
+            return self.summary(batch)
         self.audit(token,'PROMOTION_IMPORT_CONFIRMATION_RECEIVED',batch,batch['batch_id'])
         self.store.queue(batch['batch_id'],{'actor':batch['actor'],'file_sha256':batch['file_sha256'],
             'baseline_source_set_sha256':batch['baseline_source_set_sha256']})
@@ -128,11 +167,22 @@ class PromotionService:
         self.store.renew_authorization(batch['batch_id'],{'user_id':user['user_id'],'username':user['username'],'account_version':user['version']})
         return self.summary(batch)
 
-    def listing(self,token):
-        self.actor(token)
-        rows=[self.summary(b) for b in self.store.batches()[:20]]
-        self.actor(token)
-        return {'items':rows}
+    def approval_count(self,token):
+        user=self.actor(token)
+        if self.approvals is None or not self.approvals.reviewer(user):return 0
+        self.approvals.guard()
+        count=sum((self.approvals.approval(b) or {}).get('kind')=='SUBMIT' for b in self.store.batches(limit=1000))
+        check(self.actor(token)==user,'ACCOUNT_CHANGED');return count
+
+    def listing(self,token,offset=0):
+        user=self.actor(token)
+        check(type(offset) is int and 0<=offset<=1000,'BATCH_PAGE_INVALID')
+        batches=self.store.batches(limit=1000)
+        if self.approvals is not None and self.approvals.reviewer(user):
+            batches.sort(key=lambda b:0 if (self.approvals.approval(b) or {}).get('kind')=='SUBMIT' else 1)
+        rows=[self.summary(b) for b in batches[offset:offset+20]]
+        check(self.actor(token)==user,'ACCOUNT_CHANGED')
+        return {'items':rows,'offset':offset,'total':len(batches),'next_offset':offset+len(rows) if offset+len(rows)<len(batches) else None}
 
     def officer_rows(self,token,officer):
         self.research.authorized(token,officer,charge=False)
@@ -153,4 +203,8 @@ class PromotionService:
             answer['analysis']=analysis.summary(reports)
             recorded={r['raw_record_id']:r['analysis_recorded_at'] for r in reports}
             for item in result:item['analysis_recorded_at']=recorded.get(item['raw_record_id'])
+        if self.approvals is not None:
+            answer['current_assignment']=self.approvals.current(officer)
+            answer['accepted_current_rank_changed']=answer['current_assignment']['accepted_promotion'] is not None
+        self.research.authorized(token,officer,charge=False)
         return answer

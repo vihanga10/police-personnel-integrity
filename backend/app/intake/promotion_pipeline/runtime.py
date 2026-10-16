@@ -18,7 +18,8 @@ class Runtime:
         config=json.loads(self.raw)
         fields={'policy','state_root','key_file','backup_key_file','importer_ids','baseline_source_set_sha256',
             'postgres_credentials','mongo_credentials','chains','source_pins'}
-        check(fields<=set(config)<=fields|{'analysis_config'},'INTAKE_CONFIG_FIELDS_DIFFER')
+        check(fields<=set(config)<=fields|{'analysis_config','approval_config'},'INTAKE_CONFIG_FIELDS_DIFFER')
+        check('analysis_config' not in config or 'approval_config' in config,'IGP_APPROVAL_SETUP_REQUIRED')
         check(config['policy']=='PROMOTION_PIPELINE_RUNTIME_V1' and type(config['importer_ids']) is list and 0<len(config['importer_ids'])<=5,'INTAKE_CONFIG_INVALID')
         check(type(config['source_pins']) is dict and bool(config['source_pins']),'SOURCE_PINS_REQUIRED')
         from .configuration import source_files
@@ -55,6 +56,7 @@ class Runtime:
     def authorize(self,batch):
         check(not self.stop,'WORKER_STOPPING')
         self.check_pins();directory=self.service.source_state()
+        if getattr(self.service,'approvals',None) is not None:self.service.approvals.processing_allowed(batch)
         access=self.workspace.access
         with access.transaction() as c:
             # Enumerate the bounded private account registry; no credential data
@@ -99,6 +101,7 @@ class Runtime:
             # This records only actual availability now; existing imports are
             # never backdated to their original upload or effective dates.
             analysis.activate_visible()
+        if getattr(self.service,'approvals',None) is not None:self.service.approvals.synchronize()
         for ident in self.store.pending():
             if self.stop:return
             try:

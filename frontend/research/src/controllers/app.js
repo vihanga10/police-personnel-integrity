@@ -122,9 +122,9 @@ export default function initialize(){
   $('load-directory-dashboard').addEventListener('click',loadDirectoryDashboard);
   function renderPosting(w){const rows=(w.full_records||[]).filter(r=>r.dataset==='officer_service_information.csv');const root=$('posting-fields');root.replaceChildren();$('posting-dashboard').hidden=rows.length===0;if(!rows.length)return;
     if(rows.length!==1){$('posting-dashboard-note').textContent='Multiple service records were returned. Review the source records below; no current assignment was selected.';return;}
-    const f=rows[0].fields||{};for(const [label,keys]of [['Current rank',['current_rank']],['Unit type',['current_unit_type']],['Unit name',['current_unit_name']],['Unit location',['current_unit_location']],['Station',['current_station','current_station_name','current_station_code']],['Province',['current_province','province']],['District',['current_district','district']],['Division',['current_division']],['Service status',['service_status']]]){
+    const accepted=w.current_assignment?.accepted_promotion;const f={...(rows[0].fields||{}),...(accepted?{current_rank:accepted.to_rank}:{})};for(const [label,keys]of [['Current rank',['current_rank']],['Unit type',['current_unit_type']],['Unit name',['current_unit_name']],['Unit location',['current_unit_location']],['Station',['current_station','current_station_name','current_station_code']],['Province',['current_province','province']],['District',['current_district','district']],['Division',['current_division']],['Service status',['service_status']]]){
       const value=keys.map(k=>f[k]).find(v=>v!==null&&v!==undefined&&String(v).trim());root.append(node('dt',label),node('dd',value===undefined?'Not recorded in this service row':String(value)));
-    }$('posting-dashboard-note').textContent='Reported values from the connected service record. Missing geography is not inferred from account scope. Source references remain below.';
+    }$('posting-dashboard-note').textContent=accepted?'Current rank includes an accepted promotion effective '+accepted.effective_on+'. Acceptance reference: '+accepted.acceptance_reference+'. Station and unit retain their source values. Original service evidence remains below.':'Reported values from the connected service record. Missing geography is not inferred from account scope. Source references remain below.';if(w.current_assignment?.pending_promotions)$('posting-dashboard-note').textContent+=' '+w.current_assignment.pending_promotions+' promotion report(s) still need assessment or review.';
   }
 
   let dashboardSequence=0;
@@ -179,7 +179,7 @@ export default function initialize(){
   function renderUploadedPromotions(value){
     if(!value)return;
     const root=$('full-records'),section=node('section',null,'card source-section');
-    section.append(node('h3','Additional uploaded promotion reports'),node('p',value.analysis?'Verified promotion reports are connected to History, Authority and Contradictions from their analysis recording time. Original records remain preserved; accepted rank does not change automatically.':'Separately received and verified on Fabric and Sepolia. These reports do not alter the original historical snapshot or establish promotion authority.','small muted'));
+    section.append(node('h3','Additional uploaded promotion reports'),node('p',value.analysis?'Verified promotion reports are connected to History, Authority and Contradictions from their analysis recording time. Original records remain preserved; current rank follows separately accepted promotions and their effective dates.':'Separately received and verified on Fabric and Sepolia. These reports do not alter the original historical snapshot or establish promotion authority.','small muted'));
     if(value.analysis)renderPromotionAnalysis(section,value.analysis);
     if(!value.items?.length){section.append(node('p','No additional both-chain-verified promotions are available.'));root.append(section);return;}
     const wrap=node('div',null,'source-table-scroll');wrap.tabIndex=0;wrap.setAttribute('role','region');wrap.setAttribute('aria-label','Additional promotion reports');

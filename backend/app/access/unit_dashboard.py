@@ -13,6 +13,8 @@ def dashboard(service,token):
     officers=[o for o in directory['officers'] if permitted(user,o)]
     metadata=F.active_set(service.store)
     capabilities=F.capabilities(service.store,user,directory,officers)
+    acceptance=getattr(service,'promotion_acceptance',None);affected=acceptance.affected_officers() if acceptance else set()
+    updated_ranks=0
     ranks=Counter();statuses=Counter();divisions=set();source_dates=[]
     for o in officers:
         if o['officer_uid'] not in capabilities:continue
@@ -21,7 +23,11 @@ def dashboard(service,token):
         if len(rows)!=1:raise AccessError(503,'UNIT_SOURCE_UNRESOLVED')
         f=rows[0]['fields'];expected='Criminal Division' if user['scope_id']=='CRIMINAL_DIVISION' else user['scope_id']
         if f.get('current_unit_type')!=expected:raise AccessError(503,'UNIT_SOURCE_CHANGED')
-        ranks[f.get('current_rank') or 'Not recorded']+=1
+        rank=f.get('current_rank') or 'Not recorded'
+        if o['officer_uid'] in affected:
+            accepted=acceptance.current(o['officer_uid'])['accepted_promotion']
+            if accepted:rank=accepted['to_rank'];updated_ranks+=1
+        ranks[rank]+=1
         statuses[f.get('service_status') or 'Not recorded']+=1
         if f.get('current_division'):divisions.add(f['current_division'])
         source_dates.append(p['issued_at'])
@@ -33,4 +39,4 @@ def dashboard(service,token):
     return dict(unit=user['scope_id'],unit_label=UNIT_LABELS[user['scope_id']],officers=len(officers),
         details_available=len(capabilities),status_counts=dict(sorted(statuses.items())),rank_counts=dict(sorted(ranks.items())),
         divisions=len(divisions),latest_copy_issued_at=max(source_dates,default=None),
-        evidence_basis='REPORTED_CONNECTED_SERVICE_RECORDS',authority_established=False)
+        evidence_basis='REPORTED_SERVICE_RECORDS_WITH_ACCEPTED_PROMOTIONS' if updated_ranks else 'REPORTED_CONNECTED_SERVICE_RECORDS',authority_established=False)

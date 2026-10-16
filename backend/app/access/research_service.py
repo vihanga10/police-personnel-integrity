@@ -14,6 +14,9 @@ class ResearchService:
         from app.intake.promotion_pipeline.analysis import configured_analysis
         self.promotion_analysis=configured_analysis(store)
         store.promotion_analysis=self.promotion_analysis
+        from app.intake.promotion_pipeline.approvals import configured_approvals
+        self.promotion_acceptance=configured_approvals(store,self.promotion_analysis)
+        store.promotion_acceptance=self.promotion_acceptance
 
     def promotion_reports(self,officer,known=None):
         if self.promotion_analysis is None:return []
@@ -143,7 +146,11 @@ class ResearchService:
     def workspace(self, token, officer):
         user, grant, packet, identity = self.authorized(token, officer)
         from app.access.full_source_profiles import POLICY, source_workspace
-        if packet.get('policy')==POLICY:return source_workspace(packet,identity)
+        if packet.get('policy')==POLICY:
+            result=source_workspace(packet,identity)
+            if self.promotion_acceptance is not None:result['current_assignment']=self.promotion_acceptance.current(officer)
+            self.authorized(token,officer,charge=False)
+            return result
         result = dict(identity=identity, generation=packet['generation'], observed_at=packet['observed_at'],
             expires_at=packet['expires_at'], coverage_start=packet['history']['coverage_start'],
             coverage_end=packet['history']['coverage_end'], findings=self.findings_projection(packet['findings']),
@@ -161,6 +168,9 @@ class ResearchService:
             h=self.promotion_analysis.recording(packet,officer,reports)
             result.update(coverage_end=h.coverage_end.isoformat(),history_baseline_only=h.coverage_start==h.coverage_end,
                 promotion_analysis=self.promotion_analysis.summary(reports))
+            self.authorized(token,officer,charge=False)
+        if self.promotion_acceptance is not None:
+            result['current_assignment']=self.promotion_acceptance.current(officer)
             self.authorized(token,officer,charge=False)
         return result
 
