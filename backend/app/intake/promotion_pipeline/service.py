@@ -78,7 +78,7 @@ class PromotionService:
         phases=[p for p in PHASES if self.store.phase(batch['batch_id'],p) is not None]
         status='NEEDS_REVIEW' if any(r['status']=='NEEDS_REVIEW' for r in batch['rows']) else 'DUPLICATES_ONLY' if all(r['status']=='DUPLICATE' for r in batch['rows']) else phases[-1] if phases else 'PREVIEW_READY'
         receipt=self.store.phase(batch['batch_id'],'CHAINS_VERIFIED')
-        return {'batch_id':batch['batch_id'],'filename':batch['filename'],'received_at':batch['received_at'],
+        answer = {'batch_id':batch['batch_id'],'filename':batch['filename'],'received_at':batch['received_at'],
             'source_reference':batch['source_reference'],'status':status,'file_sha256':batch['file_sha256'],
             'ready_rows':sum(r['status']=='READY' for r in batch['rows']),
             'duplicate_rows':sum(r['status']=='DUPLICATE' for r in batch['rows']),
@@ -93,6 +93,12 @@ class PromotionService:
                 'public_transaction_id':receipt['public']['transaction_id'],
                 'receipt_basis':'RETAINED_VERIFICATION_OBSERVATION'},
             'authority':'NOT_ASSESSED','accepted_current_rank_changed':False,'processing_observation':self.store.worker_status(batch['batch_id'])}
+        analysis=getattr(self.research,'promotion_analysis',None)
+        if analysis is not None:
+            activation=analysis.journal.get(batch['batch_id'])
+            answer['analysis_status']='CONNECTED_TO_ANALYSIS' if activation else 'WAITING_FOR_VERIFIED_AVAILABILITY'
+            answer['analysis_recorded_at']=activation['available_at'] if activation else None
+        return answer
 
     def commit(self,token,csrf,request):
         user=self.actor(token,csrf,upload=True)
@@ -140,4 +146,11 @@ class PromotionService:
                         'dataset':'promotion_history.csv','fields':row['source'],
                         'received_at':batch['received_at'],'publication':self.summary(batch)['publication']})
         self.research.authorized(token,officer,charge=False)
-        return {'items':result,'authority':'NOT_ASSESSED','accepted_current_rank_changed':False}
+        answer={'items':result,'authority':'NOT_ASSESSED','accepted_current_rank_changed':False}
+        analysis=getattr(self.research,'promotion_analysis',None)
+        if analysis is not None:
+            reports=self.research.promotion_reports(officer)
+            answer['analysis']=analysis.summary(reports)
+            recorded={r['raw_record_id']:r['analysis_recorded_at'] for r in reports}
+            for item in result:item['analysis_recorded_at']=recorded.get(item['raw_record_id'])
+        return answer

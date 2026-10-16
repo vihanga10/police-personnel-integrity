@@ -12,7 +12,7 @@ class WorkflowService:
             require(set(body)=={'officer_uid','known_at','action_on','status','limit','offset'})
             require(body['status'] in ('ALL','VALID','INVALID','CANNOT_VERIFY'))
             require(body['action_on'] is None or date.fromisoformat(body['action_on']).isoformat()==body['action_on'])
-            require(type(body['limit']) is int and 1<=body['limit']<=50 and type(body['offset']) is int and 0<=body['offset']<=500)
+            require(type(body['limit']) is int and 1<=body['limit']<=50 and type(body['offset']) is int and 0<=body['offset']<=1500)
             known=P.instant(body['known_at']) if body['known_at'] is not None else datetime.fromtimestamp(self.store.clock(),timezone.utc)
             require(known<=datetime.fromtimestamp(self.store.clock(),timezone.utc))
         except Exception:raise AccessError(400,'INVALID_AUTHORITY_QUERY') from None
@@ -21,16 +21,23 @@ class WorkflowService:
         if known<P.instant(packet['observed_at']):raise AccessError(422,'AUTHORITY_COPY_NOT_YET_RECORDED')
         with self.store.access.transaction() as database:directory=self.store.access._directory(database)
         actions=A.inventory(packet,directory)
+        promotion_reports=self.service.promotion_reports(body['officer_uid'],known)
+        if self.service.promotion_analysis is not None:
+            actions.update(self.service.promotion_analysis.actions(packet,directory,promotion_reports))
+            if len(actions)>1500:raise AccessError(422,'AUTHORITY_ACTION_LIMIT_EXCEEDED')
         try:records=S.rows(self.store,body['officer_uid'])
         except Exception:raise AccessError(503,'AUTHORITY_ASSESSMENT_INVALID') from None
-        selected={};versions={}
+        selected={};versions={};early_assessments=set()
+        upload_times={r['raw_record_id']:P.instant(r['analysis_recorded_at']) for r in promotion_reports}
         for envelope in records:
             p=envelope['payload'];ref=p['action_reference']
             if P.instant(p['recorded_at'])>known:continue
             versions.setdefault(ref,[]).append(dict(reference=P.fingerprint(envelope),recorded_at=p['recorded_at'],
                 version=p['version'],supersedes=p['supersedes'],source_matches_current_copy=p['workspace_sha256']==P.fingerprint(packet)))
             if ref in actions and p['workspace_sha256']==P.fingerprint(packet) and p['source_public_sha256']==packet['source_public_sha256']:
-                selected[ref]=p
+                if actions[ref].raw_record_id in upload_times and P.instant(p['recorded_at'])<upload_times[actions[ref].raw_record_id]:
+                    early_assessments.add(ref)
+                else:selected[ref]=p
         extra=set().union(*(A.assessment_actors(A.assessment(p['assessment'])) for p in selected.values()))
         history,pins,missing=A.actor_history(self.store,packet,directory,actions.values(),known,extra)
         results=[]
@@ -42,15 +49,17 @@ class WorkflowService:
             except AccessError:continue
         for ref,action in actions.items():
             assessment=selected.get(ref);typed=None if assessment is None else A.assessment(assessment['assessment'])
-            needed={u for a in actions.values() for u in a.actor_candidates}|(A.assessment_actors(typed) if typed else set())
-            stale=assessment is not None and (needed.intersection(missing) or assessment['actor_packets']!={u:pins[u] for u in needed if u in pins})
+            needed=set(action.actor_candidates)|(A.assessment_actors(typed) if typed else set())
+            stale=assessment is not None and (needed.intersection(missing) or
+                {u:assessment['actor_packets'].get(u) for u in needed}!={u:pins[u] for u in needed if u in pins})
             future=action.reported_date is not None and date.fromisoformat(action.reported_date)>known.date()
             if future:typed=None
             if stale:typed=None
             result=A.ActionAuthority(history).review(action,typed)
             if stale:result['reasons']=sorted(set(result['reasons'])|{'ASSESSMENT_ACTOR_EVIDENCE_CHANGED_OR_UNAVAILABLE'})
             if future:result['reasons']=sorted(set(result['reasons'])|{'FUTURE_ACTION_AUTHORITY_UNESTABLISHED_AT_KNOWLEDGE_TIME'})
-            if ref in versions and assessment is None:result['reasons']=sorted(set(result['reasons'])|{'ASSESSMENT_SOURCE_WORKSPACE_CHANGED'})
+            if ref in versions and assessment is None:result['reasons']=sorted(set(result['reasons'])|{
+                'ASSESSMENT_PRECEDES_UPLOADED_EVIDENCE' if ref in early_assessments else 'ASSESSMENT_SOURCE_WORKSPACE_CHANGED'})
             links=[]
             for link in result['actor_state_links']:
                 officer=link['officer_uid'];identity=permitted_actors.get(officer)
@@ -73,7 +82,8 @@ class WorkflowService:
                 rules=rules,delegations=delegations,successful_paths=list(result['successful_paths']),
                 assessment_versions=versions.get(ref,[]),assessment_reference=P.fingerprint(next(e for e in records if e['payload']==assessment)) if typed else None,
                 source_reference=P.fingerprint({'source':action.source_reference}),destination_reference=action.destination_digest,
-                dataset=next(r['dataset'] for r in packet['full_records'] if r['raw_record_id']==action.raw_record_id),
+                dataset=next((r['dataset'] for r in packet['full_records'] if r['raw_record_id']==action.raw_record_id),'promotion_history.csv'),
+                uploaded_promotion=any(r['raw_record_id']==action.raw_record_id for r in promotion_reports),
                 police_action_authorized=False,accepted_authority_claim=False))
         filtered=[r for r in results if (body['status']=='ALL' or r['status']==body['status']) and
             (body['action_on'] is None or r['action_on']==body['action_on'])]
@@ -84,9 +94,13 @@ class WorkflowService:
         for officer,pin in pins.items():
             if P.fingerprint(self.store.get_packet(officer))!=pin:raise AccessError(409,'PRESENTATION_CHANGED')
         if S.rows(self.store,body['officer_uid'])!=records:raise AccessError(409,'ASSESSMENT_CHANGED')
+        if self.service.promotion_reports(body['officer_uid'],known)!=promotion_reports:
+            raise AccessError(409,'PROMOTION_ANALYSIS_CHANGED')
         return dict(items=filtered[body['offset']:body['offset']+body['limit']],total=len(filtered),offset=body['offset'],limit=body['limit'],
             known_at=known.isoformat(),generation=packet['generation'],source_workspace_sha256=P.fingerprint(packet),
-            query_digest=P.fingerprint({'policy':A.POLICY,'known':known.isoformat(),'items':results,'source':P.fingerprint(packet)}),
+            query_digest=P.fingerprint({'policy':A.POLICY,'known':known.isoformat(),'items':results,'source':P.fingerprint(packet),
+                **({'promotion_evidence':P.fingerprint(promotion_reports)} if self.service.promotion_analysis is not None else {})}),
+            **({'promotion_analysis':self.service.promotion_analysis.summary(promotion_reports)} if self.service.promotion_analysis is not None else {}),
             assessment_semantics='EXPLICIT_RESEARCH_ASSESSMENT_NOT_POLICE_AUTHORIZATION',
             source_change_completeness_established=False,fresh_live_verification=False,chain_submitted=False)
 
@@ -105,5 +119,6 @@ class WorkflowService:
                 (body['relationship']=='SAME_REPORTED' and p['cross_reported_source'] is False) or
                 (body['relationship']=='UNASSESSED' and p['cross_reported_source'] is None))]
         return dict(**{k:answer[k] for k in ('effective_on','known_at','generation','query_digest','comparison_digest','excluded_versions')},
+            **{k:answer[k] for k in ('promotion_analysis','promotion_evidence') if k in answer},
             items=pairs[body['offset']:body['offset']+body['limit']],total=len(pairs),unfiltered_total=len(answer['comparisons']),
             offset=body['offset'],limit=body['limit'],accepted_contradiction=False,source_independence_verified=False,chain_submitted=False)

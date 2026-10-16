@@ -300,3 +300,16 @@ test('legacy authority cards also explain uncertainty without changing their sta
  const t=await setup(u=>u.startsWith('/api/research/officers/')?response({...workspace,authority:[{action_type:'AUTHORIZE_TRANSFER',action_on:'2024-01-01',status:'CANNOT_VERIFY',reasons:['GOVERNING_RULE_UNASSESSED'],assessment_receipt_sha256:'f'.repeat(64)}]}):router(u));
  try{await selected(t);const root=t.d.getElementById('authority-results');assert.ok(root.textContent.includes('Why cannot verify?'));assert.ok(root.textContent.includes('has not been assessed'));assert.ok(root.textContent.includes('f'.repeat(64)));}finally{t.dom.window.close();}
 });
+
+test('connected promotion evidence shows actual analysis time and clears at logout',async()=>{
+ const analysis={reported_promotions:1,latest_recorded_at:'2026-10-16T09:00:00.123456+00:00'};
+ const uploaded={items:[{raw_record_id:'e'.repeat(64),fields:{officer_nic_no:'000000001V',to_rank:'Inspector of Police'},received_at:'2026-10-16T08:00:00Z',publication:{fabric_transaction_id:'f'.repeat(64),public_transaction_id:'0x'+'a'.repeat(64)}}],analysis};
+ const t=await setup(u=>u.startsWith('/api/research/officers/')?response({...workspace,coverage_end:analysis.latest_recorded_at,additional_promotion_reports:uploaded,promotion_analysis:analysis}):router(u));
+ try{await selected(t);const root=t.d.getElementById('full-records');assert(root.textContent.includes('Connected promotion evidence: 1'));assert(root.textContent.includes('connected to History, Authority and Contradictions'));t.d.getElementById('use-recorded-boundary').click();t.submit('history-form');await wait(()=>t.calls.some(([u])=>u==='/api/research/history'));assert.equal(JSON.parse(t.calls.find(([u])=>u==='/api/research/history')[1].body).known_at,analysis.latest_recorded_at);t.d.getElementById('logout').click();assert.equal(root.textContent,'');await wait(()=>t.d.getElementById('login-message').textContent.includes('Signed out securely'));}finally{t.dom.window.close();}
+});
+test('history displays promotion provenance as safe text with its chain references',async()=>{
+ const summary={reported_promotions:1,latest_recorded_at:'2026-10-10T00:00:00Z'};
+ const evidence={batch_id:'<img src=x onerror=alert(1)>',publication:{fabric_transaction_id:'f'.repeat(64),public_transaction_id:'0x'+'a'.repeat(64)}};
+ const t=await setup(u=>u==='/api/research/history'?response({...answer,promotion_analysis:summary,promotion_evidence:[evidence]}):router(u));
+ try{await selected(t);t.d.getElementById('tab-history').click();t.submit('history-form');await wait(()=>t.d.querySelector('#history-results .promotion-analysis-summary'));const root=t.d.getElementById('history-results');assert(root.textContent.includes('f'.repeat(64)));assert(root.textContent.includes('<img src=x'));assert.equal(root.querySelector('img'),null);t.d.getElementById('logout').click();assert.equal(root.textContent,'');await wait(()=>t.d.getElementById('login-message').textContent.includes('Signed out securely'));}finally{t.dom.window.close();}
+});

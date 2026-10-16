@@ -9,7 +9,16 @@ from app.security.record_protection import (
     AssignmentProtection, RecordClassification, DisclosureCategory, ProtectionLevel, required_protection)
 
 class ResearchService:
-    def __init__(self, store): self.store = store; self.access = store.access
+    def __init__(self, store):
+        self.store = store; self.access = store.access
+        from app.intake.promotion_pipeline.analysis import configured_analysis
+        self.promotion_analysis=configured_analysis(store)
+        store.promotion_analysis=self.promotion_analysis
+
+    def promotion_reports(self,officer,known=None):
+        if self.promotion_analysis is None:return []
+        try:return self.promotion_analysis.reports(officer,known)
+        except Exception:raise AccessError(503,'PROMOTION_ANALYSIS_UNAVAILABLE') from None
 
     def authorized(self, token, officer, *, csrf=None, review=False, charge=True):
         try: uid(officer)
@@ -135,7 +144,7 @@ class ResearchService:
         user, grant, packet, identity = self.authorized(token, officer)
         from app.access.full_source_profiles import POLICY, source_workspace
         if packet.get('policy')==POLICY:return source_workspace(packet,identity)
-        return dict(identity=identity, generation=packet['generation'], observed_at=packet['observed_at'],
+        result = dict(identity=identity, generation=packet['generation'], observed_at=packet['observed_at'],
             expires_at=packet['expires_at'], coverage_start=packet['history']['coverage_start'],
             coverage_end=packet['history']['coverage_end'], findings=self.findings_projection(packet['findings']),
             authority=deepcopy(packet['authority']), anchoring=deepcopy(packet['anchoring']),
@@ -147,6 +156,13 @@ class ResearchService:
             priority2_available=True,
             live_research_ready=False, fresh_live_verification=False,
             public_finality_verified=False, independent_deployment_verified=False)
+        if self.promotion_analysis is not None:
+            reports=self.promotion_reports(officer)
+            h=self.promotion_analysis.recording(packet,officer,reports)
+            result.update(coverage_end=h.coverage_end.isoformat(),history_baseline_only=h.coverage_start==h.coverage_end,
+                promotion_analysis=self.promotion_analysis.summary(reports))
+            self.authorized(token,officer,charge=False)
+        return result
 
     @staticmethod
     def findings_projection(findings):
@@ -164,6 +180,8 @@ class ResearchService:
         try:
             require(type(effective) is str and date.fromisoformat(effective).isoformat() == effective)
             h = P.history(packet['history'], officer); on = date.fromisoformat(effective); at = P.instant(known)
+            reports=self.promotion_reports(officer)
+            if self.promotion_analysis is not None:h=self.promotion_analysis.recording(packet,officer,reports)
             if not h.coverage_start <= at <= h.coverage_end: raise AccessError(422, 'KNOWN_DATE_OUTSIDE_COVERAGE')
             answer = query(h, effective_on=on, known_at=at)
             counts={d:sum(v.claim.dimension==d and not v.withdrawn for v in answer.visible_versions) for d in P.FIELDS}
@@ -195,6 +213,12 @@ class ResearchService:
         # Revocation or directory changes during computation must stop return.
         _, _, current, _ = self.authorized(token, officer)
         if P.fingerprint(current) != P.fingerprint(packet): raise AccessError(409, 'PRESENTATION_CHANGED')
+        if self.promotion_analysis is not None:
+            relevant=[r for r in reports if P.instant(r['analysis_recorded_at'])<=at]
+            if self.promotion_reports(officer,at)!=relevant:raise AccessError(409,'PROMOTION_ANALYSIS_CHANGED')
+            result['promotion_analysis']=self.promotion_analysis.summary(relevant)
+            result['promotion_evidence']=[{k:r[k] for k in ('raw_record_id','batch_id','received_at','analysis_recorded_at','activation_reference','publication')} for r in relevant]
+            result['coverage_semantics']='ORIGINAL_JOURNAL_PLUS_PROMOTION_AVAILABILITY_OBSERVATIONS'
         return result
 
     def request_review(self, token, csrf, body):

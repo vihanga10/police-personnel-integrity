@@ -81,7 +81,10 @@ def actor_history(store,packet,directory,actions,known,extra_actors=()):
             source=store.get_packet(officer)
             require(source['source_public_sha256']==packet['source_public_sha256'])
             require(P.instant(source['observed_at'])<=known,'Actor copy was not yet recorded')
-            h=P.history(source['history'],officer);at=min(known,h.coverage_end)
+            h=P.history(source['history'],officer)
+            analysis=getattr(store,'promotion_analysis',None)
+            if analysis is not None:h=analysis.recording(source,officer,analysis.reports(officer,known))
+            at=min(known,h.coverage_end)
             result=query(h,effective_on=known.date(),known_at=at)
         except Exception:
             missing.append(officer);history.buckets.pop(officer,None);continue

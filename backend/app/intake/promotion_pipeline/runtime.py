@@ -16,8 +16,9 @@ class Runtime:
         self.workspace,self.research=workspace,research
         self.file=private(file,repo=workspace.repo);self.raw=self.file.read_bytes()
         config=json.loads(self.raw)
-        check(set(config)=={'policy','state_root','key_file','backup_key_file','importer_ids','baseline_source_set_sha256',
-            'postgres_credentials','mongo_credentials','chains','source_pins'},'INTAKE_CONFIG_FIELDS_DIFFER')
+        fields={'policy','state_root','key_file','backup_key_file','importer_ids','baseline_source_set_sha256',
+            'postgres_credentials','mongo_credentials','chains','source_pins'}
+        check(fields<=set(config)<=fields|{'analysis_config'},'INTAKE_CONFIG_FIELDS_DIFFER')
         check(config['policy']=='PROMOTION_PIPELINE_RUNTIME_V1' and type(config['importer_ids']) is list and 0<len(config['importer_ids'])<=5,'INTAKE_CONFIG_INVALID')
         check(type(config['source_pins']) is dict and bool(config['source_pins']),'SOURCE_PINS_REQUIRED')
         from .configuration import source_files
@@ -93,6 +94,11 @@ class Runtime:
     def tick(self):
         try:self.audit_worker_events()
         except Exception:return  # preserved outbox retries before new processing
+        analysis=getattr(getattr(self,'research',None),'promotion_analysis',None)
+        if analysis is not None:
+            # This records only actual availability now; existing imports are
+            # never backdated to their original upload or effective dates.
+            analysis.activate_visible()
         for ident in self.store.pending():
             if self.stop:return
             try:

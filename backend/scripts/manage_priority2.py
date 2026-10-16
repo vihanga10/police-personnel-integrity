@@ -72,6 +72,10 @@ def source(repo,app,officer,extra_actors=()):
     with store.access.transaction() as database:directory=store.access._directory(database)
     require(any(o['officer_uid']==officer for o in directory['officers']))
     actions=A.inventory(packet,directory);known=datetime.fromtimestamp(store.clock(),timezone.utc)
+    from app.intake.promotion_pipeline.analysis import configured_analysis
+    store.promotion_analysis=configured_analysis(store)
+    if store.promotion_analysis is not None:
+        actions.update(store.promotion_analysis.actions(packet,directory,store.promotion_analysis.reports(officer,known)))
     history,pins,missing=A.actor_history(store,packet,directory,actions.values(),known,extra_actors)
     return store,packet,directory,actions,known,history,pins,missing
 
