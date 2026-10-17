@@ -290,6 +290,52 @@ def refresh_pins(args, workspace, origin):
             'restart_required': True, 'chain_submitted': False}
 
 
+def export_registrations(args, workspace, origin):
+    """Seal independently accepted new-officer rows for the offline, operator-signed registration step.
+
+    The web tier never signs identities. This manifest is the only hand-off: every row is
+    re-verified against its stored ciphertext, both-chain receipt and retained acceptance.
+    """
+    M.ensure_stopped(origin)
+    from app.access.research_service import ResearchService
+    from app.intake.dataset_pipeline.analysis import verified_batch
+    from app.intake.dataset_pipeline.core import digest
+    workspace.personnel_intake_config = str(args.state_root / 'runtime.json')
+    research = ResearchService(workspace)
+    approvals = research.dataset_acceptance
+    check(approvals is not None, 'DATASET_APPROVALS_NOT_CONFIGURED')
+    approvals.guard()
+    approvals.synchronize(limit=1000)
+    rows = []
+    for batch, row, head in approvals.accepted_rows('OFFICER_REGISTRATION'):
+        publication = verified_batch(approvals.intake, batch)
+        check(head['result']['publication'] == publication and head['result']['effect'] == 'REGISTRATION', 'REGISTRATION_BINDING_DIFFERS')
+        rows.append({'batch_id': batch['batch_id'], 'source_row': row['row'], 'source_system': batch['source_system'],
+                     'source': row['source'], 'acceptance_reference': digest(head), 'review_reference': head['result'].get('review_reference'),
+                     'publication_id': publication['publication_id'], 'fabric_transaction_id': publication['fabric_transaction_id'],
+                     'public_transaction_id': publication['public_transaction_id']})
+    if not rows:
+        return {'status': 'NO_ACCEPTED_REGISTRATIONS', 'chain_submitted': False}
+    manifest = {'policy': 'PERSONNEL_INTAKE_REGISTRATION_MANIFEST_V1', 'rows': rows,
+                'source_public_sha256': directory_of(workspace)['source_public_sha256']}
+    ident = digest(manifest)
+    target = args.state_root / 'registrations'
+    if not target.exists():
+        target.mkdir(mode=0o700)
+    private(target, directory=True, repo=args.repository)
+    file = target / ('registration-manifest-' + ident[:16] + '.sealed')
+    if not file.exists():
+        with file.open('xb') as f:
+            os.fchmod(f.fileno(), 0o600)
+            f.write(approvals.intake.seal('REGISTRATION_MANIFEST', ident, manifest))
+            f.flush()
+            os.fsync(f.fileno())
+    check(approvals.intake.open('REGISTRATION_MANIFEST', ident, private(file).read_bytes()) == manifest, 'MANIFEST_READBACK_DIFFERS')
+    return {'status': 'REGISTRATION_MANIFEST_SEALED', 'file': str(file), 'manifest_sha256': ident, 'officers': len(rows),
+            'directory_changed': False, 'chain_submitted': False,
+            'next': 'Apply with the operator registration step while PostgreSQL and the signing keys are available.'}
+
+
 def edit_workspace(args, change, label):
     file = private(args.workspace_config, repo=args.repository)
     raw = file.read_bytes()
@@ -407,7 +453,7 @@ def main():
     data = home / 'ResearchData/police-personnel-integrity/verified/BATCH-RAW-001'
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('command', choices=['initialize', 'storage', 'wallet', 'network', 'public-preview', 'public-deploy',
-                                       'public-reconcile', 'configure', 'enable', 'disable', 'verify-batch', 'retry-retained', 'refresh-pins'])
+                                       'public-reconcile', 'configure', 'enable', 'disable', 'verify-batch', 'retry-retained', 'refresh-pins', 'export-registrations'])
     p.add_argument('--repository', type=Path, default=home / 'Developer/police-personnel-integrity')
     p.add_argument('--workspace-config', type=Path, default=base / 'research-app-v1/workspace-config.json')
     p.add_argument('--state-root', type=Path, default=base / 'application-intake-v1')
@@ -438,7 +484,8 @@ def main():
     check(workspace.repo == a.repository, 'WORKSPACE_REPOSITORY_DIFFERS')
     handler = (public_operation if a.command.startswith('public-') else
                verify_batch if a.command in ('verify-batch', 'retry-retained') else
-               refresh_pins if a.command == 'refresh-pins' else globals()[a.command])
+               refresh_pins if a.command == 'refresh-pins' else
+               export_registrations if a.command == 'export-registrations' else globals()[a.command])
     print(json.dumps(handler(a, workspace, origin), indent=2))
 
 
