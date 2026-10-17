@@ -18,7 +18,7 @@ REPO = Path(__file__).resolve().parents[2]
 
 def test_chaincode_dataset_whitelist_matches_the_python_registry_exactly():
     codes = json.loads((REPO / 'blockchain/fabric/intake-chaincode/lib/datasets.json').read_text())
-    assert sorted(codes) == sorted(CODES) and len(codes) == len(DATASETS) == 15
+    assert sorted(codes) == sorted(CODES) and len(codes) == len(DATASETS) == 18
 
 
 def test_python_payloads_pass_the_real_chaincode_and_contract_validators():
@@ -80,7 +80,7 @@ def test_real_http_boundary_hq_cannot_review_and_igp_review_is_origin_bound(d):
     client.cookie, client.csrf = COOKIE + '=' + d['hq'][0], d['hq'][1]
     assert client.request('/api/research/intake/review', 'POST', body)[0] == 403
     code, _, caps = client.request('/api/research/intake/capabilities')
-    assert code == 200 and caps['can_upload'] and not caps['can_approve'] and len(caps['datasets']) == 15
+    assert code == 200 and caps['can_upload'] and not caps['can_approve'] and len(caps['datasets']) == 18
     client.cookie, client.csrf = COOKIE + '=' + d['igp'][0], d['igp'][1]
     assert client.request('/api/research/intake/review', 'POST', body, origin='https://evil.test')[0] == 403
     code, _, result = client.request('/api/research/intake/review', 'POST', body)

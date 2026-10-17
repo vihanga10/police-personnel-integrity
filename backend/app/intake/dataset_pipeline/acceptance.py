@@ -189,6 +189,64 @@ class DatasetApprovals(ApprovalEngine):
             check((digest(decision) if decision else None) == result['igp_decision_reference'], 'IGP_DECISION_CHANGED_DURING_ACCEPTANCE')
         return results
 
+    def evaluate_subjectless(self, batch):
+        """Reference rows and new-officer registrations concern no existing officer."""
+        from .analysis import verified_batch
+        spec = dataset(batch['dataset'])
+        decision = self.approval(batch)
+        publication = verified_batch(self.intake, batch)
+        results = []
+        for row in batch['rows']:
+            if row['status'] != 'READY':
+                continue
+            issues = [] if decision and decision['kind'] == 'APPROVE' else ['IGP_PROCESSING_APPROVAL_REQUIRED']
+            if spec.effect == 'REGISTRATION':
+                # A new identity always needs an accountable human decision; the web tier never signs it.
+                issues.append('NEW_OFFICER_REGISTRATION_REQUIRES_REVIEW')
+            binding = digest(dict(dataset=spec.code, batch=batch['batch_id'], file_sha256=batch['file_sha256'],
+                                  row=row['row'], source=row['source'], decision=decision, publication=publication))
+            status = 'PENDING_REVIEW' if issues else 'ACCEPTED'
+            status, review = self.reviewed(batch['batch_id'], row['row'], status, issues, binding)
+            results.append(dict(batch_id=batch['batch_id'], source_row=row['row'], raw_record_id=self.intake.record_id(row),
+                dataset=spec.code, officer_uid=None, status=status, reasons=sorted(set(issues)),
+                authority={'status': 'NOT_APPLICABLE', 'actions': []},
+                effect=spec.effect if spec.effect != 'RECORD' else 'NONE', effective_on=None, effective_now=True,
+                binding=binding, igp_decision_reference=digest(decision) if decision else None,
+                publication=publication, **review))
+        return results
+
+    def retain(self, result):
+        subject = 'ROW:' + result['batch_id'] + ':' + str(result['source_row'])
+        previous = self.journal.head(subject)
+        stable = {k: v for k, v in result.items() if k != 'effective_now'}
+        if previous and previous['result'] == stable:
+            return
+        decision = self.approval(self.intake.get(result['batch_id']))
+        if result['status'] == 'ACCEPTED' and (not previous or previous['result']['status'] != 'ACCEPTED'):
+            self.live_reviewer(decision)
+        self.journal.append(subject, 'evaluation:' + subject + ':' + str(previous['version'] + 1 if previous else 1) + ':' + digest(stable),
+            previous['version'] if previous else 0, dict(kind='DATASET_ROW_ACCEPTANCE', batch_id=result['batch_id'],
+            actor=decision['actor'] if decision else {}, recorded_at=stamp(self.workspace),
+            reason='Evidence-derived dataset row acceptance evaluation', result=stable))
+
+    def accepted_rows(self, code):
+        """Retained ACCEPTED rows of one subjectless dataset, with their exact source rows."""
+        out = []
+        for ident in sorted(self.analysis.journal.identifiers()):
+            batch = self.intake.get(ident)
+            if batch['dataset'] != code:
+                continue
+            for row in batch['rows']:
+                head = self.journal.head('ROW:' + ident + ':' + str(row['row'])) if row['status'] == 'READY' else None
+                if head is not None and head['result']['status'] == 'ACCEPTED':
+                    out.append((batch, row, head))
+        return out
+
+    def accepted_stations(self):
+        from .core import raw_record_id
+        return [(raw_record_id(dataset('STATION_REFERENCE'), row['source']), row['source'])
+                for _, row, _ in self.accepted_rows('STATION_REFERENCE')]
+
     def synchronize(self, limit=20):
         """Retain changed evaluations; shared rows are evaluated once per participant officer."""
         self.guard()
@@ -199,6 +257,11 @@ class DatasetApprovals(ApprovalEngine):
         officers = set()
         for ident in sorted(self.analysis.journal.identifiers()):
             batch = self.intake.get(ident)
+            if dataset(batch['dataset']).subjectless:
+                if self.approval(batch):
+                    for result in self.evaluate_subjectless(batch):
+                        self.retain(result)
+                continue
             if self.approval(batch):
                 officers.update(o for r in batch['rows'] if r['status'] == 'READY' for o in self.intake.row_officers(r))
         ordered = sorted(officers)
@@ -207,18 +270,7 @@ class DatasetApprovals(ApprovalEngine):
         self.cursor = start + len(selected)
         for officer in selected:
             for result in self.evaluate_officer(officer):
-                subject = 'ROW:' + result['batch_id'] + ':' + str(result['source_row'])
-                previous = self.journal.head(subject)
-                stable = {k: v for k, v in result.items() if k != 'effective_now'}
-                if previous and previous['result'] == stable:
-                    continue
-                decision = self.approval(self.intake.get(result['batch_id']))
-                if result['status'] == 'ACCEPTED' and (not previous or previous['result']['status'] != 'ACCEPTED'):
-                    self.live_reviewer(decision)
-                self.journal.append(subject, 'evaluation:' + subject + ':' + str(previous['version'] + 1 if previous else 1) + ':' + digest(stable),
-                    previous['version'] if previous else 0, dict(kind='DATASET_ROW_ACCEPTANCE', batch_id=result['batch_id'],
-                    actor=decision['actor'] if decision else {}, recorded_at=stamp(self.workspace),
-                    reason='Evidence-derived dataset row acceptance evaluation', result=stable))
+                self.retain(result)
         self.audit_outbox()
 
     def affected_officers(self):

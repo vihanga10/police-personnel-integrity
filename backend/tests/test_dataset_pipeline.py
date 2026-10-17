@@ -62,10 +62,12 @@ def d(e, tmp_path):
     service = [r for r in F.profile(w, identifier(1), e['directory']['source_public_sha256'])['full_records']
                if r['dataset'] == 'officer_service_information.csv'][0]['fields']
     station = service.get('current_station_code', '').strip() or 'ST-001'
-    stations = {'Fixture Origin': [station], 'Kandy': ['ST-002'], 'Galle': ['ST-003']}
+    from app.intake.dataset_pipeline.core import raw_record_id
+    master = [row('station_master.csv', station_code=code, station_name=name, station_name_si=si, division='D', province='P')
+              for code, name, si in ((station, 'Fixture Origin', 'මූලය'), ('ST-002', 'Kandy', 'මහනුවර'), ('ST-003', 'Galle', 'ගාල්ල'))]
     pin = digest({'fixture': 'dataset-baseline'})
-    store.install_baseline({'source_set_sha256': pin, 'rows': 0, 'index_sha256': digest({}), 'stations': stations,
-                            'references': digest({})}, {}, {})
+    store.install_baseline({'source_set_sha256': pin, 'rows': 0, 'index_sha256': digest({}), 'stations': {},
+                            'references': digest({}), 'station_master': [[raw_record_id(dataset('STATION_REFERENCE'), r), r] for r in master]}, {}, {})
     analysis = DatasetAnalysis.__new__(DatasetAnalysis)
     analysis.workspace, analysis.intake, analysis.runtime = w, store, {}
     journal = tmp_path / 'dataset-analysis'
@@ -176,8 +178,8 @@ def state(d):
     return d['service'].workspace(d['hq'][0], identifier(1))['current_state']
 
 
-def test_registry_covers_fifteen_officer_datasets_with_exact_headers():
-    assert len(DATASETS) == 15 and 'promotion_history.csv' not in DATASETS
+def test_registry_covers_eighteen_datasets_with_exact_headers():
+    assert len(DATASETS) == 18 and 'promotion_history.csv' not in DATASETS
     assert {d.code for d in DATASETS.values()} >= {'TRANSFER_HISTORY', 'POLICE_NUMBERS', 'RESTRICTIONS', 'COURT_CASES', 'DEMOTIONS'}
     spec = dataset('TRANSFER_HISTORY')
     with pytest.raises(IntakeError, match='CSV_HEADER_DIFFERS'):
@@ -331,3 +333,53 @@ def test_history_query_sees_uploaded_transfer_only_after_activation(d):
     assert not early.get('dataset_evidence')
     assert [x['dataset'] for x in late['dataset_evidence']] == ['TRANSFER_HISTORY']
     assert early['query_digest'] != late['query_digest']
+
+
+def station(**changes):
+    values = dict(station_code='ST-777', station_name='Matara', station_name_si='මාතර', town='Matara', division='Matara',
+                  district='Matara', province='Southern', province_of_district='Southern', province_matches_district='TRUE',
+                  district_source='SOURCE', district_confidence='HIGH', latitude='5.9549', longitude='80.5550')
+    values.update(changes)
+    return row('station_master.csv', **values)
+
+
+def person(**changes):
+    values = dict(officer_nic_no='199912345678', full_name='Fixture Person Name', name_with_initials='F. P. Name',
+                  gender='Male', date_of_birth='1999-05-01', nationality='Sri Lankan', marital_status='Single')
+    values.update(changes)
+    return row('officer_personal_information.csv', **values)
+
+
+def test_accepted_uploaded_station_extends_validation_for_later_transfers(d):
+    moved = transfer(from_station_code=d['origin_station'], to_station_code='ST-777', to_station_name='Matara')
+    before = preview(d, 'transfer_history.csv', [moved])
+    assert before['status'] == 'NEEDS_REVIEW' and any('STATION' in i for i in before['rows'][0]['issues'])
+    s = published(d, 'station_master.csv', [station()])
+    assert s['row_acceptance'][0]['status'] == 'ACCEPTED' and s['row_acceptance'][0]['effect'] == 'STATION_REFERENCE'
+    assert s['publication']['dataset'] == 'STATION_REFERENCE'
+    after = preview(d, 'transfer_history.csv', [dict(moved, transfer_id='T-AFTER')])
+    assert after['status'] == 'PREVIEW_READY', after['rows'][0]['issues']
+
+
+def test_original_station_code_cannot_be_rewritten_by_upload(d):
+    changed = preview(d, 'station_master.csv', [station(station_code='ST-002', station_name='Renamed Kandy')])
+    assert changed['status'] == 'NEEDS_REVIEW'
+
+
+def test_new_officer_registration_requires_independent_review_and_is_never_signed_by_the_web_tier(d):
+    s = published(d, 'officer_personal_information.csv', [person()])
+    item = s['row_acceptance'][0]
+    assert item['status'] == 'PENDING_REVIEW' and item['reasons'] == ['NEW_OFFICER_REGISTRATION_REQUIRES_REVIEW']
+    assert d['dataset_engine'].accepted_rows('OFFICER_REGISTRATION') == []
+    s = review(d, s)
+    assert s['row_acceptance'][0]['status'] == 'ACCEPTED' and s['row_acceptance'][0]['effect'] == 'REGISTRATION'
+    accepted = d['dataset_engine'].accepted_rows('OFFICER_REGISTRATION')
+    assert [r['source']['officer_nic_no'] for _, r, _ in accepted] == ['199912345678']
+    # The signed directory is unchanged: only the offline operator key can add an identity.
+    with d['store'].access.transaction() as c:
+        assert d['store'].access._directory(c) == d['directory']
+
+
+def test_existing_officer_cannot_be_re_registered(d):
+    b = preview(d, 'officer_personal_information.csv', [person(officer_nic_no=NIC)])
+    assert b['status'] == 'NEEDS_REVIEW' and 'OFFICER_ALREADY_REGISTERED' in b['rows'][0]['issues']

@@ -15,6 +15,13 @@ from app.identity.inspect_srb_activity_sources import HEADERS as ACTIVITY_HEADER
 from app.identity.inspect_remaining_sources import HEADERS as REMAINING_HEADERS
 from app.identity.reported_authority_actions import ROUTES as AUTHORITY_ROUTES
 from app.identity.service_plan import ROUTES as SERVICE_ROUTES
+from app.identity.station_vocabulary import HEADERS as STATION_HEADERS, MASTER as STATION_MASTER, SINHALA as STATION_SINHALA
+
+# Exact received order of officer_personal_information.csv in BATCH-RAW-001.
+PERSONAL_COLUMNS = ('officer_nic_no', 'police_id', 'regimental_no', 'full_name', 'name_with_initials', 'father_name', 'gender',
+    'date_of_birth', 'age', 'place_of_birth', 'nationality', 'religion', 'present_address',
+    'present_address_local_police_station_name', 'height_cm', 'chest_cm', 'blood_group', 'identifying_marks', 'mo_remark',
+    'marital_status', 'prev_employment_dept', 'officer_email', 'officer_mobile_number', 'officer_tin_number')
 
 POLICY = 'PERSONNEL_DATASET_REGISTRY_V1'
 NIC = re.compile(r'(?:[0-9]{9}[VX]|[0-9]{12})')
@@ -22,7 +29,7 @@ NIC = re.compile(r'(?:[0-9]{9}[VX]|[0-9]{12})')
 # Personnel effect of an accepted row. Only dated effects change current state,
 # and only once their reported effective date has arrived.
 EFFECTS = ('RECORD', 'RANK', 'POSTING', 'POLICE_NUMBER', 'RESTRICTION',
-           'RESTRICTION_OVERRIDE', 'SERVICE_SNAPSHOT')
+           'RESTRICTION_OVERRIDE', 'SERVICE_SNAPSHOT', 'STATION_REFERENCE', 'REGISTRATION')
 
 
 @dataclass(frozen=True)
@@ -43,6 +50,11 @@ class Dataset:
     @property
     def multi_subject(self):
         return 'officer_nic_no' not in self.subject_columns
+
+    @property
+    def subjectless(self):
+        """Reference data and not-yet-registered officers concern no existing officer."""
+        return not self.subject_columns
 
     @property
     def authority_actions(self):
@@ -100,6 +112,13 @@ DATASETS = {d.filename: d for d in (
     _spec('court_details.csv', 'COURT_CASES', 'Court cases', REMAINING_HEADERS['court_details.csv'], ('court_no',),
           ('PF_REGISTRY',), 'SOURCE_REPRESENTATION', 'RECORD', None, 'case_instituted_date',
           subjects=('participate_officers_details',)),
+    _spec('station_master.csv', 'STATION_REFERENCE', 'Station reference', STATION_HEADERS[STATION_MASTER], ('station_code',),
+          ('POLICE_HR_IS',), 'REFERENCE_DATA', 'STATION_REFERENCE', None, None, subjects=()),
+    _spec('sri_lanka_police_stations_sinhala.csv', 'STATION_SINHALA', 'Sinhala station reference', STATION_HEADERS[STATION_SINHALA], (),
+          ('POLICE_HR_IS',), 'REFERENCE_DATA', 'RECORD', None, None, subjects=()),
+    _spec('officer_personal_information.csv', 'OFFICER_REGISTRATION', 'New officer registration', PERSONAL_COLUMNS,
+          ('officer_nic_no',), ('POLICE_HR_IS', 'PF_REGISTRY', 'SRB'), 'MULTISOURCE_REPRESENTATION', 'REGISTRATION',
+          None, None, subjects=()),
     _spec('_demotions_enacted.csv', 'DEMOTIONS', 'Enacted demotions', REMAINING_HEADERS['_demotions_enacted.csv'],
           ('punishment_id',), ('DERIVED_BAD_CONDUCT_VIEW',), 'DERIVED_NON_INDEPENDENT', 'RANK',
           'punishment_date', 'punishment_date'),
@@ -126,12 +145,15 @@ def source_key(spec, row):
         parts = [row[c].strip() for c in spec.key_columns]
         return None if any(not p for p in parts) or any(len(p) > 128 for p in parts) else '\x1f'.join(parts)
     from app.intake.promotion_pipeline.core import digest
-    return 'CONTENT:' + row['officer_nic_no'].strip() + ':' + digest([row[c] for c in spec.columns])
+    owner = row['officer_nic_no'].strip() if 'officer_nic_no' in spec.columns else 'REFERENCE'
+    return 'CONTENT:' + owner + ':' + digest([row[c] for c in spec.columns])
 
 
 def subject_nics(spec, row):
     """Reported subject NICs with their roles; malformed lists refuse to guess."""
     found, issues = [], []
+    if spec.subjectless:
+        return found, issues
     for column in spec.subject_columns:
         text = row[column]
         if column == 'participate_officers_details':
@@ -154,7 +176,7 @@ def subject_nics(spec, row):
     return found, issues
 
 
-def planner_issues(spec, row, officer, *, stations, actors, references):
+def planner_issues(spec, row, officer, *, stations, actors, references, reference_candidates=None, raw_record_id=None):
     """Run the reviewed per-file planner with explicit lookup candidates.
 
     Candidate evidence comes from the signed directory (exact NIC), the
@@ -168,6 +190,13 @@ def planner_issues(spec, row, officer, *, stations, actors, references):
     from app.identity.service_plan import plan_service
     name = spec.filename
     uid = None if officer is None else UUID(officer)
+    if spec.effect == 'REGISTRATION':
+        from app.identity.profile_plan import plan_profile
+        plan = plan_profile(row, phone_region='LK', station_candidates=stations)
+        return [f.source_column + ':' + v for f in plan.fields if f.status == 'REVIEW_REQUIRED' for v in f.issues]
+    if name in STATION_HEADERS:
+        from app.identity.reference_plan import plan_reference
+        return list(plan_reference(name, row, raw_record_id=raw_record_id, candidates=reference_candidates).payload['review_issues'])
     if name == 'transfer_history.csv':
         plan = plan_history(name, row, officer_uid=uid, station_candidates=stations)
     elif name in ('officer_police_numbers.csv', 'officer_restrictions.csv', 'restriction_overrides.csv'):
