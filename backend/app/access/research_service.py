@@ -1,6 +1,7 @@
 """Scope first, disclosure second, then bounded read-only analysis of an observed copy."""
 from copy import deepcopy
-from datetime import date
+from datetime import date, datetime, timezone
+from zoneinfo import ZoneInfo
 from app.access.policy import AccessError, permitted, projection, require, uid
 from app.access import research_policy as P
 from app.identity.bitemporal_reconstruction import query
@@ -167,7 +168,14 @@ class ResearchService:
             reports=self.promotion_reports(officer)
             h=self.promotion_analysis.recording(packet,officer,reports)
             result.update(coverage_end=h.coverage_end.isoformat(),history_baseline_only=h.coverage_start==h.coverage_end,
-                promotion_analysis=self.promotion_analysis.summary(reports))
+                promotion_analysis=self.promotion_analysis.summary(reports),
+                evidence_updates=dict(baseline_observed_at=packet['observed_at'],
+                    latest_analysis_at=max((r['analysis_recorded_at'] for r in reports),default=None),
+                    latest_publication_verified_at=max((r['publication']['verification_observed_at'] for r in reports),default=None),
+                    fresh_chain_reads=False))
+            from app.access.evidence_display import rank_timeline
+            observed=query(h,effective_on=datetime.fromtimestamp(self.store.clock(),timezone.utc).astimezone(ZoneInfo('Asia/Colombo')).date(),known_at=h.coverage_end)
+            result['rank_timeline']=rank_timeline([dict(withdrawn=v.withdrawn,claim=P.claim_projection(v.claim)) for v in observed.visible_versions],datetime.fromtimestamp(self.store.clock(),timezone.utc).astimezone(ZoneInfo('Asia/Colombo')).date().isoformat())
             self.authorized(token,officer,charge=False)
         if self.promotion_acceptance is not None:
             result['current_assignment']=self.promotion_acceptance.current(officer)
@@ -229,6 +237,8 @@ class ResearchService:
             result['promotion_analysis']=self.promotion_analysis.summary(relevant)
             result['promotion_evidence']=[{k:r[k] for k in ('raw_record_id','batch_id','received_at','analysis_recorded_at','activation_reference','publication')} for r in relevant]
             result['coverage_semantics']='ORIGINAL_JOURNAL_PLUS_PROMOTION_AVAILABILITY_OBSERVATIONS'
+        from app.access.evidence_display import rank_timeline
+        result['rank_timeline']=rank_timeline(result['versions'],result['effective_on'])
         return result
 
     def request_review(self, token, csrf, body):

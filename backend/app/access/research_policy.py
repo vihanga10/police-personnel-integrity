@@ -141,6 +141,7 @@ def grant(envelope, keys, now):
 
 def claim_projection(claim):
     """Never return whole evidence rows, source references or linked-person values."""
+    from app.access.evidence_display import source_description
     try: value = json.loads(claim.value)
     except Exception: value = {}
     fields = {k: v for k, v in value.items() if k in FIELDS[claim.dimension] and type(v) is str and len(v) <= 200} if type(value) is dict else {}
@@ -155,6 +156,7 @@ def claim_projection(claim):
                 fields=fields, effective_from=claim.start.isoformat() if claim.start else None,
                 effective_until=claim.end.isoformat() if claim.end else None, mode=claim.mode,
                 reasons=list(claim.issues), reported_dataset=dataset,
+                source_description=source_description(dataset),
                 provenance_sha256=fingerprint({'source': claim.source_reference}),
                 source_independence_verified=False)
 

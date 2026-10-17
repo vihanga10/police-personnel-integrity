@@ -242,10 +242,11 @@ class ApprovalEngine:
         with self.journal.transaction() as c:subjects=[r[0] for r in c.execute("SELECT DISTINCT subject FROM events WHERE subject LIKE 'ROW:%'")]
         return {self.journal.head(s)['result']['officer_uid'] for s in subjects}
     def current(self,officer):
-        results=self.evaluate_officer(officer);current=[];pending=0
+        results=self.evaluate_officer(officer);current=[];pending=0;retained={}
         for result in results:
             head=self.journal.head('ROW:'+result['batch_id']+':'+str(result['source_row']));stable={k:v for k,v in result.items() if k!='effective_now'}
-            if head is None or head['result']!=stable:pending+=1;continue
+            retained[(result['batch_id'],result['source_row'])]=head is not None and head['result']==stable
+            if not retained[(result['batch_id'],result['source_row'])]:pending+=1;continue
             if result['status']=='ACCEPTED' and result['effective_now']:current.append((result,head))
             elif result['status']!='ACCEPTED':pending+=1
         inventory=digest(S.rows(self.workspace,officer)) if results else None
@@ -255,7 +256,12 @@ class ApprovalEngine:
         if accepted:
             for action in accepted['authority']['actions']:
                 action['actor_evidence_digest']=digest(action.pop('actor_packets'))
-        return {'policy':POLICY,'accepted_promotion':accepted,'pending_promotions':pending,'source_service_record_preserved':True}
+        return {'policy':POLICY,'accepted_promotion':accepted,'pending_promotions':pending,
+            'row_outcomes':[dict(batch_id=r['batch_id'],source_row=r['source_row'],
+                status=r['status'],reasons=r['reasons'],from_rank=r['from_rank'],to_rank=r['to_rank'],
+                effective_on=r['effective_on'],effective_now=r['effective_now'],
+                decision_retained=retained[(r['batch_id'],r['source_row'])]) for r in results],
+            'source_service_record_preserved':True}
     def audit_outbox(self):
         logs=getattr(self.workspace,'accountability',None)
         if logs is None:return
