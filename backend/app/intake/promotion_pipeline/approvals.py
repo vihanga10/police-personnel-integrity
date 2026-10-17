@@ -145,6 +145,50 @@ class ApprovalEngine:
         self.guard();queued=self.intake.phase(batch['batch_id'],'QUEUED');check(queued is not None,'BATCH_NOT_QUEUED')
         if self.config['legacy_queued'].get(batch['batch_id'])==batch_binding(batch):return
         decision=self.approval(batch);check(decision is not None and decision['kind']=='APPROVE' and queued.get('igp_approval_sha256') in {digest(d) for d in self.journal.rows('BATCH:'+batch['batch_id']) if d['kind']=='APPROVE'},'IGP_APPROVAL_REQUIRED');self.live_reviewer(decision)
+    # Sequence and conflict issues stay with the evidence; a reviewer cannot accept past them.
+    BLOCKING=frozenset({'IGP_PROCESSING_APPROVAL_REQUIRED','EARLIER_PROMOTION_REQUIRES_REVIEW','RANK_EVIDENCE_UNRESOLVED',
+        'FROM_RANK_DIFFERS_FROM_CURRENT_ACCEPTED_SEQUENCE','PROMOTION_MUST_INCREASE_RANK',
+        'MULTIPLE_UPLOADED_PROMOTIONS_AT_SAME_EFFECTIVE_DATE','CONFLICTING_ORIGINAL_PROMOTION_AT_EFFECTIVE_DATE'})
+    @staticmethod
+    def review_core(batch_id,row,status,reasons,binding):
+        """The exact automatic evaluation a reviewer saw; any evidence change voids the review."""
+        return digest(dict(batch_id=batch_id,source_row=row,status=status,reasons=sorted(set(reasons)),binding=binding))
+    def reviewed(self,batch_id,row,status,issues,binding):
+        """Apply a retained independent row review only to its exact pending evaluation."""
+        if status!='PENDING_REVIEW':return status,{}
+        review=self.journal.head('REVIEW:'+batch_id+':'+str(row))
+        if review is None or review['evaluation_sha256']!=self.review_core(batch_id,row,status,issues,binding):return status,{}
+        try:self.live_reviewer(review)
+        except Exception:
+            issues.append('ROW_REVIEWER_AUTHORIZATION_CHANGED');return status,{}
+        if review['kind']=='ROW_REJECT':return 'NOT_ACCEPTED',dict(acceptance_basis='INDEPENDENT_IGP_ROW_REVIEW',review_reference=digest(review))
+        if set(issues)&self.BLOCKING:return status,{}
+        return 'ACCEPTED',dict(acceptance_basis='INDEPENDENT_IGP_ROW_REVIEW',review_reference=digest(review))
+    def review_row(self,batch,user,request):
+        """Independent IGP decision on one pending row; never the uploader, never past a blocking issue."""
+        self.guard();check(self.reviewer(user),'IGP_APPROVAL_FORBIDDEN')
+        check(user['user_id']!=batch['actor']['user_id'],'SELF_APPROVAL_FORBIDDEN')
+        check(set(request)=={'batch_id','row','operation_id','expected_version','decision','reason','evidence_reference','evaluation_reference'},'ROW_REVIEW_FIELDS_DIFFER')
+        check(request['batch_id']==batch['batch_id'] and type(request['row']) is int and 0<request['row']<=len(batch['rows']),'ROW_REVIEW_TARGET_INVALID')
+        check(str(UUID(request['operation_id']))==request['operation_id'],'OPERATION_ID_INVALID')
+        check(request['decision'] in ('ACCEPT','REJECT'),'ROW_REVIEW_DECISION_INVALID')
+        check(type(request['expected_version']) is int and request['expected_version']>=0,'APPROVAL_VERSION_INVALID')
+        for field,low,high,code in (('reason',3,1000,'APPROVAL_REASON_REQUIRED'),('evidence_reference',3,200,'ROW_REVIEW_EVIDENCE_REQUIRED')):
+            value=request[field];check(type(value) is str and low<=len(value.strip())<=high and not any(ord(c)<32 for c in value),code)
+        subject='REVIEW:'+batch['batch_id']+':'+str(request['row'])
+        replay=next((p for p in self.journal.rows(subject) if p.get('operation_id')==request['operation_id']),None)
+        if replay:
+            check(replay['request']==request and replay['actor']==actor(user),'DECISION_OPERATION_CONFLICT');return replay
+        head=self.journal.head('ROW:'+batch['batch_id']+':'+str(request['row']))
+        check(head is not None and head['result']['status']=='PENDING_REVIEW','ROW_NOT_AWAITING_REVIEW')
+        check(digest(head)==request['evaluation_reference'],'ROW_EVALUATION_CHANGED')
+        result=head['result']
+        if request['decision']=='ACCEPT':check(not set(result['reasons'])&self.BLOCKING,'ROW_HAS_BLOCKING_ISSUES')
+        core=self.review_core(result['batch_id'],result['source_row'],'PENDING_REVIEW',result['reasons'],result['binding'])
+        return self.journal.append(subject,request['operation_id'],request['expected_version'],dict(kind='ROW_'+request['decision'],
+            batch_id=batch['batch_id'],row=request['row'],evaluation_sha256=core,evaluation_reference=request['evaluation_reference'],
+            actor=actor(user),recorded_at=stamp(self.workspace),reason=request['reason'].strip(),
+            evidence_reference=request['evidence_reference'].strip(),operation_id=request['operation_id'],request=request))
     def authority(self,packet,directory,report):
         """Same typed algorithm/signature/actor binding checks as the scoped authority view."""
         known=datetime.fromtimestamp(self.workspace.clock(),timezone.utc);actions=self.analysis.actions(packet,directory,[report]);records=S.rows(self.workspace,report['officer_uid']);results=[]
@@ -200,14 +244,15 @@ class ApprovalEngine:
             if authority['status']!='VALID':issues.extend(v for a in authority['actions'] for v in a['reasons']);issues.append('AUTHORITY_'+authority['status'])
             check(P.instant(report['analysis_recorded_at'])<=datetime.fromtimestamp(self.workspace.clock(),timezone.utc),'ACCEPTANCE_CLOCK_DIFFERS')
             status='NOT_ACCEPTED' if authority['status']=='INVALID' else 'PENDING_REVIEW' if issues else 'ACCEPTED'
+            binding=digest(dict(report=report,decision=decision,source_profile=P.fingerprint(source),packet=P.fingerprint(packet),baseline=baseline))
+            status,review=self.reviewed(report['batch_id'],report['source_row'],status,issues,binding)
             if status=='ACCEPTED':rank=new
             else:sequence_blocked=True
             effective=date.fromisoformat(f['effective_date'].strip())
             results.append(dict(batch_id=report['batch_id'],source_row=report['source_row'],raw_record_id=report['raw_record_id'],officer_uid=officer,status=status,reasons=sorted(set(issues)),authority=authority,
                 effective_on=effective.isoformat(),from_rank=f['from_rank'].strip(),to_rank=f['to_rank'].strip(),rank_code=new,
-                effective_now=effective<=current_date,baseline_rank_code=base_rank,
-                binding=digest(dict(report=report,decision=decision,source_profile=P.fingerprint(source),packet=P.fingerprint(packet),baseline=baseline)),
-                igp_decision_reference=digest(decision) if decision else None,publication=report['publication']))
+                effective_now=effective<=current_date,baseline_rank_code=base_rank,binding=binding,
+                igp_decision_reference=digest(decision) if decision else None,publication=report['publication'],**review))
         check(self.analysis.reports(officer)==reports,'PROMOTION_REPORTS_CHANGED_DURING_ACCEPTANCE')
         check(P.fingerprint(profile(self.workspace,officer,directory['source_public_sha256']))==P.fingerprint(source) and self.workspace.get_packet(officer)==packet,'SOURCE_CHANGED_DURING_ACCEPTANCE')
         with self.workspace.access.transaction() as c:check(self.workspace.access._directory(c)==directory,'DIRECTORY_CHANGED_DURING_ACCEPTANCE')

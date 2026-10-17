@@ -9,7 +9,7 @@ def register(api,runtime,token,body):
     # Extend request classification without changing the separately pinned
     # accountability anchoring implementation or its retained jobs.
     from app.access.accountability import ACTION_PATHS,ACTIONS
-    additions={'/api/research/promotions/'+name:'PROMOTION_'+name.upper() for name in ('capabilities','preview','commit','decide','resume','batches')}
+    additions={'/api/research/promotions/'+name:'PROMOTION_'+name.upper() for name in ('capabilities','preview','commit','decide','review','resume','batches')}
     ACTION_PATHS.update(additions);ACTIONS.update(additions.values())
     @api.exception_handler(IntakeError)
     async def invalid(request,exc):
@@ -53,6 +53,12 @@ def register(api,runtime,token,body):
         service=required()
         value=await body(request,{'batch_id','file_sha256','operation_id','expected_version','decision','reason'})
         return await run_in_threadpool(service.decide,token(request),request.headers.get('x-csrf-token',''),value)
+
+    @api.post('/api/research/promotions/review')
+    async def review(request:Request):
+        service=required()
+        value=await body(request,{'batch_id','row','operation_id','expected_version','decision','reason','evidence_reference','evaluation_reference'})
+        return await run_in_threadpool(service.review,token(request),request.headers.get('x-csrf-token',''),value)
 
     @api.post('/api/research/promotions/resume')
     async def resume(request:Request):

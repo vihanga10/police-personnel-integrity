@@ -3,14 +3,16 @@ import hashlib
 from pathlib import Path
 from .core import check
 
-def source_files(repo):
+PROMOTION_ROOTS=('blockchain/public/promotions','blockchain/fabric/promotions-chaincode')
+
+def source_files(repo,roots=PROMOTION_ROOTS,clients=('promotions-',)):
     repo=Path(repo)
     paths=set()
-    for relative in ['backend/app','blockchain/public/promotions','blockchain/fabric/promotions-chaincode']:
+    for relative in ['backend/app',*roots]:
         for file in (repo/relative).rglob('*'):
             if any(v in {'node_modules','test','__pycache__'} for v in file.relative_to(repo).parts):continue
             if file.is_file() and file.suffix in {'.py','.js','.sol','.json'}:paths.add(str(file.relative_to(repo)))
-    paths.update(str(p.relative_to(repo)) for p in (repo/'blockchain/fabric/client').glob('promotions-*.js'))
+    for prefix in clients:paths.update(str(p.relative_to(repo)) for p in (repo/'blockchain/fabric/client').glob(prefix+'*.js'))
     paths.update(['backend/app/access/api.py','backend/app/access/research_app.py','backend/app/access/research_service.py',
         'backend/app/access/full_source_profiles.py','backend/app/access/research_store.py','backend/app/access/store.py',
         'backend/app/access/policy.py','backend/app/access/research_policy.py','backend/app/access/accountability.py',

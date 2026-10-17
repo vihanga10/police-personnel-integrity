@@ -187,6 +187,27 @@ def disable(args,workspace,origin):
         if temp.exists():temp.unlink()
     return {'status':'PROMOTION_PIPELINE_DISABLED','all_retained_uploads_and_chain_journals_preserved':True,'restart_required':True,'chain_submitted':False}
 
+def refresh_pins(args,workspace,origin):
+    """Re-pin reviewed, committed source after an upgrade; only source_pins changes."""
+    ensure_stopped(origin)
+    import subprocess
+    check(not subprocess.check_output(['git','-C',str(args.repository),'status','--porcelain'],text=True).strip(),'COMMIT_SOURCE_BEFORE_PINNING')
+    revision=subprocess.check_output(['git','-C',str(args.repository),'rev-parse','HEAD'],text=True).strip()
+    file=args.state_root/'runtime.json';raw=private(file,repo=args.repository).read_bytes();config=json.loads(raw)
+    check(config['policy']=='PROMOTION_PIPELINE_RUNTIME_V1','PROMOTION_RUNTIME_REQUIRED')
+    pins=source_pins(args.repository)
+    if config['source_pins']==pins:return {'status':'SOURCE_PINS_ALREADY_CURRENT','revision':revision}
+    backup=args.state_root/('runtime-before-repin-'+revision[:12]+'.json')
+    if backup.exists():check(private(backup).read_bytes()==raw,'RUNTIME_BACKUP_DIFFERS')
+    else:
+        with backup.open('xb') as f:os.fchmod(f.fileno(),0o600);f.write(raw);f.flush();os.fsync(f.fileno())
+    temp=file.parent/('runtime-repin-'+secrets.token_hex(8)+'.tmp')
+    try:
+        write_private(temp,{**config,'source_pins':pins});check(private(file).read_bytes()==raw,'RUNTIME_CONFIG_CHANGED');os.replace(temp,file)
+    finally:
+        if temp.exists():temp.unlink()
+    return {'status':'SOURCE_PINS_REFRESHED','revision':revision,'files_pinned':len(pins),'backup':str(backup),'restart_required':True,'chain_submitted':False}
+
 def wallet(args,workspace,origin):
     ensure_stopped(origin)
     import subprocess
@@ -294,7 +315,7 @@ def demo_csv(args,workspace,origin):
 
 def main():
     home=Path.home();base=home/'ResearchKeys/police-personnel-integrity'
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('command',choices=['initialize','storage','wallet','network','public-preview','public-deploy','public-reconcile','configure','enable','disable','verify-batch','retry-retained','demo-csv'])
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('command',choices=['initialize','storage','wallet','network','public-preview','public-deploy','public-reconcile','configure','enable','disable','verify-batch','retry-retained','demo-csv','refresh-pins'])
     p.add_argument('--repository',type=Path,default=home/'Developer/police-personnel-integrity');p.add_argument('--workspace-config',type=Path,default=base/'research-app-v1/workspace-config.json')
     p.add_argument('--state-root',type=Path,default=base/'application-promotions-v1');p.add_argument('--backup-root',type=Path,default=base/'application-promotions-v1-backup');p.add_argument('--importer',default='research.hq')
     p.add_argument('--mongo-bootstrap',type=Path,default=base/'mongo-v1');p.add_argument('--postgres-admin',default=getpass.getuser())
@@ -307,7 +328,7 @@ def main():
         if isinstance(value,Path):check(value.is_absolute() and '..' not in value.parts,'ABSOLUTE_SETUP_PATH_REQUIRED')
     workspace,origin=configured(a.workspace_config)
     check(workspace.repo==a.repository,'WORKSPACE_REPOSITORY_DIFFERS')
-    result=(public_operation if a.command.startswith('public-') else verify_batch if a.command in ('verify-batch','retry-retained') else demo_csv if a.command=='demo-csv' else globals()[a.command])(a,workspace,origin);print(json.dumps(result,indent=2))
+    result=(public_operation if a.command.startswith('public-') else verify_batch if a.command in ('verify-batch','retry-retained') else demo_csv if a.command=='demo-csv' else refresh_pins if a.command=='refresh-pins' else globals()[a.command])(a,workspace,origin);print(json.dumps(result,indent=2))
 if __name__=='__main__':
     try:main()
     except Exception as error:

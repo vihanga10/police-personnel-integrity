@@ -34,10 +34,10 @@ function transaction(payload) {
     return {id,channel:one(channel,4).toString('utf8'),type:one(channel,1,0),msp:one(identity,1).toString('utf8'),
         certificate:one(identity,2),chaincode:one(cc,2).toString('utf8'),args:input.map(x=>x.value.toString('utf8'))};
 }
-function prepared(bytes,payload,destination,certificate) {
+function prepared(bytes,payload,destination,certificate,invocation='PromotionsAnchor:AnchorPromotions') {
     const f=fields(bytes),id=one(f,1).toString('utf8'),envelope=fields(one(f,2)),raw=one(envelope,1),t=transaction(raw);
     check(id===t.id&&t.type===3n&&t.channel===destination.channel&&t.msp==='Org1MSP'&&
-        t.chaincode===destination.chaincode&&canonical(t.args)===canonical(['PromotionsAnchor:AnchorPromotions',canonical(payload)]),
+        t.chaincode===destination.chaincode&&canonical(t.args)===canonical([invocation,canonical(payload)]),
         'Prepared promotions invocation differs');
     if(certificate)check(t.certificate.equals(certificate),'Prepared signer certificate differs');
     return {id,payload:raw};

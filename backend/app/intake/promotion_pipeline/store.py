@@ -31,6 +31,10 @@ PHASES = ('QUEUED','DOCUMENTS_PREPARED','SQL_STORED','MONGO_STORED','STORAGE_VER
           'CHAINS_VERIFIED','VISIBLE')
 
 class IntakeStore:
+    # Subclasses retain separate files and AEAD domains for other datasets.
+    FILENAME = 'promotion-intake.sqlite3'
+    DOMAIN = 'PROMOTION_INTAKE_STORE_V1'
+
     def __init__(self, root, key_file, backup_file, *, repo, create=False):
         self.root = private(root, directory=True, repo=repo)
         self.key = private(key_file, repo=repo).read_bytes()
@@ -39,7 +43,7 @@ class IntakeStore:
         check(len(self.key) == 32 and self.key == backup.read_bytes(), 'RECOVERY_KEY_DIFFERS')
         self.aead = AESGCM(self.key)
         self.repo = repo
-        self.path = self.root / 'promotion-intake.sqlite3'
+        self.path = self.root / self.FILENAME
         if create and not self.path.exists():
             with self.path.open('xb') as f:
                 os.fchmod(f.fileno(), 0o600)
@@ -76,10 +80,36 @@ class IntakeStore:
 
     def seal(self, kind, identity, value):
         nonce = secrets.token_bytes(12)
-        return nonce + self.aead.encrypt(nonce, canonical(value), canonical(['PROMOTION_INTAKE_STORE_V1',kind,identity]))
+        return nonce + self.aead.encrypt(nonce, canonical(value), canonical([self.DOMAIN,kind,identity]))
 
     def open(self, kind, identity, blob):
-        return json.loads(self.aead.decrypt(blob[:12], blob[12:], canonical(['PROMOTION_INTAKE_STORE_V1',kind,identity])))
+        return json.loads(self.aead.decrypt(blob[:12], blob[12:], canonical([self.DOMAIN,kind,identity])))
+
+    # Dataset hooks. Defaults are the original promotion behaviour.
+    def source_key(self, row):
+        return row['source']['promotion_id'].strip()
+
+    def row_officers(self, row):
+        return {row['officer_uid']}
+
+    def record_id(self, row):
+        return opaque(self.key,'SOURCE_ID',self.source_key(row))
+
+    def delivery_value(self, batch, row):
+        return {'policy':'PROMOTION_SOURCE_ROW_V1','officer_uid':row['officer_uid'],
+            'batch_id':batch['batch_id'],'file_sha256':batch['file_sha256'],'source_row':row['row'],
+            'source':row['source'],'received_at':batch['received_at'],'source_reference':batch['source_reference'],
+            'source_system':'PF_REGISTRY','source_custody':'UPLOADER_REPORTED','authority':'NOT_ASSESSED'}
+
+    def publication(self, batch):
+        from .core import publication
+        return publication(self.key, batch)
+
+    def expected_public(self, payload, result):
+        return {'policy':'PROMOTIONS_PUBLIC_ANCHOR_V1','namespace':'promotions-anchor-v1',
+            'publication_id':payload['publication_id'],'public_sha256':payload['public_sha256'],'merkle_root':payload['merkle_root'],
+            'fabric_destination_sha256':digest(result['fabric']['destination']),
+            'fabric_transaction_id':result['fabric']['transaction_id'],'fabric_receipt_sha256':digest(result['fabric'])}
 
     def phase(self, batch, phase, value=None):
         check(phase in PHASES, 'PHASE_INVALID')
@@ -163,10 +193,10 @@ class IntakeStore:
             rows = [r for r in batch['rows'] if r['status'] == 'READY']
             check(rows, 'NO_NEW_ROWS')
             for r in rows:
-                key = opaque(self.key,'SOURCE_ID',r['source']['promotion_id'].strip())
+                key = opaque(self.key,'SOURCE_ID',self.source_key(r))
                 check(c.execute('SELECT 1 FROM reserved_sources WHERE id=?',(key,)).fetchone() is None, 'SOURCE_RESERVED_AFTER_PREVIEW_REVIEW_REQUIRED')
                 c.execute('INSERT INTO reserved_sources VALUES(?,?,?)',(key,ident,opaque(self.key,'SOURCE_ROW',[r['officer_uid'],r['source']])))
-            for officer in sorted({r['officer_uid'] for r in rows}):c.execute('INSERT INTO officer_batches VALUES(?,?)',(opaque(self.key,'OFFICER_INDEX',officer),ident))
+            for officer in sorted({o for r in rows for o in self.row_officers(r)}):c.execute('INSERT INTO officer_batches VALUES(?,?)',(opaque(self.key,'OFFICER_INDEX',officer),ident))
             c.execute('INSERT INTO phases VALUES(?,?,?)',(ident,'QUEUED',self.seal('PHASE',[ident,'QUEUED'],approved)))
 
     def current_authorization(self,batch_id):

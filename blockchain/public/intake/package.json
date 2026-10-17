@@ -1,0 +1,1 @@
+{"name":"personnel-intake-public-contract","version":"1.0.0","private":true,"scripts":{"test":"node --test --test-concurrency=1 test/*.test.js"},"devDependencies":{"ethers":"6.15.0","ganache":"7.9.2","solc":"0.8.30"},"engines":{"node":">=24 <25"}}
