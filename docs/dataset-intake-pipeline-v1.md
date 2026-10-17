@@ -7,7 +7,7 @@ operator steps below.
 
 ## Scope
 
-Fifteen officer datasets from `BATCH-RAW-001` gain the same controlled path as
+Fifteen officer datasets (eighteen with phase 2) from `BATCH-RAW-001` gain the same controlled path as
 `promotion_history.csv`. Promotions keep their existing pipeline and ledger
 destinations; they also gain independent IGP row review.
 
@@ -21,9 +21,22 @@ destinations; they also gain independent IGP row review.
 | DEMOTIONS | _demotions_enacted.csv | Displayed rank from the punishment date (derived source; always needs IGP row review) |
 | DUTY_PERIODS, FIREARMS, GOOD_CONDUCT, BAD_CONDUCT, EDUCATION, FAMILY, COMPLAINTS, OPERATIONS, COURT_CASES | remaining files | Record only; shown under each linked officer with its acceptance status |
 
-Out of scope for v1: `officer_personal_information.csv` (new officer
-registration needs identity resolution and new signed directory membership and
-grants) and the two station reference files.
+Phase 2 adds three subjectless datasets:
+
+| Dataset code | File | Effect of an accepted row |
+| --- | --- | --- |
+| STATION_REFERENCE | station_master.csv | New station joins the station index used to validate later uploads (accepted on IGP batch approval; original codes cannot be rewritten) |
+| STATION_SINHALA | sri_lanka_police_stations_sinhala.csv | Record only |
+| OFFICER_REGISTRATION | officer_personal_information.csv | Always needs independent IGP row review; then "accepted, awaiting operator registration" |
+
+New officers are never created by the web tier. The server holds only public
+keys; the signed directory, source profiles and grants are signed offline with
+operator keys. `manage_dataset_pipeline.py export-registrations` re-verifies
+each accepted registration (stored ciphertext, both-chain receipt, retained
+acceptance) and writes a sealed, digest-named manifest. Applying it, through
+PostgreSQL identity registration and the next signed directory generation, is
+an operator step performed with the databases and signing keys available. An
+existing NIC is refused (OFFICER_ALREADY_REGISTERED).
 
 ## Flow
 

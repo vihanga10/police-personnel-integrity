@@ -28,7 +28,7 @@ test('registered dataset code and opaque commitments are recorded with the origi
     assert.deepEqual(r,{policy:RECORD_POLICY,payload:payload(),transaction_id:t.txID});
     assert.deepEqual([...t.reads.keys()],[key('a'.repeat(64))]);
     for(const msp of ['Org1MSP','Org2MSP'])assert.deepEqual(await l.rules.ReadIntake(l.transaction(msp).ctx,'a'.repeat(64)),r);
-    assert.equal(DATASETS.length,15);
+    assert.equal(DATASETS.length,18);
 });
 
 test('exact retry returns the original identity; a changed payload under the same handle is refused',async()=>{

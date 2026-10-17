@@ -95,7 +95,7 @@ class DatasetService:
         by_nic = {}
         for officer in directory['officers']:
             by_nic.setdefault(officer['nic'].strip().upper(), []).append(officer['officer_uid'])
-        stations = self.store.stations()
+        stations, candidates = self.stations(spec, rows)
 
         def references(row):
             from app.identity.srb_plan import SourceReference
@@ -108,7 +108,8 @@ class DatasetService:
         now = datetime.fromtimestamp(self.workspace.clock(), timezone.utc)
         results = validate_rows(spec, rows, resolve=lambda nic: by_nic.get(nic.strip().upper(), []),
             existing=self.store.duplicate, stations=stations,
-            references=references if spec.filename == 'restriction_overrides.csv' else None, now=now)
+            references=references if spec.filename == 'restriction_overrides.csv' else None, now=now,
+            reference_candidates=candidates)
         # Recheck authorization and source binding immediately before retention.
         check(self.actor(token, csrf, upload=True) == user, 'ACCOUNT_CHANGED')
         check(self.source_state() == directory, 'DIRECTORY_CHANGED')
@@ -120,6 +121,23 @@ class DatasetService:
         self.actor(token, csrf, upload=True)
         self.audit(token, 'DATASET_PREVIEW_RETAINED', batch, request['operation_id'])
         return self.summary(batch)
+
+    def stations(self, spec, rows=()):
+        """Original stations plus independently accepted uploaded stations; never unreviewed uploads."""
+        from app.identity.reference_plan import ReferenceCandidates
+        from app.identity.station_reference import build_station_index
+        from .core import raw_record_id
+        master = self.store.station_master_rows()
+        if self.approvals is not None:
+            known = {rid for rid, _ in master}
+            master += [(rid, row) for rid, row in self.approvals.accepted_stations() if rid not in known]
+        index = build_station_index(master).candidates
+        candidates = None
+        if spec.code in ('STATION_REFERENCE', 'STATION_SINHALA'):
+            extra = [(raw_record_id(spec, r), r) for r in rows] if spec.code == 'STATION_REFERENCE' else []
+            seen = {rid for rid, _ in master}
+            candidates = ReferenceCandidates(master + [x for x in extra if x[0] not in seen])
+        return index, candidates
 
     def summary(self, batch):
         spec = dataset(batch['dataset'])

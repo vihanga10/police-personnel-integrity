@@ -11,8 +11,8 @@ import hashlib
 import io
 import zipfile
 from app.identity.station_reference import build_station_index
-from .core import check, digest, opaque
-from .registry import DATASETS, source_key
+from .core import check, digest, opaque, raw_record_id
+from .registry import DATASETS, source_key, dataset
 from .store import REFERENCES
 
 POLICY = 'PERSONNEL_INTAKE_BASELINE_V1'
@@ -74,6 +74,7 @@ def build(store, archive, receipt, directory):
                                           'source_public_sha256': directory['source_public_sha256']}),
              'rows': len(entries), 'index_sha256': digest(entries),
              'stations': {name: list(codes) for name, codes in sorted(index.candidates.items())},
-             'references': digest(references)}
+             'references': digest(references),
+             'station_master': [[raw_record_id(dataset('STATION_REFERENCE'), r), r] for r in stations]}
     return value, entries, references, {'original_rows': counts, 'archive_sha256': hashlib.sha256(data).hexdigest(),
                                         'ambiguous_identities': sum(v == AMBIGUOUS for v in entries.values())}

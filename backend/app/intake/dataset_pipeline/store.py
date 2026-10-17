@@ -55,7 +55,8 @@ class DatasetStore(IntakeStore):
     # Original-corpus baseline (built once by the operator from the verified archive).
     def install_baseline(self, value, entries, references):
         """Atomic one-time install. Entries map opaque source IDs to row fingerprints."""
-        check(set(value) == {'source_set_sha256', 'rows', 'index_sha256', 'stations', 'references'}, 'BASELINE_FIELDS_DIFFER')
+        check(set(value) == {'source_set_sha256', 'rows', 'index_sha256', 'stations', 'references', 'station_master'},
+              'BASELINE_FIELDS_DIFFER')
         check(value['rows'] == len(entries) and value['index_sha256'] == digest(entries), 'BASELINE_INDEX_DIFFERS')
         check(value['references'] == digest(references), 'BASELINE_REFERENCES_DIFFER')
         with self.transaction() as c:
@@ -84,6 +85,13 @@ class DatasetStore(IntakeStore):
         check(meta is not None, 'BASELINE_INDEX_REQUIRED')
         value = self.open('BASELINE', 1, meta[0])
         return {name: tuple(codes) for name, codes in value['stations'].items()}
+
+    def station_master_rows(self):
+        """Original station master rows with opaque references, for the reviewed station planner."""
+        with self.transaction() as c:
+            meta = c.execute('SELECT value FROM baseline_meta WHERE id=1').fetchone()
+        check(meta is not None, 'BASELINE_INDEX_REQUIRED')
+        return [(rid, row) for rid, row in self.open('BASELINE', 1, meta[0])['station_master']]
 
     def reference_id(self, column, value):
         return opaque(self.key, 'REFERENCE', [column, value.strip()])

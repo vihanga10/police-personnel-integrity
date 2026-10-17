@@ -10,7 +10,7 @@ from datetime import date
 from uuid import UUID
 from app.identity.reported_authority_actions import ROUTES as AUTHORITY_ROUTES
 from app.intake.promotion_pipeline.core import IntakeError, check, canonical, digest, opaque, merkle
-from .registry import dataset, source_key, subject_nics, planner_issues
+from .registry import NIC, dataset, source_key, subject_nics, planner_issues
 
 POLICY = 'PERSONNEL_INTAKE_V1'
 FABRIC_POLICY = 'PERSONNEL_INTAKE_FABRIC_ANCHOR_V1'
@@ -60,7 +60,12 @@ def _future_action_dates(spec, row, today):
     return issues
 
 
-def validate_rows(spec, rows, *, resolve, existing, stations, references, now):
+def raw_record_id(spec, row):
+    """Opaque per-row reference used by the reviewed station planner."""
+    return digest([spec.code, [row[c] for c in spec.columns]])
+
+
+def validate_rows(spec, rows, *, resolve, existing, stations, references, now, reference_candidates=None):
     """Callbacks use the signed directory and provisioned indexes; no client UID.
 
     A single row needing review blocks the batch. Exact duplicates of retained
@@ -92,6 +97,13 @@ def validate_rows(spec, rows, *, resolve, existing, stations, references, now):
             check(str(UUID(found[0])) == found[0], 'RESOLVER_ID_INVALID')
             subjects.setdefault(found[0], role)
         result['subjects'] = [{'officer_uid': u, 'role': r} for u, r in sorted(subjects.items())]
+        if spec.effect == 'REGISTRATION':
+            # Only new identities: an existing NIC is never re-registered or overwritten here.
+            nic = row['officer_nic_no'].strip().upper()
+            if not NIC.fullmatch(nic):
+                result['issues'].append('officer_nic_no:NIC_FORMAT_UNSUPPORTED')
+            elif resolve(nic):
+                result['issues'].append('OFFICER_ALREADY_REGISTERED')
         if not spec.multi_subject and len(subjects) == 1:
             result['officer_uid'] = next(iter(subjects))
         complete = not result['issues'] and (spec.multi_subject or result['officer_uid'] is not None)
@@ -105,7 +117,8 @@ def validate_rows(spec, rows, *, resolve, existing, stations, references, now):
                     actors[column] = UUID(found[0])
             try:
                 result['issues'].extend(planner_issues(spec, row, result['officer_uid'], stations=stations,
-                    actors=actors, references=references(row) if references else None))
+                    actors=actors, references=references(row) if references else None,
+                    reference_candidates=reference_candidates, raw_record_id=raw_record_id(spec, row)))
             except ValueError:
                 result['issues'].append('SOURCE_ROW_SHAPE_UNSUPPORTED')
             result['issues'].extend(_future_action_dates(spec, row, now.date()))
@@ -155,4 +168,4 @@ def expected_public(payload, result):
 
 
 __all__ = ['POLICY', 'FABRIC_POLICY', 'PUBLIC_POLICY', 'NAMESPACE', 'MAX_BYTES', 'MAX_ROWS', 'IntakeError', 'check',
-           'canonical', 'digest', 'opaque', 'parse', 'validate_rows', 'publication', 'expected_public', 'leaf']
+           'canonical', 'digest', 'opaque', 'parse', 'validate_rows', 'raw_record_id', 'publication', 'expected_public', 'leaf']
