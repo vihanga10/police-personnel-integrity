@@ -22,7 +22,7 @@ LOG_ASSETS = {'/accountability': ('accountability.html', 'text/html; charset=utf
 def configured(config_file, *, create=False):
     file = private(config_file); config = json.loads(file.read_text())
     fields = {'policy','access_config','state_directory','key_file','presentation_keys'}
-    require(type(config) is dict and fields<=set(config)<=fields|{'accountability_config','workflow_assessment_keys','review_workflow_keys','promotion_intake_config'}, 'Workspace config fields differ')
+    require(type(config) is dict and fields<=set(config)<=fields|{'accountability_config','workflow_assessment_keys','review_workflow_keys','promotion_intake_config','personnel_intake_config'}, 'Workspace config fields differ')
     require(config['policy'] == 'RESEARCH_WEB_CONFIG_V1', 'Workspace config policy differs')
     access, origin = configured_store(config['access_config'])
     private(file, repo=access.repo)
@@ -44,6 +44,7 @@ def configured(config_file, *, create=False):
         from app.access.review_workflow import initialize
         initialize(store)
     store.promotion_intake_config=config.get('promotion_intake_config')
+    store.personnel_intake_config=config.get('personnel_intake_config')
     return store, origin
 
 def create_app(store, *, origin, assets=None):
@@ -150,6 +151,9 @@ def create_app(store, *, origin, assets=None):
         if runtime is not None:
             runtime.check_pins()
             result['additional_promotion_reports']=await run_in_threadpool(runtime.service.officer_rows,token(request),officer_uid)
+        if datasets is not None:
+            datasets.check_pins()
+            result['uploaded_records']=await run_in_threadpool(datasets.service.officer_rows,token(request),officer_uid)
         return result
 
     @api.get('/api/research/officers/{officer_uid}/requests')
@@ -209,12 +213,20 @@ def create_app(store, *, origin, assets=None):
         from app.intake.promotion_pipeline.runtime import Runtime
         runtime=Runtime(store,service,store.promotion_intake_config)
     register_promotions(api,runtime,token,body)
+    from app.intake.dataset_pipeline.http import register as register_datasets
+    datasets=None
+    if getattr(store,'personnel_intake_config',None):
+        require(accountability is not None,'Dataset intake accountability required')
+        from app.intake.dataset_pipeline.runtime import Runtime as DatasetRuntime
+        datasets=DatasetRuntime(store,service,store.personnel_intake_config)
+    register_datasets(api,datasets,token,body)
     from app.access.accountability import ACTIONS
     ACTIONS.update({'PROMOTION_PREVIEW_RETAINED','PROMOTION_IMPORT_CONFIRMATION_RECEIVED','PROMOTION_IMPORT_REAUTHORIZATION_RECEIVED','PROMOTION_PIPELINE_WORKER'})
     for path,action in {'preview':'PROMOTION_UPLOAD_PREVIEW','commit':'PROMOTION_IMPORT_COMMIT',
             'resume':'PROMOTION_IMPORT_REAUTHORIZE','batches':'PROMOTION_IMPORT_STATUS','capabilities':'PROMOTION_IMPORT_CAPABILITIES'}.items():
         ACTION_PATHS['/api/research/promotions/'+path]=action;ACTIONS.add(action)
-    research = RequestBoundary(api, origin, body_limits={'/api/research/promotions/preview':3*1024*1024})
+    research = RequestBoundary(api, origin, body_limits={'/api/research/promotions/preview':3*1024*1024,
+                                                         '/api/research/intake/preview':3*1024*1024})
     identity = identity_app(store.access, origin=origin)
     async def static(scope, receive, send):
         if scope['method'] != 'GET': return await JSONResponse({'error':'NOT_FOUND'}, status_code=404)(scope, receive, send)
@@ -236,9 +248,9 @@ def create_app(store, *, origin, assets=None):
     if accountability is not None:
         from app.access.accountability import AccountabilityBoundary
         application=AccountabilityBoundary(application, accountability)
-    if runtime is not None:
-        from app.intake.promotion_pipeline.runtime import Lifecycle
-        application=Lifecycle(application,runtime)
+    from app.intake.promotion_pipeline.runtime import Lifecycle
+    for worker in (runtime,datasets):
+        if worker is not None:application=Lifecycle(application,worker)
     return application
 
 def application():

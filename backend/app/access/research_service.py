@@ -18,6 +18,34 @@ class ResearchService:
         from app.intake.promotion_pipeline.approvals import configured_approvals
         self.promotion_acceptance=configured_approvals(store,self.promotion_analysis)
         store.promotion_acceptance=self.promotion_acceptance
+        from app.intake.dataset_pipeline.analysis import configured_analysis as dataset_analysis
+        from app.intake.dataset_pipeline.acceptance import configured_approvals as dataset_approvals
+        self.dataset_analysis=dataset_analysis(store);store.dataset_analysis=self.dataset_analysis
+        self.dataset_acceptance=dataset_approvals(store,self.dataset_analysis);store.dataset_acceptance=self.dataset_acceptance
+
+    def dataset_reports(self,officer,known=None):
+        if self.dataset_analysis is None:return []
+        try:return self.dataset_analysis.reports(officer,known)
+        except Exception:raise AccessError(503,'DATASET_ANALYSIS_UNAVAILABLE') from None
+
+    def recording(self,packet,officer,known=None):
+        """Original journal plus verified promotion and dataset uploads at their activation times."""
+        h=P.history(packet['history'],officer)
+        if self.promotion_analysis is not None:h=self.promotion_analysis.recording(packet,officer,self.promotion_reports(officer,known))
+        if self.dataset_analysis is not None:h=self.dataset_analysis.extend_history(h,officer,self.dataset_reports(officer,known))
+        return h
+
+    def displayed_state(self,officer,full_records):
+        """Source service record plus accepted, currently effective uploaded changes."""
+        from app.access.current_state import current_state
+        from app.access.full_source_profiles import profile
+        with self.access.transaction() as c:directory=self.access._directory(c)
+        try:full_records=profile(self.store,officer,directory['source_public_sha256'])['full_records']
+        except AccessError:pass  # legacy presentation copy without a connected source profile
+        service=[r for r in full_records if r['dataset']=='officer_service_information.csv']
+        promotion=self.promotion_acceptance.current(officer) if self.promotion_acceptance is not None else None
+        datasets=self.dataset_acceptance.current(officer) if self.dataset_acceptance is not None and self.dataset_reports(officer) else None
+        return current_state(service[0]['fields'] if len(service)==1 else {},promotion,datasets),promotion,datasets
 
     def promotion_reports(self,officer,known=None):
         if self.promotion_analysis is None:return []
@@ -149,7 +177,9 @@ class ResearchService:
         from app.access.full_source_profiles import POLICY, source_workspace
         if packet.get('policy')==POLICY:
             result=source_workspace(packet,identity)
-            if self.promotion_acceptance is not None:result['current_assignment']=self.promotion_acceptance.current(officer)
+            result['current_state'],promotion,datasets=self.displayed_state(officer,packet['full_records'])
+            if promotion is not None:result['current_assignment']=promotion
+            if datasets is not None:result['dataset_acceptance']=datasets
             self.authorized(token,officer,charge=False)
             return result
         result = dict(identity=identity, generation=packet['generation'], observed_at=packet['observed_at'],
@@ -166,7 +196,7 @@ class ResearchService:
             public_finality_verified=False, independent_deployment_verified=False)
         if self.promotion_analysis is not None:
             reports=self.promotion_reports(officer)
-            h=self.promotion_analysis.recording(packet,officer,reports)
+            h=self.recording(packet,officer)
             result.update(coverage_end=h.coverage_end.isoformat(),history_baseline_only=h.coverage_start==h.coverage_end,
                 promotion_analysis=self.promotion_analysis.summary(reports),
                 evidence_updates=dict(baseline_observed_at=packet['observed_at'],
@@ -177,9 +207,13 @@ class ResearchService:
             observed=query(h,effective_on=datetime.fromtimestamp(self.store.clock(),timezone.utc).astimezone(ZoneInfo('Asia/Colombo')).date(),known_at=h.coverage_end)
             result['rank_timeline']=rank_timeline([dict(withdrawn=v.withdrawn,claim=P.claim_projection(v.claim)) for v in observed.visible_versions],datetime.fromtimestamp(self.store.clock(),timezone.utc).astimezone(ZoneInfo('Asia/Colombo')).date().isoformat())
             self.authorized(token,officer,charge=False)
-        if self.promotion_acceptance is not None:
-            result['current_assignment']=self.promotion_acceptance.current(officer)
-            self.authorized(token,officer,charge=False)
+        if self.dataset_analysis is not None and self.promotion_analysis is None:
+            h=self.recording(packet,officer)
+            result.update(coverage_end=h.coverage_end.isoformat(),history_baseline_only=h.coverage_start==h.coverage_end)
+        result['current_state'],promotion,datasets=self.displayed_state(officer,packet.get('full_records',[]))
+        if promotion is not None:result['current_assignment']=promotion
+        if datasets is not None:result['dataset_acceptance']=datasets
+        self.authorized(token,officer,charge=False)
         return result
 
     @staticmethod
@@ -199,7 +233,8 @@ class ResearchService:
             require(type(effective) is str and date.fromisoformat(effective).isoformat() == effective)
             h = P.history(packet['history'], officer); on = date.fromisoformat(effective); at = P.instant(known)
             reports=self.promotion_reports(officer)
-            if self.promotion_analysis is not None:h=self.promotion_analysis.recording(packet,officer,reports)
+            dataset_reports=self.dataset_reports(officer)
+            h=self.recording(packet,officer)
             if not h.coverage_start <= at <= h.coverage_end: raise AccessError(422, 'KNOWN_DATE_OUTSIDE_COVERAGE')
             answer = query(h, effective_on=on, known_at=at)
             counts={d:sum(v.claim.dimension==d and not v.withdrawn for v in answer.visible_versions) for d in P.FIELDS}
@@ -237,6 +272,11 @@ class ResearchService:
             result['promotion_analysis']=self.promotion_analysis.summary(relevant)
             result['promotion_evidence']=[{k:r[k] for k in ('raw_record_id','batch_id','received_at','analysis_recorded_at','activation_reference','publication')} for r in relevant]
             result['coverage_semantics']='ORIGINAL_JOURNAL_PLUS_PROMOTION_AVAILABILITY_OBSERVATIONS'
+        if self.dataset_analysis is not None:
+            relevant=[r for r in dataset_reports if P.instant(r['analysis_recorded_at'])<=at]
+            if self.dataset_reports(officer,at)!=relevant:raise AccessError(409,'DATASET_ANALYSIS_CHANGED')
+            result['dataset_evidence']=[{k:r[k] for k in ('dataset','raw_record_id','batch_id','received_at','analysis_recorded_at','activation_reference','publication')} for r in relevant]
+            result['coverage_semantics']='ORIGINAL_JOURNAL_PLUS_VERIFIED_UPLOAD_AVAILABILITY_OBSERVATIONS'
         from app.access.evidence_display import rank_timeline
         result['rank_timeline']=rank_timeline(result['versions'],result['effective_on'])
         return result

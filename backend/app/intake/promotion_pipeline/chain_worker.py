@@ -20,6 +20,8 @@ def write_private(path, value):
     finally:os.close(fd)
 
 class ChainWorker:
+    POLICY='APPLICATION_PROMOTIONS_CHAIN_JOB_V1'
+    SCRIPT='blockchain/public/promotions/application-anchor-worker.js'
     def __init__(self,config,root,repo):self.config,self.root,self.repo=config,Path(root),Path(repo)
     def __call__(self,batch,payload,boundary,*,mode='EXECUTE'):
         check(mode in ('EXECUTE','RECONCILE','RETRY_FABRIC','RETRY_PUBLIC'),'WORKER_MODE_INVALID')
@@ -30,10 +32,10 @@ class ChainWorker:
         private(directory,directory=True,repo=self.repo)
         j={k:self.config[k] for k in ('fabric_config','fabric_sha256','network_config','network_sha256',
             'destination','wallet_root','wallet_backup','recovery_key')}
-        j.update(policy='APPLICATION_PROMOTIONS_CHAIN_JOB_V1',mode=mode,directory=str(directory),payload=payload)
+        j.update(policy=self.POLICY,mode=mode,directory=str(directory),payload=payload)
         file=directory/('job.json' if mode=='EXECUTE' else ('read-only-job.json' if mode=='RECONCILE' else mode.lower()+'-job.json'));write_private(file,j)
         boundary()
-        command=['node',str(self.repo/'blockchain/public/promotions/application-anchor-worker.js'),str(file)]
+        command=['node',str(self.repo/self.SCRIPT),str(file)]
         child=subprocess.Popen(command,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,
             cwd=self.repo,bufsize=0,start_new_session=True)
         selector=selectors.DefaultSelector();selector.register(child.stdout,selectors.EVENT_READ)

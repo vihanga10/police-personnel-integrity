@@ -116,6 +116,10 @@ class PromotionService:
                 if head is None:continue
                 latest=current[head['result']['officer_uid']].get(head['result']['raw_record_id'])
                 head['decision_reference']=digest(head)
+                review=self.approvals.journal.head('REVIEW:'+batch['batch_id']+':'+str(head['result']['source_row']))
+                head['row_review']=None if review is None else {k:review[k] for k in ('kind','version','recorded_at','reason','evidence_reference','actor')}
+                head['row_review_version']=review['version'] if review else 0
+                head['row_review_blocked']=sorted(set(head['result']['reasons'])&self.approvals.BLOCKING)
                 head['current_evidence_matches']=latest is not None and head['result']=={k:v for k,v in latest.items() if k!='effective_now'}
                 head['effective_now']=bool(latest and latest['effective_now'])
                 answer['promotion_acceptance'].append(head)
@@ -133,6 +137,20 @@ class PromotionService:
         decision=self.approvals.decide(batch,user,request)
         self.approvals.audit_outbox()
         if decision['kind']=='APPROVE':self.approvals.queue(batch)
+        return self.summary(batch)
+
+    def review(self,token,csrf,request):
+        """Independent IGP row review of a pending acceptance; the uploader can never review."""
+        user=self.actor(token,csrf)
+        if self.approvals is None:raise AccessError(503,'IGP_APPROVAL_NOT_CONFIGURED')
+        if not self.approvals.reviewer(user):raise AccessError(403,'IGP_APPROVAL_FORBIDDEN')
+        batch=self.store.get(request['batch_id'])
+        self.source_state()
+        for officer in sorted({r['officer_uid'] for r in batch['rows'] if r['status']=='READY'}):self.research.authorized(token,officer,csrf=csrf,charge=False)
+        check(self.actor(token,csrf)==user,'ACCOUNT_CHANGED')
+        self.approvals.review_row(batch,user,request)
+        self.approvals.synchronize()
+        self.approvals.audit_outbox()
         return self.summary(batch)
 
     def commit(self,token,csrf,request):
