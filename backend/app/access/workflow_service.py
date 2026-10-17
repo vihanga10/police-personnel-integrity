@@ -25,10 +25,16 @@ class WorkflowService:
         if self.service.promotion_analysis is not None:
             actions.update(self.service.promotion_analysis.actions(packet,directory,promotion_reports))
             if len(actions)>1500:raise AccessError(422,'AUTHORITY_ACTION_LIMIT_EXCEEDED')
+        # Verified uploads of other datasets become assessable actions at their activation time.
+        dataset_reports=[r for r in self.service.dataset_reports(body['officer_uid'],known) if r['subject_officer_uid']==body['officer_uid']]
+        if self.service.dataset_analysis is not None and dataset_reports:
+            actions.update(self.service.dataset_analysis.actions(packet,directory,dataset_reports))
+            if len(actions)>1500:raise AccessError(422,'AUTHORITY_ACTION_LIMIT_EXCEEDED')
         try:records=S.rows(self.store,body['officer_uid'])
         except Exception:raise AccessError(503,'AUTHORITY_ASSESSMENT_INVALID') from None
         selected={};versions={};early_assessments=set()
-        upload_times={r['raw_record_id']:P.instant(r['analysis_recorded_at']) for r in promotion_reports}
+        upload_times={r['raw_record_id']:P.instant(r['analysis_recorded_at']) for r in promotion_reports+dataset_reports}
+        uploaded_files={r['raw_record_id']:r['filename'] for r in dataset_reports}
         for envelope in records:
             p=envelope['payload'];ref=p['action_reference']
             if P.instant(p['recorded_at'])>known:continue
@@ -83,8 +89,9 @@ class WorkflowService:
                 rules=rules,delegations=delegations,successful_paths=list(result['successful_paths']),
                 assessment_versions=versions.get(ref,[]),assessment_reference=P.fingerprint(next(e for e in records if e['payload']==assessment)) if typed else None,
                 source_reference=P.fingerprint({'source':action.source_reference}),destination_reference=action.destination_digest,
-                dataset=next((r['dataset'] for r in packet['full_records'] if r['raw_record_id']==action.raw_record_id),'promotion_history.csv'),
+                dataset=uploaded_files.get(action.raw_record_id) or next((r['dataset'] for r in packet['full_records'] if r['raw_record_id']==action.raw_record_id),'promotion_history.csv'),
                 uploaded_promotion=any(r['raw_record_id']==action.raw_record_id for r in promotion_reports),
+                uploaded_dataset_row=action.raw_record_id in uploaded_files,
                 police_action_authorized=False,accepted_authority_claim=False))
         filtered=[r for r in results if (body['status']=='ALL' or r['status']==body['status']) and
             (body['action_on'] is None or r['action_on']==body['action_on'])]
@@ -97,10 +104,13 @@ class WorkflowService:
         if S.rows(self.store,body['officer_uid'])!=records:raise AccessError(409,'ASSESSMENT_CHANGED')
         if self.service.promotion_reports(body['officer_uid'],known)!=promotion_reports:
             raise AccessError(409,'PROMOTION_ANALYSIS_CHANGED')
+        if [r for r in self.service.dataset_reports(body['officer_uid'],known) if r['subject_officer_uid']==body['officer_uid']]!=dataset_reports:
+            raise AccessError(409,'DATASET_ANALYSIS_CHANGED')
         return dict(items=filtered[body['offset']:body['offset']+body['limit']],total=len(filtered),offset=body['offset'],limit=body['limit'],
             known_at=known.isoformat(),generation=packet['generation'],source_workspace_sha256=P.fingerprint(packet),
             query_digest=P.fingerprint({'policy':A.POLICY,'known':known.isoformat(),'items':results,'source':P.fingerprint(packet),
-                **({'promotion_evidence':P.fingerprint(promotion_reports)} if self.service.promotion_analysis is not None else {})}),
+                **({'promotion_evidence':P.fingerprint(promotion_reports)} if self.service.promotion_analysis is not None else {}),
+                **({'dataset_evidence':P.fingerprint(dataset_reports)} if dataset_reports else {})}),
             **({'promotion_analysis':self.service.promotion_analysis.summary(promotion_reports)} if self.service.promotion_analysis is not None else {}),
             assessment_semantics='EXPLICIT_RESEARCH_ASSESSMENT_NOT_POLICE_AUTHORIZATION',
             source_change_completeness_established=False,fresh_live_verification=False,chain_submitted=False)

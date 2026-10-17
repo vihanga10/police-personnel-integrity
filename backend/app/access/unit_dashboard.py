@@ -13,7 +13,8 @@ def dashboard(service,token):
     officers=[o for o in directory['officers'] if permitted(user,o)]
     metadata=F.active_set(service.store)
     capabilities=F.capabilities(service.store,user,directory,officers)
-    acceptance=getattr(service,'promotion_acceptance',None);affected=acceptance.affected_officers() if acceptance else set()
+    engines=[e for e in (getattr(service,'promotion_acceptance',None),getattr(service,'dataset_acceptance',None)) if e is not None]
+    affected=set().union(*(e.affected_officers() for e in engines)) if engines else set()
     updated_ranks=0
     ranks=Counter();statuses=Counter();divisions=set();source_dates=[]
     for o in officers:
@@ -25,8 +26,8 @@ def dashboard(service,token):
         if f.get('current_unit_type')!=expected:raise AccessError(503,'UNIT_SOURCE_CHANGED')
         rank=f.get('current_rank') or 'Not recorded'
         if o['officer_uid'] in affected:
-            accepted=acceptance.current(o['officer_uid'])['accepted_promotion']
-            if accepted:rank=accepted['to_rank'];updated_ranks+=1
+            state=service.displayed_state(o['officer_uid'],p['full_records'])[0]
+            if 'current_rank' in state['basis']:rank=state['fields']['current_rank'];updated_ranks+=1
         ranks[rank]+=1
         statuses[f.get('service_status') or 'Not recorded']+=1
         if f.get('current_division'):divisions.add(f['current_division'])

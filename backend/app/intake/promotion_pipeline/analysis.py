@@ -25,10 +25,11 @@ from .store import IntakeStore
 POLICY='PUBLISHED_PROMOTION_ANALYSIS_V1'
 
 class AvailabilityJournal:
+    POLICY=POLICY
     def __init__(self, root, key, *, repo, create=False):
         self.root=private(root,directory=True,repo=repo)
         self.path=self.root/'availability.sqlite3'
-        self.aead=AESGCM(hmac.digest(key,POLICY.encode(),'sha256'))
+        self.aead=AESGCM(hmac.digest(key,self.POLICY.encode(),'sha256'))
         if create and not self.path.exists():
             with self.path.open('xb') as f:os.fchmod(f.fileno(),0o600)
             with sqlite3.connect(self.path) as c:
@@ -43,8 +44,8 @@ class AvailabilityJournal:
         c=sqlite3.connect(self.path,timeout=10);c.execute('PRAGMA synchronous=FULL');return c
 
     def open(self,batch,blob):
-        value=json.loads(self.aead.decrypt(blob[:12],blob[12:],canonical([POLICY,batch])))
-        check(value['batch_id']==batch and value['policy']==POLICY,'ANALYSIS_OBSERVATION_BINDING_DIFFERS')
+        value=json.loads(self.aead.decrypt(blob[:12],blob[12:],canonical([self.POLICY,batch])))
+        check(value['batch_id']==batch and value['policy']==self.POLICY,'ANALYSIS_OBSERVATION_BINDING_DIFFERS')
         P.instant(value['available_at']);return value
 
     def get(self,batch):
@@ -62,8 +63,8 @@ class AvailabilityJournal:
                 result=self.open(batch,old[0]);check(result['binding']==binding,'ANALYSIS_RECEIPT_CHANGED');return result
             previous=[self.open(b,v) for b,v in c.execute('SELECT batch,value FROM activations')]
             check(all(P.instant(p['available_at'])<now for p in previous),'ANALYSIS_CLOCK_MUST_ADVANCE')
-            value={'policy':POLICY,'batch_id':batch,'available_at':now.isoformat(),'binding':binding}
-            nonce=os.urandom(12);blob=nonce+self.aead.encrypt(nonce,canonical(value),canonical([POLICY,batch]))
+            value={'policy':self.POLICY,'batch_id':batch,'available_at':now.isoformat(),'binding':binding}
+            nonce=os.urandom(12);blob=nonce+self.aead.encrypt(nonce,canonical(value),canonical([self.POLICY,batch]))
             c.execute('INSERT INTO activations VALUES(?,?)',(batch,blob))
         return value
 
