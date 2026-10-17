@@ -52,6 +52,8 @@ def postgres(connection,password,*,existing=False):
             role=c.fetchone() is not None
             if existing:
                 check(present and role,'SQL_PROVISIONING_INCOMPLETE')
+                # The database revokes CONNECT from PUBLIC; the dedicated writer needs it explicitly.
+                c.execute(sql.SQL('GRANT CONNECT ON DATABASE police_identity TO {}').format(sql.Identifier(USER)))
                 verify_postgres(c,owner)
                 return
             check(not present and not role,'SQL_DESTINATION_ALREADY_EXISTS_RECONCILE_REQUIRED')
@@ -62,11 +64,14 @@ def postgres(connection,password,*,existing=False):
             c.execute('REVOKE ALL ON personnel_intake.evidence FROM PUBLIC')
             c.execute(sql.SQL('GRANT USAGE ON SCHEMA personnel_intake TO {}').format(sql.Identifier(USER)))
             c.execute(sql.SQL('GRANT SELECT,INSERT ON personnel_intake.evidence TO {}').format(sql.Identifier(USER)))
+            c.execute(sql.SQL('GRANT CONNECT ON DATABASE police_identity TO {}').format(sql.Identifier(USER)))
             verify_postgres(c,owner)
 
 def verify_postgres(c,owner):
     c.execute('SELECT rolsuper,rolcreatedb,rolcreaterole,rolinherit,rolreplication,rolbypassrls,rolcanlogin FROM pg_roles WHERE rolname=%s',(USER,))
     check(c.fetchone()==(False,False,False,False,False,False,True),'SQL_WRITER_ROLE_DIFFERS')
+    c.execute("SELECT has_database_privilege(%s,'police_identity','CONNECT')",(USER,))
+    check(c.fetchone()[0] is True,'SQL_WRITER_CONNECT_MISSING')
     c.execute('SELECT count(*) FROM pg_auth_members WHERE member=(SELECT oid FROM pg_roles WHERE rolname=%s)',(USER,))
     check(c.fetchone()[0]==0,'SQL_WRITER_MEMBERSHIP_DIFFERS')
     c.execute("SELECT column_name,data_type,is_nullable,character_maximum_length FROM information_schema.columns WHERE table_schema='personnel_intake' AND table_name='evidence' ORDER BY ordinal_position")
