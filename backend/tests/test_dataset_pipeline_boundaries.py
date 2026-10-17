@@ -85,5 +85,11 @@ def test_real_http_boundary_hq_cannot_review_and_igp_review_is_origin_bound(d):
     assert client.request('/api/research/intake/review', 'POST', body, origin='https://evil.test')[0] == 403
     code, _, result = client.request('/api/research/intake/review', 'POST', body)
     assert code == 200 and result['row_acceptance'][0]['status'] == 'ACCEPTED'
+    code, _, listing = client.request('/api/research/intake/datasets/TRANSFER_HISTORY/batches/0')
+    assert code == 200 and listing['items'][0]['batch_id'] == s['batch_id']
+    assert client.request('/api/research/intake/datasets/NOT_A_DATASET/batches/0')[0] == 404
+    assert client.request('/api/research/intake/datasets/TRANSFER_HISTORY/batches/x')[0] == 400
+    from app.access.accountability import action_for
+    assert action_for('/api/research/intake/datasets/TRANSFER_HISTORY/batches/0') == 'DATASET_IMPORT_BATCHES'
     code, _, rows = client.request('/api/research/intake/officers/' + s['rows'][0]['officer_uid'])
     assert code == 200 and rows['current']['projection']['posting']['to_station_code'] == 'ST-002'

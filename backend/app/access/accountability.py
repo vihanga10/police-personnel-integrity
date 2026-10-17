@@ -53,6 +53,8 @@ def action_for(path):
         name=path.split('/')[4].upper()
         return 'RESEARCH_REVIEW_'+name if name in ('SAVE','REQUEST','DECIDE','INSPECT','OPERATIONS','CAPABILITIES') else 'OTHER_REQUEST'
     if path in ACTION_PATHS:return ACTION_PATHS[path]
+    if re.fullmatch(r'/api/research/intake/datasets/[A-Z_]{1,31}/batches/[0-9]{1,4}',path):return 'DATASET_IMPORT_BATCHES'
+    if re.fullmatch(r'/api/research/intake/officers/'+UUID_RE,path):return 'DATASET_OFFICER_UPLOADS_READ'
     for pattern,action in [(r'/api/officers/'+UUID_RE,'OFFICER_IDENTITY_READ'),
       (r'/api/research/officers/'+UUID_RE+r'/requests','RECENT_REQUESTS_READ'),
       (r'/api/research/officers/'+UUID_RE+r'/application-anchoring','APPLICATION_ANCHOR_READ'),

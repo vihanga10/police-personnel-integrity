@@ -21,7 +21,7 @@ const click=(f,text)=>{const b=[...f.d.querySelectorAll('button')].find(b=>b.tex
 test('dataset picker appears only when the dataset intake is configured and loads that dataset',async()=>{
     const f=setup();try{
         await wait(()=>f.d.getElementById('dataset-choice'));choose(f,'TRANSFER_HISTORY');
-        await wait(()=>f.calls.some(c=>c.url==='/api/research/intake/batches?dataset=TRANSFER_HISTORY'));
+        await wait(()=>f.calls.some(c=>c.url==='/api/research/intake/datasets/TRANSFER_HISTORY/batches/0'));
         assert(f.d.body.textContent.includes('Transfers imports'));
         assert(f.d.getElementById('source-system'));assert(!f.calls.some(c=>c.options.method==='POST'));
     }finally{f.dom.window.close();}
@@ -42,7 +42,7 @@ test('dataset preview sends the dataset code and the declared represented source
 
 test('IGP row review sends the exact evaluation reference and requires a reason and evidence reference',async()=>{
     let body;const accepted={...pending,row_acceptance:[{...pending.row_acceptance[0],status:'ACCEPTED',acceptance_basis:'INDEPENDENT_IGP_ROW_REVIEW'}]};
-    const f=setup((u,o)=>u.endsWith('/intake/capabilities')?response(intake({can_upload:false,can_approve:true})):u.includes('/intake/batches')?response({items:[body?accepted:pending]}):
+    const f=setup((u,o)=>u.endsWith('/intake/capabilities')?response(intake({can_upload:false,can_approve:true})):u.includes('/batches/')?response({items:[body?accepted:pending]}):
         u.endsWith('/intake/review')?(body=JSON.parse(o.body),response(accepted)):null,'IGP');
     try{await wait(()=>f.d.getElementById('dataset-choice'));choose(f,'TRANSFER_HISTORY');await wait(()=>f.d.body.textContent.includes('Accept row 1'));
         click(f,'Accept row 1');await wait(()=>f.d.body.textContent.includes('evidence reference'));assert.equal(body,undefined);
@@ -56,12 +56,12 @@ test('IGP row review sends the exact evaluation reference and requires a reason 
 
 test('blocking evidence conflicts disable acceptance; HQ never sees review controls',async()=>{
     const blocked={...pending,row_acceptance:[{...pending.row_acceptance[0],reasons:['FROM_POSTING_DIFFERS_FROM_CURRENT_ACCEPTED_SEQUENCE'],row_review_blocked:['FROM_POSTING_DIFFERS_FROM_CURRENT_ACCEPTED_SEQUENCE']}]};
-    const f=setup(u=>u.endsWith('/intake/capabilities')?response(intake({can_upload:false,can_approve:true})):u.includes('/intake/batches')?response({items:[blocked]}):null,'IGP');
+    const f=setup(u=>u.endsWith('/intake/capabilities')?response(intake({can_upload:false,can_approve:true})):u.includes('/batches/')?response({items:[blocked]}):null,'IGP');
     try{await wait(()=>f.d.getElementById('dataset-choice'));choose(f,'TRANSFER_HISTORY');await wait(()=>f.d.body.textContent.includes('Accept row 1'));
         assert.equal([...f.d.querySelectorAll('button')].find(b=>b.textContent==='Accept row 1').disabled,true);
         assert(f.d.body.textContent.includes('different station than the officer’s current accepted posting'));
     }finally{f.dom.window.close();}
-    const g=setup(u=>u.includes('/intake/batches')?response({items:[pending]}):null);
+    const g=setup(u=>u.includes('/batches/')?response({items:[pending]}):null);
     try{await wait(()=>g.d.getElementById('dataset-choice'));choose(g,'TRANSFER_HISTORY');await wait(()=>g.d.body.textContent.includes('transfers.csv'));
         assert(![...g.d.querySelectorAll('button')].some(b=>/row 1/.test(b.textContent)));}finally{g.dom.window.close();}
 });

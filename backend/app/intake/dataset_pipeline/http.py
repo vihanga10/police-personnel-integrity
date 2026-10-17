@@ -6,7 +6,7 @@ from app.access.policy import AccessError
 from .core import IntakeError
 
 BASE = '/api/research/intake/'
-ROUTES = ('capabilities', 'preview', 'commit', 'decide', 'review', 'resume', 'batches')
+ROUTES = ('capabilities', 'preview', 'commit', 'decide', 'review', 'resume')
 
 
 def register(api, runtime, token, body):
@@ -15,7 +15,8 @@ def register(api, runtime, token, body):
     ACTION_PATHS.update(additions)
     ACTIONS.update(additions.values())
     ACTIONS.update({'DATASET_PREVIEW_RETAINED', 'DATASET_IMPORT_REAUTHORIZATION_RECEIVED', 'DATASET_PIPELINE_WORKER',
-                    'PERSONNEL_INTAKE_DECISION_RETAINED'})
+                    'PERSONNEL_INTAKE_DECISION_RETAINED',
+                    'DATASET_IMPORT_BATCHES', 'DATASET_OFFICER_UPLOADS_READ'})
 
     @api.exception_handler(IntakeError)
     async def invalid(request, exc):
@@ -64,13 +65,15 @@ def register(api, runtime, token, body):
         value = await body(request, {'batch_id', 'file_sha256'})
         return await run_in_threadpool(service.resume, token(request), request.headers.get('x-csrf-token', ''), value)
 
-    @api.get(BASE + 'batches')
-    async def batches(request: Request):
-        try:
-            offset = int(request.query_params.get('offset', '0'))
-        except ValueError:
-            raise AccessError(400, 'INVALID_BATCH_PAGE') from None
-        code = request.query_params.get('dataset') or None
+    # The request boundary forbids query strings, so paging lives in the path.
+    @api.get(BASE + 'datasets/{code}/batches/{offset}')
+    async def batches(code: str, offset: str, request: Request):
+        if not offset.isdigit() or len(offset) > 4:
+            raise AccessError(400, 'INVALID_BATCH_PAGE')
+        offset = int(offset)
+        from .registry import CODES
+        if code not in CODES:
+            raise AccessError(404, 'NOT_FOUND')
         result = await run_in_threadpool(required().listing, token(request), offset, code)
         for item in result['items']:
             item['processing_issue'] = runtime.errors.get(item['batch_id'])
