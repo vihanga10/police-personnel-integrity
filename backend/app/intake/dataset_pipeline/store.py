@@ -13,6 +13,12 @@ REFERENCE_SCHEMA = '''CREATE TABLE IF NOT EXISTS ref_index(id TEXT NOT NULL, seq
 CREATE TRIGGER IF NOT EXISTS no_ref_index_update BEFORE UPDATE ON ref_index BEGIN SELECT RAISE(ABORT,'immutable intake evidence'); END;
 CREATE TRIGGER IF NOT EXISTS no_ref_index_delete BEFORE DELETE ON ref_index BEGIN SELECT RAISE(ABORT,'immutable intake evidence'); END;'''
 # Reported cross-row references the reviewed SRB planner resolves for overrides.
+ORIGINAL_SCHEMA = '''CREATE TABLE IF NOT EXISTS original_commitments(id TEXT PRIMARY KEY, value BLOB NOT NULL);
+CREATE TABLE IF NOT EXISTS original_commitment_meta(id INTEGER PRIMARY KEY CHECK(id=1), value BLOB NOT NULL);
+CREATE TRIGGER IF NOT EXISTS no_original_commitments_update BEFORE UPDATE ON original_commitments BEGIN SELECT RAISE(ABORT,'immutable intake evidence'); END;
+CREATE TRIGGER IF NOT EXISTS no_original_commitments_delete BEFORE DELETE ON original_commitments BEGIN SELECT RAISE(ABORT,'immutable intake evidence'); END;
+CREATE TRIGGER IF NOT EXISTS no_original_commitment_meta_update BEFORE UPDATE ON original_commitment_meta BEGIN SELECT RAISE(ABORT,'immutable intake evidence'); END;
+CREATE TRIGGER IF NOT EXISTS no_original_commitment_meta_delete BEFORE DELETE ON original_commitment_meta BEGIN SELECT RAISE(ABORT,'immutable intake evidence'); END;'''
 REFERENCES = {'restriction_id': 'officer_restrictions.csv', 'transfer_id': 'transfer_history.csv'}
 
 
@@ -28,6 +34,32 @@ class DatasetStore(IntakeStore):
         with self.transaction() as c:
             check(c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='ref_index'").fetchone(),
                   'INTAKE_SCHEMA_DIFFERS')
+
+    # Original anchored batch: one pseudonymous commitment and Merkle proof per officer (installed once).
+    def install_original_commitments(self, meta, entries):
+        """entries: {officer_uid: {...}}. Atomic and one-time; keyed by a keyed opaque index, never by UID."""
+        check(set(meta) >= {'merkle_root', 'batch_publication_id', 'officers'} and meta['officers'] == len(entries), 'ORIGINAL_COMMITMENT_META_DIFFERS')
+        with sqlite3.connect(self.path) as c:
+            c.executescript(ORIGINAL_SCHEMA)
+        with self.transaction() as c:
+            check(c.execute('SELECT COUNT(*) FROM original_commitments').fetchone()[0] == 0 and
+                  c.execute('SELECT COUNT(*) FROM original_commitment_meta').fetchone()[0] == 0, 'ORIGINAL_COMMITMENTS_ALREADY_INSTALLED')
+            for officer, entry in sorted(entries.items()):
+                ident = opaque(self.key, 'ORIGINAL_COMMITMENT', officer)
+                c.execute('INSERT INTO original_commitments VALUES(?,?)', (ident, self.seal('ORIGINAL_COMMITMENT', ident, entry)))
+            c.execute('INSERT INTO original_commitment_meta VALUES(1,?)', (self.seal('ORIGINAL_COMMITMENT_META', 1, meta),))
+
+    def original_commitment(self, officer):
+        """(entry, meta) for one officer, or None when the index was never installed or lacks the officer."""
+        ident = opaque(self.key, 'ORIGINAL_COMMITMENT', officer)
+        with self.transaction() as c:
+            if not c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='original_commitments'").fetchone():
+                return None
+            row = c.execute('SELECT value FROM original_commitments WHERE id=?', (ident,)).fetchone()
+            meta = c.execute('SELECT value FROM original_commitment_meta WHERE id=1').fetchone()
+        if row is None or meta is None:
+            return None
+        return self.open('ORIGINAL_COMMITMENT', ident, row[0]), self.open('ORIGINAL_COMMITMENT_META', 1, meta[0])
 
     # Dataset hooks used by the shared delivery/publication worker.
     def source_key(self, row):

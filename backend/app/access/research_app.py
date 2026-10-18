@@ -52,7 +52,7 @@ def create_app(store, *, origin, assets=None):
     # Reuse the established dashboard-read audit action without changing
     # the pinned accountability worker source or any private configuration.
     from app.access.accountability import ACTION_PATHS, ACTIONS
-    ACTIONS.add('UPLOAD_HISTORY_READ')
+    ACTIONS.add('UPLOAD_HISTORY_READ');ACTIONS.add('OFFICER_INTEGRITY_READ')
     ACTION_PATHS['/api/research/personnel-dashboard']='UNIT_DASHBOARD_READ'
     ACTION_PATHS['/api/accountability/uploads']='UPLOAD_HISTORY_READ'
     service = ResearchService(store)
@@ -167,6 +167,14 @@ def create_app(store, *, origin, assets=None):
         if datasets is not None:
             datasets.check_pins()
             result['uploaded_records']=await run_in_threadpool(datasets.service.officer_rows,token(request),officer_uid)
+        return result
+
+    @api.get('/api/research/officers/{officer_uid}/integrity')
+    async def officer_integrity_view(officer_uid:str, request:Request):
+        from app.access.officer_integrity import officer_integrity
+        await run_in_threadpool(service.authorized, token(request), officer_uid, charge=False)
+        result=await run_in_threadpool(officer_integrity, service, officer_uid)
+        await run_in_threadpool(service.authorized, token(request), officer_uid, charge=False)
         return result
 
     @api.get('/api/research/officers/{officer_uid}/requests')

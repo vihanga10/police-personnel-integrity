@@ -2,6 +2,7 @@
 import base64
 import json
 import subprocess
+import pytest
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
@@ -115,3 +116,93 @@ def test_upload_history_lists_record_type_times_stages_and_no_row_values(d):
     assert older['acceptance']['ACCEPTED'] == 1 and older['current_stage'] in ('ROW_EVALUATED', 'ROW_REVIEWED')
     blob = json.dumps(result)
     assert NIC not in blob and 'Kandy' not in blob and 'ST-002' not in blob
+
+
+def _fake_original(store, officer, officers=5, tamper=False):
+    import hashlib
+    from app.intake.dataset_pipeline import merkle_proof as M
+    leaves = [hashlib.sha256(('officer-%d' % i).encode()).digest() for i in range(officers)]
+    nodes = [M.leaf_node(x) for x in leaves]
+    entry = {'publication_id': 'a' * 64, 'commitment': 'b' * 64, 'leaf_index': 2, 'leaf_sha256': nodes[2].hex(), 'proof': M.proof(nodes, 2)}
+    if tamper:
+        entry['leaf_sha256'] = nodes[3].hex()
+    meta = {'policy': 'OFFICER_PROTECTED_COMMITMENT_V1', 'key_version': 'commit-v1', 'merkle_root': M.root(nodes), 'batch_publication_id': 'c' * 64,
+            'batch_commitment': 'd' * 64, 'public_payload_sha256': 'e' * 64, 'officers': 1, 'leaves': officers,
+            'sepolia_contract': '0x' + '1' * 40, 'sepolia_chain_id': 11155111, 'sepolia_sealing_block': '0x1', 'sepolia_sealing_block_hash': '0x2',
+            'fabric_channel': 'personnel', 'fabric_chaincode': 'officer-evidence-v1', 'verified_on': '2026-10-09', 'verification_basis': 'TEST'}
+    store.install_original_commitments(meta, {officer: entry})
+    return meta
+
+
+def test_merkle_proofs_equal_the_production_tree_for_many_sizes():
+    import hashlib
+    from app.intake.dataset_pipeline import merkle_proof as M
+    from app.intake.promotion_pipeline.core import merkle
+    for n in (1, 2, 3, 5, 8, 13, 100):
+        leaves = [hashlib.sha256(str(i).encode()).hexdigest() for i in range(n)]
+        nodes = [M.leaf_node(bytes.fromhex(x)) for x in leaves]
+        assert M.root(nodes) == merkle(leaves)
+        assert all(M.fold(nodes[i], M.proof(nodes, i)) == merkle(leaves) for i in range(n))
+    assert M.fold(M.leaf_node(b'x' * 32), M.proof(nodes, 0)) != merkle(leaves)
+
+
+def test_officer_integrity_shows_uploads_inclusion_and_a_checkpoint_chain(d):
+    from app.access.officer_integrity import officer_integrity
+    from research_workspace_fixture import identifier
+    empty = officer_integrity(d['service'], identifier(1))
+    assert empty['uploads'] == [] and empty['original'] is None and empty['checkpoint_chain']['length'] == 0
+    assert empty['checkpoint_chain']['head'] == '0' * 64
+    s1 = published(d, 'transfer_history.csv', [transfer(from_station_code=d['origin_station'])])
+    one = officer_integrity(d['service'], identifier(1))
+    assert len(one['uploads']) == 1 and one['all_recomputed_checks_passed'] is True
+    up = one['uploads'][0]
+    assert up['record_type'] == 'TRANSFER_HISTORY' and up['root_matches_published'] and up['all_rows_included'] and up['rows_for_officer'][0]['included']
+    assert up['fabric_transaction_id'] == 'b' * 64 and up['batch_id'] == s1['batch_id']
+    assert one['checkpoint_chain']['length'] == 1 and one['checkpoint_chain']['links'][0]['previous'] == '0' * 64
+    s2 = published(d, 'officer_education.csv', [row('officer_education.csv', officer_nic_no=NIC, ol_year='2012')])
+    two = officer_integrity(d['service'], identifier(1))
+    links = two['checkpoint_chain']['links']
+    assert [l['record_type_label'] for l in links] == ['Transfers', 'Education'] and links[1]['previous'] == links[0]['hash']
+    assert two['checkpoint_chain']['head'] == links[1]['hash'] != one['checkpoint_chain']['head']
+    assert officer_integrity(d['service'], identifier(1))['checkpoint_chain'] == two['checkpoint_chain']
+    assert NIC not in json.dumps(two) and 'Kandy' not in json.dumps(two)
+
+
+def test_original_fingerprint_is_shown_and_a_wrong_proof_is_flagged(d):
+    from app.access.officer_integrity import officer_integrity
+    from research_workspace_fixture import identifier
+    meta = _fake_original(d['dataset_store'], identifier(1))
+    view = officer_integrity(d['service'], identifier(1))
+    assert view['original_available'] and view['original']['inclusion_verified'] and view['original']['merkle_root'] == meta['merkle_root']
+    assert view['original']['commitment'] == 'b' * 64 and view['all_recomputed_checks_passed']
+    assert view['checkpoint_chain']['genesis'] == view['original']['leaf_sha256']
+    assert officer_integrity(d['service'], identifier(2))['original'] is None
+    from app.intake.promotion_pipeline.core import IntakeError
+    with pytest.raises(IntakeError, match='ORIGINAL_COMMITMENTS_ALREADY_INSTALLED'):
+        _fake_original(d['dataset_store'], identifier(1))
+
+
+def test_tampered_original_proof_and_tampered_batch_leaves_are_detected(d):
+    from app.access.officer_integrity import officer_integrity
+    from research_workspace_fixture import identifier
+    _fake_original(d['dataset_store'], identifier(1), tamper=True)
+    bad = officer_integrity(d['service'], identifier(1))
+    assert bad['original']['inclusion_verified'] is False and bad['all_recomputed_checks_passed'] is False
+    published(d, 'transfer_history.csv', [transfer(from_station_code=d['origin_station'])])
+    real = d['dataset_store'].publication
+
+    def altered(batch):
+        payload, manifest = real(batch)
+        return payload, dict(manifest, rows=['9' * 64] + manifest['rows'][1:])
+    d['dataset_store'].publication = altered
+    broken = officer_integrity(d['service'], identifier(1))
+    # The analysis layer already refuses a batch whose recomputed commitment differs; the view reports it plainly.
+    assert broken['all_recomputed_checks_passed'] is False and 'ANALYSIS_VISIBILITY_BINDING_DIFFERS' in broken['verification_errors']
+    assert broken['uploads'] == []
+
+
+def test_integrity_section_and_route_are_registered_for_logging():
+    from app.access.accountability import action_for
+    from app.access.accountability_activity import SECTIONS
+    assert 'integrity' in SECTIONS
+    assert action_for('/api/research/officers/' + str(uuid4()) + '/integrity') == 'OFFICER_INTEGRITY_READ'

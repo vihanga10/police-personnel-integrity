@@ -1,6 +1,6 @@
 """Client-reported display events: authenticated and scoped, never human-read proof."""
 from app.access.policy import AccessError,require,uid,projection,permitted
-SECTIONS=('overview','history','authority','contradictions','reviews','anchoring')
+SECTIONS=('overview','history','authority','contradictions','reviews','anchoring','integrity')
 def section_display(service,token,csrf,value):
     try:
         require(set(value)=={'officer_uid','section','event_id'} and value['section'] in SECTIONS)

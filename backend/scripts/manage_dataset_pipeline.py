@@ -336,6 +336,74 @@ def export_registrations(args, workspace, origin):
             'next': 'Apply with the operator registration step while PostgreSQL and the signing keys are available.'}
 
 
+def export_original_commitments(args, workspace, origin):
+    """Install each officer's ORIGINAL anchored commitment and Merkle proof into the intake store (one time).
+
+    Uses the protected commitment artifact and both key copies inside this tool only; no key
+    material is printed or stored. Every officer's entry is checked against the published
+    payload digest, and the recomputed tree root must equal the root anchored on Fabric and Sepolia.
+    """
+    M.ensure_stopped(origin)
+    from app.identity.bind_evidence_destinations import private_path
+    from app.identity.evidence_bundle_v2 import open_artifact
+    from app.identity.generate_protected_commitments import load_keys
+    from app.identity.protected_commitment import digest as commitment_digest, encoded
+    from app.identity.public_anchor_authorization import PUBLIC_SHA
+    from app.identity.register_profiles import private_key_file, verify_recovery
+    from app.intake.dataset_pipeline import merkle_proof as MP
+    evidence = Path.home() / 'ResearchEvidence/police-personnel-integrity/protected-commitment-attempts'
+    attempt = sorted(evidence.iterdir())[-1] if args.commitment_attempt is None else args.commitment_attempt
+    secrets_dir = args.repository / 'backend/.secrets'
+    crypto = private_key_file(private_path(secrets_dir / 'identity-keys.json'))
+    backup = private_key_file(private_path(base_keys() / 'identity-keys-initial.json'))
+    verify_recovery(crypto, backup)
+    public = json.loads(private_path(attempt / 'public-commitments.json').read_text())
+    check(commitment_digest(public) == PUBLIC_SHA, 'EXACT_ORIGINAL_PUBLICATION_REQUIRED')
+    envelope = json.loads(private_path(attempt / 'commitments.encrypted.json').read_text())
+    saved = open_artifact(crypto, envelope, envelope['binding'])
+    check(open_artifact(backup, envelope, envelope['binding']) == saved and saved['public'] == public, 'COMMITMENT_RECOVERY_DIFFERS')
+    nodes = [MP.leaf_node(encoded(dict(kind='OFFICER', **r))) for r in public['officers']]
+    batch_leaf = dict(kind='BATCH', publication_id=public['batch_publication_id'], commitment=public['batch_commitment'])
+    nodes.append(MP.leaf_node(encoded(batch_leaf)))
+    check(MP.root(nodes) == public['merkle_root'], 'RECOMPUTED_ROOT_DIFFERS_FROM_ANCHORED_ROOT')
+    position = {r['publication_id']: i for i, r in enumerate(public['officers'])}
+    by_handle = {r['publication_id']: r for r in public['officers']}
+    entries = {}
+    for item in saved['officers']:
+        record = by_handle[item['publication_id']]
+        check(record['commitment'] == item['commitment'], 'OFFICER_COMMITMENT_DIFFERS')
+        i = position[item['publication_id']]
+        entries[item['officer_uid']] = {'publication_id': record['publication_id'], 'commitment': record['commitment'], 'leaf_index': i,
+            'leaf_sha256': nodes[i].hex(), 'proof': MP.proof(nodes, i)}
+    check(len(entries) == len(public['officers']) == 6596 and len({e['publication_id'] for e in entries.values()}) == 6596, 'OFFICER_INDEX_INCOMPLETE')
+    known = {o['officer_uid'] for o in directory_of(workspace)['officers']}
+    check(set(entries) == known, 'DIRECTORY_AND_COMMITMENT_OFFICERS_DIFFER')
+    # Public anchoring facts recorded when the original batch was verified on both chains (2026-10-09 checkpoint).
+    meta = {'policy': public['policy'], 'key_version': public['key_version'], 'merkle_root': public['merkle_root'],
+            'batch_publication_id': public['batch_publication_id'], 'batch_commitment': public['batch_commitment'],
+            'public_payload_sha256': PUBLIC_SHA, 'officers': len(entries), 'leaves': len(nodes),
+            'sepolia_contract': '0x4Ae794040d9794cd3b50BB06Fd41eE540c2435a6', 'sepolia_chain_id': 11155111,
+            'sepolia_sealing_block': '0xb52fdb', 'sepolia_sealing_block_hash': '0xb211ead1932bc3a4d083e215e81521750f3a4c23c596ffc5d4c693be861275db',
+            'fabric_channel': 'personnel', 'fabric_chaincode': 'officer-evidence-v1', 'verified_on': '2026-10-09',
+            'verification_basis': 'FABRIC_68_TRANSACTIONS_AND_SEPOLIA_68_TRANSACTIONS_EXACT_READBACK'}
+    store = DatasetStore(args.state_root, args.state_root / 'intake.key', args.backup_root / 'intake.key', repo=args.repository)
+    try:
+        store.install_original_commitments(meta, entries)
+        status = 'ORIGINAL_COMMITMENTS_INSTALLED'
+    except Exception as error:
+        check(getattr(error, 'code', '') == 'ORIGINAL_COMMITMENTS_ALREADY_INSTALLED', 'ORIGINAL_COMMITMENT_INSTALL_FAILED')
+        status = 'ORIGINAL_COMMITMENTS_ALREADY_INSTALLED'
+    sample = next(iter(entries))
+    got = store.original_commitment(sample)
+    check(got is not None and got[0] == entries[sample] and got[1] == meta, 'INSTALLED_COMMITMENT_READBACK_DIFFERS')
+    return {'status': status, 'officers': len(entries), 'recomputed_root_matches_anchored_root': True,
+            'merkle_root': meta['merkle_root'], 'keys_printed': False, 'chain_submitted': False}
+
+
+def base_keys():
+    return Path.home() / 'ResearchKeys/police-personnel-integrity'
+
+
 def edit_workspace(args, change, label):
     file = private(args.workspace_config, repo=args.repository)
     raw = file.read_bytes()
@@ -453,7 +521,7 @@ def main():
     data = home / 'ResearchData/police-personnel-integrity/verified/BATCH-RAW-001'
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('command', choices=['initialize', 'storage', 'wallet', 'network', 'public-preview', 'public-deploy',
-                                       'public-reconcile', 'configure', 'enable', 'disable', 'verify-batch', 'retry-retained', 'refresh-pins', 'export-registrations'])
+                                       'public-reconcile', 'configure', 'enable', 'disable', 'verify-batch', 'retry-retained', 'refresh-pins', 'export-registrations', 'export-original-commitments'])
     p.add_argument('--repository', type=Path, default=home / 'Developer/police-personnel-integrity')
     p.add_argument('--workspace-config', type=Path, default=base / 'research-app-v1/workspace-config.json')
     p.add_argument('--state-root', type=Path, default=base / 'application-intake-v1')
@@ -473,6 +541,7 @@ def main():
     p.add_argument('--wallet-backup', type=Path, default=base / 'intake-sepolia-v1-backup')
     p.add_argument('--existing-wallet', type=Path, default=base / 'sepolia-v1')
     p.add_argument('--promotion-wallet', type=Path, default=base / 'promotions-sepolia-v1')
+    p.add_argument('--commitment-attempt', type=Path, default=None)
     p.add_argument('--batch-id')
     p.add_argument('--chain', choices=['fabric', 'public'])
     a = p.parse_args()
@@ -485,7 +554,8 @@ def main():
     handler = (public_operation if a.command.startswith('public-') else
                verify_batch if a.command in ('verify-batch', 'retry-retained') else
                refresh_pins if a.command == 'refresh-pins' else
-               export_registrations if a.command == 'export-registrations' else globals()[a.command])
+               export_registrations if a.command == 'export-registrations' else
+               export_original_commitments if a.command == 'export-original-commitments' else globals()[a.command])
     print(json.dumps(handler(a, workspace, origin), indent=2))
 
 

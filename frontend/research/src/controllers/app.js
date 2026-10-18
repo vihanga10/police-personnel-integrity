@@ -6,7 +6,7 @@ export default function initialize(){
   const $ = id => document.getElementById(id);
   const state = {csrf:'', epoch:0, selection:0, query:0, officer:null, workspace:null,
     answer:null, search:null, offset:0, pending:null, lastOperation:null, submitting:false};
-  const tabs = ['overview','history','authority','contradictions','reviews','anchoring'];
+  const tabs = ['overview','history','authority','contradictions','reviews','anchoring','integrity'];
   const phrases = {
     LOGIN_REQUIRED:'Your session ended. Sign in again.', INVALID_CREDENTIALS:'The account, password or authenticator code was not accepted. Check the current six-digit code.',
     ACCESS_DENIED:'Your current access grant is unavailable. Contact your administrator.',
@@ -85,8 +85,8 @@ export default function initialize(){
       if(epoch===state.epoch&&selection===state.selection&&state.csrf)message('app-message','The section display report could not be confirmed. Server query logs remain separate.','error');
     });
   }
-  function tab(name,focus=false){reportSection(name);for(const t of tabs){$('panel-'+t).hidden=t!==name;$('tab-'+t).setAttribute('aria-selected',String(t===name));$('tab-'+t).tabIndex=t===name?0:-1;}if(focus)$('tab-'+name).focus();if(name==='authority'&&state.workspace?.priority2_available&&!state.authorityAnswer)inspectAuthority(0);if(name==='anchoring'&&state.officer)loadApplicationAnchoring();}
-  function clearOfficer(){ document.querySelector('.page-heading').hidden=false; $('posting-dashboard').hidden=true;$('posting-fields').replaceChildren();$('posting-dashboard-note').textContent='';for(const id of ["authority-chart","comparison-chart"])clearChart(id); $('officer-selector').hidden=false;clearWorkflows();state.selection++;state.query++;state.officer=null;state.workspace=null;state.answer=null;state.pending=null;state.lastOperation=null;state.submitting=false;$('officer-workspace').hidden=true;$('welcome-state').hidden=false;$('workspace-body').hidden=true;for(const id of ['full-records','overview-metrics','authority-results','history-results','contradiction-results','findings-results','anchoring-results','application-anchoring-results','request-status','recent-requests'])$(id).replaceChildren();$('review-reason').value='';$('operation-id').value='';$('review-finding').replaceChildren();$('officer-name').textContent='';$('officer-nic').textContent='';$('observation-label').textContent='';$('coverage-label').textContent='';$('effective-date').value='';$('known-date').value='';$('authority-date').value='';$('authority-outcome').value='ALL';message('review-message');message('workspace-state');$('check-last-request').hidden=true;$('review-button').textContent='Retain review request';$('history-button').disabled=false;$('unit-dashboard').hidden=!state.unit||!$('dashboard-metrics').children.length;}
+  function tab(name,focus=false){reportSection(name);for(const t of tabs){$('panel-'+t).hidden=t!==name;$('tab-'+t).setAttribute('aria-selected',String(t===name));$('tab-'+t).tabIndex=t===name?0:-1;}if(focus)$('tab-'+name).focus();if(name==='authority'&&state.workspace?.priority2_available&&!state.authorityAnswer)inspectAuthority(0);if(name==='anchoring'&&state.officer)loadApplicationAnchoring();if(name==='integrity'&&state.officer)loadIntegrity();}
+  function clearOfficer(){ document.querySelector('.page-heading').hidden=false; $('posting-dashboard').hidden=true;$('posting-fields').replaceChildren();$('posting-dashboard-note').textContent='';for(const id of ["authority-chart","comparison-chart"])clearChart(id); $('officer-selector').hidden=false;clearWorkflows();state.selection++;state.query++;integritySequence++;state.officer=null;state.workspace=null;state.answer=null;state.pending=null;state.lastOperation=null;state.submitting=false;$('officer-workspace').hidden=true;$('welcome-state').hidden=false;$('workspace-body').hidden=true;for(const id of ['full-records','overview-metrics','authority-results','history-results','contradiction-results','findings-results','anchoring-results','application-anchoring-results','integrity-results','integrity-summary','request-status','recent-requests'])$(id).replaceChildren();$('review-reason').value='';$('operation-id').value='';$('review-finding').replaceChildren();$('officer-name').textContent='';$('officer-nic').textContent='';$('observation-label').textContent='';$('coverage-label').textContent='';$('effective-date').value='';$('known-date').value='';$('authority-date').value='';$('authority-outcome').value='ALL';message('review-message');message('workspace-state');$('check-last-request').hidden=true;$('review-button').textContent='Retain review request';$('history-button').disabled=false;$('unit-dashboard').hidden=!state.unit||!$('dashboard-metrics').children.length;}
   function lock(text=''){clearShell();clearDirectoryDashboard();state.unit=null;clearDashboard();$('totp-code').value='';skipDestination(false);hideNavigation();state.epoch++;clearBrowse();state.csrf='';sessionDeadline=null;$('session-countdown').textContent='';clearOfficer();$('application').hidden=true;$('login-screen').hidden=false;$('search-results').replaceChildren();$('connected-results').replaceChildren();$('load-connected').disabled=false;$('search-query').value='';$('password').value='';$('password').type='password';$('show-password').setAttribute('aria-label','Show password');$('show-password').setAttribute('aria-pressed','false');$('username').value='';$('search-button').disabled=false;$('search-pagination').hidden=true;$('page-label').textContent='';state.search=null;for(const id of ['account-name','account-role','account-scope'])$(id).textContent='';message('login-message',text);}
   class Failure extends Error{constructor(code,status=0){super(words(code));this.code=code;this.status=status;}}
   async function api(path,body){
@@ -198,6 +198,40 @@ export default function initialize(){
     for(const row of value.items){const tr=node('tr');for(const key of columns)tr.append(node('td',row.fields[key]||'Not recorded'));tr.append(node('td',time(row.received_at)),node('td',row.publication.fabric_transaction_id),node('td',row.publication.public_transaction_id));body.append(tr);}
     table.append(head,body);wrap.append(table);section.append(wrap);root.append(section);
   }
+  let integritySequence=0;
+  function yes(ok){return ok?'Passed':'FAILED';}
+  function renderIntegrity(v){
+    const root=$('integrity-results');root.replaceChildren();
+    $('integrity-summary').textContent=v.all_recomputed_checks_passed?'All recomputed fingerprint checks passed. This was recomputed from retained evidence, not read from the chains just now.':'At least one recomputed check did not pass'+(v.verification_errors?.length?' ('+v.verification_errors.join(', ')+')':'')+'. Treat the affected record as unverified and inform the operator.';
+    const o=v.original,card=node('article',null,'card');card.append(node('h3','Original fingerprint'));
+    if(!o){card.append(node('p','The original per-officer fingerprint has not been installed for this system yet. The operator installs it once from the anchored batch.','notice'));}
+    else{
+      card.append(badge(o.inclusion_verified?'VERIFIED':'FAILED'),node('p','This officer\u2019s record from the original import is one of '+o.officers_in_batch+' officers in a single batch that was published on Fabric and on Sepolia.'),
+        node('p','Merkle check: the officer\u2019s commitment, combined with '+o.proof_length+' hashes, recomputes the anchored root \u2014 '+yes(o.inclusion_verified)+'.'),
+        details('Officer fingerprint (commitment)',o.commitment),details('Public pseudonym (publication ID)',o.publication_id),details('Leaf hash and position',o.leaf_sha256+'\nleaf index '+o.leaf_index),
+        details('Anchored batch Merkle root',o.merkle_root),details('Batch publication ID',o.batch_publication_id),
+        node('p','Sepolia contract '+o.sepolia_contract+' \u00b7 sealed in block '+o.sepolia_sealing_block+' \u00b7 Fabric channel '+o.fabric_channel+', chaincode '+o.fabric_chaincode+' \u00b7 verified '+o.verified_on+'.','small muted'));
+    }
+    root.append(card);
+    const up=node('article',null,'card');up.append(node('h3','Uploads that mention this officer'));
+    if(!v.uploads.length)up.append(node('p','No verified upload mentions this officer yet. Original records are unchanged.'));
+    else{
+      const wrap=node('div',null,'table-wrap'),table=node('table'),head=node('thead'),hr=node('tr');for(const t of ['Connected (Colombo)','Record type','File','Rows for this officer','Inclusion check','Batch Merkle root','Fabric transaction','Sepolia transaction'])hr.append(node('th',t));head.append(hr);
+      const body=node('tbody');for(const u of v.uploads){const tr=node('tr');for(const text of [time(u.activated_at),u.record_type_label,u.filename,u.rows_for_officer.map(r=>'row '+r.row).join(', ')+' of '+u.rows_in_batch,yes(u.root_matches_published&&u.all_rows_included)+' (recomputed root '+(u.root_matches_published?'equals':'DIFFERS from')+' the published root)',u.merkle_root,u.fabric_transaction_id,u.public_transaction_id])tr.append(node('td',text));body.append(tr);}
+      table.append(head,body);wrap.append(table);up.append(wrap);
+    }
+    root.append(up);
+    const ch=v.checkpoint_chain,chain=node('article',null,'card');chain.append(node('h3','Officer checkpoint chain'),node('p','Each link combines the previous link with one anchored upload batch and this officer\u2019s rows in it. A change to any earlier link changes every later one. '+(ch.length?ch.length+' link'+(ch.length===1?'':'s')+'.':'No links yet: the chain starts when the first upload is connected.')));
+    chain.append(details('Starting point'+(o?' (original fingerprint leaf)':' (no original fingerprint installed)'),ch.genesis));
+    const list=node('ol',null,'timeline');for(const l of ch.links){const li=node('li');li.append(node('strong','#'+l.sequence+' \u00b7 '+l.record_type_label+' \u00b7 '+time(l.activated_at)),details('Link hash',l.hash),details('Previous link',l.previous));list.append(li);}
+    chain.append(list,details('Current checkpoint head',ch.head),node('p',v.limits.join(' '),'small muted'));root.append(chain);
+  }
+  async function loadIntegrity(){
+    const selected=state.officer;if(!selected)return;const sequence=++integritySequence,epoch=state.epoch,selection=state.selection,root=$('integrity-results');
+    root.replaceChildren(node('p','Recomputing fingerprints from retained evidence\u2026'));$('integrity-summary').textContent='';
+    try{const value=await api('/api/research/officers/'+encodeURIComponent(selected.officer_uid)+'/integrity');if(sequence!==integritySequence||epoch!==state.epoch||selection!==state.selection)return;renderIntegrity(value);}
+    catch(e){if(sequence===integritySequence&&epoch===state.epoch&&selection===state.selection)root.replaceChildren(node('p','Fingerprints could not be recomputed right now. '+(e.message||''),'notice'));}
+  }
   function renderUploadedRecords(value){
     if(!value?.items?.length)return;
     const root=$('full-records'),section=node('section',null,'card source-section');
@@ -230,6 +264,7 @@ export default function initialize(){
       card.append(node('p','Independent witness deployment is not established by this local observation.','small muted'));root.replaceChildren(card);
     }catch(e){if(document?.documentElement&&sequence===anchorSequence&&epoch===state.epoch&&selection===state.selection)root.replaceChildren(node('p',e.message,'notice'));}
   }
+  $('refresh-integrity').addEventListener('click',loadIntegrity);
   $('refresh-workspace').addEventListener('click',async()=>{if(!state.officer)return;const selected=state.officer;await selectOfficer(selected);if(state.workspace)tab('anchoring');});
   $('use-recorded-boundary').addEventListener('click',()=>{if(!state.workspace?.coverage_end)return;$('query-timezone').value='UTC';$('known-date').value=new Date(state.workspace.coverage_end).toISOString().slice(0,23);state.knownBoundaryInput=$('known-date').value;message('app-message');});
   $('history-form').addEventListener('submit',async e=>{e.preventDefault();if(!state.officer||!state.workspace||$('history-button').disabled)return;const epoch=state.epoch,sequence=state.selection,query=++state.query;let known;try{known=($('query-timezone').value==='UTC'&&$('known-date').value===state.knownBoundaryInput)?state.workspace.coverage_end:new Date($('known-date').value+($('query-timezone').value==='UTC'?'Z':'+05:30')).toISOString();}catch(e){message('app-message',words('INVALID_QUERY'),'error');return;}$('history-button').disabled=true;message('app-message');try{const answer=await api('/api/research/history',{officer_uid:state.officer.officer_uid,effective_on:$('effective-date').value,known_at:known});if(epoch!==state.epoch||sequence!==state.selection||query!==state.query)return;state.answer=answer;renderHistory(answer);}catch(err){if(epoch===state.epoch&&sequence===state.selection){state.answer=null;empty('history-results',err.message);message('app-message',err.message,'error');}}finally{if(epoch===state.epoch&&sequence===state.selection&&query===state.query)$('history-button').disabled=false;}});
