@@ -10,6 +10,8 @@ const response=(value,status=200)=>({ok:status<400,status,json:async()=>structur
 const wait=async check=>{for(let n=0;n<200;n++){if(check())return;await new Promise(r=>setTimeout(r,5));}throw Error('DOM workflow did not settle');};
 const view={policy:'OFFICER_INTEGRITY_VIEW_V1',original_available:true,all_recomputed_checks_passed:true,verification_errors:[],basis:'RECOMPUTED_FROM_RETAINED_ENCRYPTED_EVIDENCE',
   original:{publication_id:'p'.repeat(64),commitment:'c'.repeat(64),leaf_sha256:'1'.repeat(64),leaf_index:12,proof_length:13,recomputed_root:'r'.repeat(64),inclusion_verified:true,merkle_root:'r'.repeat(64),
+    anchors:{chunk:32,chunk_size:100,transactions_per_chain:68,fabric:{transaction_id:'3'.repeat(64),block_number:110,validation_code:0},sepolia:{transaction_hash:'0x'+'4'.repeat(64),block:'0xb52cb5',block_hash:'0x'+'5'.repeat(64)},
+      fabric_begin:{transaction_id:'6'.repeat(64)},fabric_seal:{transaction_id:'7'.repeat(64)},sepolia_begin:{transaction_hash:'0x'+'8'.repeat(64)},sepolia_final:{transaction_hash:'0x'+'9'.repeat(64)}},
     batch_publication_id:'b'.repeat(64),sepolia_contract:'0x4Ae794040d9794cd3b50BB06Fd41eE540c2435a6',sepolia_sealing_block:'0xb52fdb',fabric_channel:'personnel',fabric_chaincode:'officer-evidence-v1',verified_on:'2026-10-09',officers_in_batch:6596},
   uploads:[{record_type:'TRANSFER_HISTORY',record_type_label:'Transfers',batch_id:'x',filename:'<img src=x onerror=alert(1)>.csv',uploaded_at:'2026-10-18T08:00:00Z',activated_at:'2026-10-18T08:30:00Z',activation_reference:'a'.repeat(64),
     rows_for_officer:[{row:1,leaf_sha256:'2'.repeat(64),included:true}],rows_in_batch:5,publication_id:'q'.repeat(64),merkle_root:'m'.repeat(64),recomputed_root:'m'.repeat(64),root_matches_published:true,all_rows_included:true,
@@ -28,7 +30,7 @@ async function setup(handler){
 test('integrity tab shows the original fingerprint, uploads and checkpoint chain as safe text',async()=>{
   const t=await setup(router());try{t.d.getElementById('tab-integrity').click();await wait(()=>t.d.getElementById('integrity-results').textContent.includes('Original fingerprint'));
     const text=t.d.getElementById('integrity-results').textContent;
-    for(const expected of ['one of 6596 officers','officer-evidence-v1','Uploads that mention this officer','Transfers','row 1 of 5','Officer checkpoint chain','1 link','Passed'])assert(text.includes(expected),expected);
+    for(const expected of ['one of 6596 officers','officer-evidence-v1','Uploads that mention this officer','Transfers','row 1 of 5','Officer checkpoint chain','1 link','Passed','Stored original receipts for this officer','chunk 32','block 110','3'.repeat(64),'4'.repeat(64)])assert(text.includes(expected),expected);
     assert(text.includes('<img src=x'));assert.equal(t.d.querySelector('#integrity-results img'),null);
     assert(t.d.getElementById('integrity-summary').textContent.includes('All recomputed fingerprint checks passed'));
     const call=t.calls.find(([u])=>u.endsWith('/integrity'));assert.equal(call[0],'/api/research/officers/'+uid+'/integrity');assert.equal(t.dom.window.localStorage.length,0);

@@ -176,6 +176,22 @@ def test_original_fingerprint_is_shown_and_a_wrong_proof_is_flagged(d):
     assert view['original_available'] and view['original']['inclusion_verified'] and view['original']['merkle_root'] == meta['merkle_root']
     assert view['original']['commitment'] == 'b' * 64 and view['all_recomputed_checks_passed']
     assert view['checkpoint_chain']['genesis'] == view['original']['leaf_sha256']
+    assert view['original']['anchors'] is None
+    receipts = {'batch_publication_id': 'c' * 64, 'merkle_root': meta['merkle_root'], 'chunk_size': 100,
+                'fabric': {**{'chunk-%03d' % i: {'transaction_id': '%064x' % i, 'block_number': 10 + i, 'validation_code': 0} for i in range(66)},
+                           'batch': {'transaction_id': 'f' * 64, 'block_number': 5, 'validation_code': 0},
+                           'seal': {'transaction_id': 'e' * 64, 'block_number': 99, 'validation_code': 0}},
+                'sepolia': [{'transaction_hash': '0x%064x' % i, 'block': hex(1000 + i), 'block_hash': '0x' + '9' * 64} for i in range(68)]}
+    d['dataset_store'].install_original_receipts(receipts)
+    anchors = officer_integrity(d['service'], identifier(1))['original']['anchors']
+    assert anchors['chunk'] == 0 and anchors['fabric']['transaction_id'] == '%064x' % 0 and anchors['sepolia']['transaction_hash'] == '0x%064x' % 1
+    assert anchors['transactions_per_chain'] == 68 and anchors['fabric_seal']['transaction_id'] == 'e' * 64
+    with pytest.raises(Exception, match='ORIGINAL_RECEIPTS_ALREADY_INSTALLED'):
+        d['dataset_store'].install_original_receipts(receipts)
+    import sqlite3
+    with pytest.raises(sqlite3.DatabaseError):
+        with sqlite3.connect(d['dataset_store'].path) as c:
+            c.execute('DELETE FROM original_receipts')
     assert officer_integrity(d['service'], identifier(2))['original'] is None
     from app.intake.promotion_pipeline.core import IntakeError
     with pytest.raises(IntakeError, match='ORIGINAL_COMMITMENTS_ALREADY_INSTALLED'):

@@ -21,7 +21,14 @@ def original(store, officer):
     entry, meta = found
     node = bytes.fromhex(entry['leaf_sha256'])
     recomputed = M.fold(node, entry['proof'])
-    return {'publication_id': entry['publication_id'], 'commitment': entry['commitment'], 'leaf_sha256': entry['leaf_sha256'],
+    receipts = store.original_receipts()
+    anchors = None
+    if receipts is not None and receipts['merkle_root'] == meta['merkle_root']:
+        chunk = entry['leaf_index'] // receipts['chunk_size']
+        anchors = {'chunk': chunk, 'chunk_size': receipts['chunk_size'], 'fabric': receipts['fabric']['chunk-%03d' % chunk],
+                   'sepolia': receipts['sepolia'][chunk + 1], 'fabric_begin': receipts['fabric']['batch'], 'fabric_seal': receipts['fabric']['seal'],
+                   'sepolia_begin': receipts['sepolia'][0], 'sepolia_final': receipts['sepolia'][-1], 'transactions_per_chain': len(receipts['sepolia'])}
+    return {'anchors': anchors, 'publication_id': entry['publication_id'], 'commitment': entry['commitment'], 'leaf_sha256': entry['leaf_sha256'],
             'leaf_index': entry['leaf_index'], 'proof_length': len(entry['proof']), 'recomputed_root': recomputed,
             'inclusion_verified': recomputed == meta['merkle_root'], **{k: meta[k] for k in meta if k != 'officers'},
             'officers_in_batch': meta['officers']}

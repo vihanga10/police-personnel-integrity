@@ -210,6 +210,14 @@ export default function initialize(){
         node('p','Merkle check: the officer\u2019s commitment, combined with '+o.proof_length+' hashes, recomputes the anchored root \u2014 '+yes(o.inclusion_verified)+'.'),
         details('Officer fingerprint (commitment)',o.commitment),details('Public pseudonym (publication ID)',o.publication_id),details('Leaf hash and position',o.leaf_sha256+'\nleaf index '+o.leaf_index),
         details('Anchored batch Merkle root',o.merkle_root),details('Batch publication ID',o.batch_publication_id),
+        ...(o.anchors?[node('h4','Stored original receipts for this officer'),
+          node('p','These are the saved receipts from the original publication, not recomputed values. This officer\u2019s commitment is in chunk '+o.anchors.chunk+' of the batch ('+o.anchors.chunk_size+' officers per chunk; '+o.anchors.transactions_per_chain+' transactions on each chain).','small muted'),
+          details('Fabric transaction (block '+o.anchors.fabric.block_number+', validation code '+o.anchors.fabric.validation_code+')',o.anchors.fabric.transaction_id),
+          details('Sepolia transaction (block '+parseInt(o.anchors.sepolia.block,16)+')',o.anchors.sepolia.transaction_hash),
+          details('Sepolia block hash',o.anchors.sepolia.block_hash),
+          details('Original batch begin \u00b7 Fabric / Sepolia',o.anchors.fabric_begin.transaction_id+'\n'+o.anchors.sepolia_begin.transaction_hash),
+          details('Original batch seal \u00b7 Fabric / Sepolia',o.anchors.fabric_seal.transaction_id+'\n'+o.anchors.sepolia_final.transaction_hash)]:
+          [node('p','The saved original chain receipts have not been installed yet.','notice')]),
         node('p','Sepolia contract '+o.sepolia_contract+' \u00b7 sealed in block '+o.sepolia_sealing_block+' \u00b7 Fabric channel '+o.fabric_channel+', chaincode '+o.fabric_chaincode+' \u00b7 verified '+o.verified_on+'.','small muted'));
     }
     root.append(card);

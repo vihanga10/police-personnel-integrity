@@ -19,6 +19,9 @@ CREATE TRIGGER IF NOT EXISTS no_original_commitments_update BEFORE UPDATE ON ori
 CREATE TRIGGER IF NOT EXISTS no_original_commitments_delete BEFORE DELETE ON original_commitments BEGIN SELECT RAISE(ABORT,'immutable intake evidence'); END;
 CREATE TRIGGER IF NOT EXISTS no_original_commitment_meta_update BEFORE UPDATE ON original_commitment_meta BEGIN SELECT RAISE(ABORT,'immutable intake evidence'); END;
 CREATE TRIGGER IF NOT EXISTS no_original_commitment_meta_delete BEFORE DELETE ON original_commitment_meta BEGIN SELECT RAISE(ABORT,'immutable intake evidence'); END;'''
+RECEIPT_SCHEMA = '''CREATE TABLE IF NOT EXISTS original_receipts(id INTEGER PRIMARY KEY CHECK(id=1), value BLOB NOT NULL);
+CREATE TRIGGER IF NOT EXISTS no_original_receipts_update BEFORE UPDATE ON original_receipts BEGIN SELECT RAISE(ABORT,'immutable intake evidence'); END;
+CREATE TRIGGER IF NOT EXISTS no_original_receipts_delete BEFORE DELETE ON original_receipts BEGIN SELECT RAISE(ABORT,'immutable intake evidence'); END;'''
 REFERENCES = {'restriction_id': 'officer_restrictions.csv', 'transfer_id': 'transfer_history.csv'}
 
 
@@ -60,6 +63,21 @@ class DatasetStore(IntakeStore):
         if row is None or meta is None:
             return None
         return self.open('ORIGINAL_COMMITMENT', ident, row[0]), self.open('ORIGINAL_COMMITMENT_META', 1, meta[0])
+
+    def install_original_receipts(self, receipts):
+        """The stored Fabric and Sepolia receipts of the original batch's 68 transactions each. Installed once."""
+        with sqlite3.connect(self.path) as c:
+            c.executescript(RECEIPT_SCHEMA)
+        with self.transaction() as c:
+            check(c.execute('SELECT COUNT(*) FROM original_receipts').fetchone()[0] == 0, 'ORIGINAL_RECEIPTS_ALREADY_INSTALLED')
+            c.execute('INSERT INTO original_receipts VALUES(1,?)', (self.seal('ORIGINAL_RECEIPTS', 1, receipts),))
+
+    def original_receipts(self):
+        with self.transaction() as c:
+            if not c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='original_receipts'").fetchone():
+                return None
+            row = c.execute('SELECT value FROM original_receipts WHERE id=1').fetchone()
+        return None if row is None else self.open('ORIGINAL_RECEIPTS', 1, row[0])
 
     # Dataset hooks used by the shared delivery/publication worker.
     def source_key(self, row):

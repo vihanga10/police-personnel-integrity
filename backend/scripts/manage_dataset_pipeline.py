@@ -336,6 +336,28 @@ def export_registrations(args, workspace, origin):
             'next': 'Apply with the operator registration step while PostgreSQL and the signing keys are available.'}
 
 
+def original_receipts(public, meta):
+    """Read the retained Fabric journals and Sepolia receipts of the original batch (read only) and check them against the batch."""
+    batch = public['batch_publication_id']
+    fabric_dir = Path.home() / 'ResearchEvidence/police-personnel-integrity/research-fabric-anchor-attempts/journals' / batch
+    sepolia_dir = base_keys() / 'sepolia-v1/publications' / batch
+    fabric = {}
+    for name in ['batch'] + ['chunk-%03d' % i for i in range(66)] + ['seal']:
+        item = json.loads((fabric_dir / (name + '.valid.json')).read_text())
+        check(item['successful'] is True and item['validation_code'] == 0 and item['network']['channel'] == meta['fabric_channel']
+              and item['network']['chaincode'] == meta['fabric_chaincode'], 'FABRIC_RECEIPT_DIFFERS')
+        fabric[name] = {'transaction_id': item['transaction_id'], 'block_number': int(item['block_number']), 'validation_code': item['validation_code']}
+    sepolia = []
+    for i in range(68):
+        item = json.loads((sepolia_dir / ('%02d-MINED.json' % i)).read_text())
+        check(item['index'] == i and item['identity']['merkle_root'].removeprefix('0x') == meta['merkle_root'] and item['identity']['batch'].removeprefix('0x') == batch
+              and item['identity']['contract'].lower() == meta['sepolia_contract'].lower() and item['receipt']['status'] == '0x1'
+              and item['receipt']['hash'] == item['transaction_hash'], 'SEPOLIA_RECEIPT_DIFFERS')
+        sepolia.append({'transaction_hash': item['transaction_hash'], 'block': item['receipt']['block'], 'block_hash': item['receipt']['block_hash']})
+    check(len({v['transaction_id'] for v in fabric.values()}) == 68 and len({t['transaction_hash'] for t in sepolia}) == 68, 'RECEIPTS_NOT_DISTINCT')
+    return {'batch_publication_id': batch, 'merkle_root': meta['merkle_root'], 'chunk_size': 100, 'fabric': fabric, 'sepolia': sepolia}
+
+
 def export_original_commitments(args, workspace, origin):
     """Install each officer's ORIGINAL anchored commitment and Merkle proof into the intake store (one time).
 
@@ -393,6 +415,10 @@ def export_original_commitments(args, workspace, origin):
     except Exception as error:
         check(getattr(error, 'code', '') == 'ORIGINAL_COMMITMENTS_ALREADY_INSTALLED', 'ORIGINAL_COMMITMENT_INSTALL_FAILED')
         status = 'ORIGINAL_COMMITMENTS_ALREADY_INSTALLED'
+    try:
+        store.install_original_receipts(original_receipts(public, meta))
+    except Exception as error:
+        check(getattr(error, 'code', '') == 'ORIGINAL_RECEIPTS_ALREADY_INSTALLED', 'ORIGINAL_RECEIPT_INSTALL_FAILED')
     sample = next(iter(entries))
     got = store.original_commitment(sample)
     check(got is not None and got[0] == json.loads(json.dumps(entries[sample])) and got[1] == meta, 'INSTALLED_COMMITMENT_READBACK_DIFFERS')
