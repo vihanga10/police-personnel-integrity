@@ -1,0 +1,1331 @@
+{
+ "total": 57,
+ "passed": 57,
+ "failed": [],
+ "cases": [
+  {
+   "id": "K01",
+   "rule": "same event date, different ranks, different sources: a contradiction candidate",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "K02",
+   "rule": "same event date, same rank: agreement",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_AGREEMENT"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_AGREEMENT"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "K03",
+   "rule": "distinct event dates are not a same-event contradiction",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "K04",
+   "rule": "distinct event dates with equal ranks are still not a contradiction",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "K05",
+   "rule": "a case-only difference is unresolved, never a candidate or agreement",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "K06",
+   "rule": "a whitespace-only difference is unresolved",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "K07",
+   "rule": "a blank value is unresolved",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "K08",
+   "rule": "three claims give three pairs: differing pairs are candidates, equal pair agrees",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ],
+    [
+     [
+      "a",
+      "c"
+     ],
+     "REPORTED_AGREEMENT"
+    ],
+    [
+     [
+      "b",
+      "c"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ],
+    [
+     [
+      "a",
+      "c"
+     ],
+     "REPORTED_AGREEMENT"
+    ],
+    [
+     [
+      "b",
+      "c"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "K09",
+   "rule": "a claim with no event date is unresolved",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "K10",
+   "rule": "a missing source label does not stop a candidate being found",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "K11",
+   "rule": "two differing claims carrying the same source label are still a candidate",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "K12",
+   "rule": "an event dated after the effective date is excluded, so nothing is compared",
+   "expected": [],
+   "observed": [],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "K13",
+   "rule": "a single claim yields no comparison",
+   "expected": [],
+   "observed": [],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "K14",
+   "rule": "four mutually different claims give six candidate pairs",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ],
+    [
+     [
+      "a",
+      "c"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ],
+    [
+     [
+      "a",
+      "d"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ],
+    [
+     [
+      "b",
+      "c"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ],
+    [
+     [
+      "b",
+      "d"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ],
+    [
+     [
+      "c",
+      "d"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ],
+    [
+     [
+      "a",
+      "c"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ],
+    [
+     [
+      "a",
+      "d"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ],
+    [
+     [
+      "b",
+      "c"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ],
+    [
+     [
+      "b",
+      "d"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ],
+    [
+     [
+      "c",
+      "d"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "K15",
+   "rule": "review-mode evidence stays unresolved",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "K16",
+   "rule": "snapshot evidence stays unresolved",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "K17",
+   "rule": "issue-bearing evidence stays unresolved",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "K18",
+   "rule": "a request after the knowledge date cannot establish a future state",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "passed": true,
+   "author_reading": true
+  },
+  {
+   "id": "T01",
+   "rule": "a claim recorded after known_at is invisible, so nothing is compared",
+   "expected": [],
+   "observed": [],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "T02",
+   "rule": "once recorded the same late claim creates the candidate",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "T03",
+   "rule": "before a correction the disagreement stands",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "T04",
+   "rule": "after the correction the corrected head agrees",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_AGREEMENT"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_AGREEMENT"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "T05",
+   "rule": "before a withdrawal the disagreement stands",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "T06",
+   "rule": "after a withdrawal the withdrawn claim no longer takes part",
+   "expected": [],
+   "observed": [],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "T07",
+   "rule": "a correction that moves one claim to another date turns the pair into no-conflict",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "T08",
+   "rule": "a claim recorded exactly at known_at takes part",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "T09",
+   "rule": "one microsecond earlier it does not",
+   "expected": [],
+   "observed": [],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "T10",
+   "rule": "a later arrival does not change an earlier comparison digest",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "N01",
+   "rule": "same type, different numbers, overlapping at the date: candidate",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "N02",
+   "rule": "same type, same number, overlapping: agreement",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_AGREEMENT"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_AGREEMENT"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "N03",
+   "rule": "different types may coexist: no conflict",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "N04",
+   "rule": "different types with the same number are still no conflict",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "N05",
+   "rule": "an interval that ended before the effective date is excluded",
+   "expected": [],
+   "observed": [],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "N06",
+   "rule": "an interval starting after the effective date is excluded",
+   "expected": [],
+   "observed": [],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "N07",
+   "rule": "a shared end day carries end-day ambiguity: unresolved",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "passed": true,
+   "author_reading": true
+  },
+  {
+   "id": "N08",
+   "rule": "two open-ended intervals overlapping at the date remain a candidate (with stated uncertainty)",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "passed": true,
+   "author_reading": true
+  },
+  {
+   "id": "N09",
+   "rule": "a blank number type is unresolved",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "N10",
+   "rule": "number types differing only by case are unresolved",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "passed": true,
+   "author_reading": true
+  },
+  {
+   "id": "N11",
+   "rule": "three same-type overlapping numbers give three candidate pairs",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ],
+    [
+     [
+      "a",
+      "c"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ],
+    [
+     [
+      "b",
+      "c"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ],
+    [
+     [
+      "a",
+      "c"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ],
+    [
+     [
+      "b",
+      "c"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "N12",
+   "rule": "namespaces are kept apart inside one set",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ],
+    [
+     [
+      "a",
+      "c"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ],
+    [
+     [
+      "b",
+      "c"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ],
+    [
+     [
+      "a",
+      "c"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ],
+    [
+     [
+      "b",
+      "c"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "X01",
+   "rule": "distinct restriction ids coexist: no conflict",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "X02",
+   "rule": "the same restriction reported identically agrees",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_AGREEMENT"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_AGREEMENT"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "X03",
+   "rule": "the same restriction id with a different effect is a candidate",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "X04",
+   "rule": "a whitespace-only difference in a restriction is unresolved",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "X05",
+   "rule": "an ended restriction is excluded at the effective date",
+   "expected": [],
+   "observed": [],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "X06",
+   "rule": "three distinct restrictions give three no-conflict pairs",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ],
+    [
+     [
+      "a",
+      "c"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ],
+    [
+     [
+      "b",
+      "c"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ],
+    [
+     [
+      "a",
+      "c"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ],
+    [
+     [
+      "b",
+      "c"
+     ],
+     "NO_REPORTED_CONFLICT_AT_POINT"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "S01",
+   "rule": "posting disagreement is unresolved (posting semantics unapproved)",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "S02",
+   "rule": "even identical posting reports stay unresolved",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "passed": true,
+   "author_reading": true
+  },
+  {
+   "id": "S03",
+   "rule": "service status disagreement is unresolved (semantics unapproved)",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "UNRESOLVED_COMPARISON"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "M01",
+   "rule": "claims of different dimensions are never compared with each other",
+   "expected": [],
+   "observed": [],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "M02",
+   "rule": "each dimension is compared inside its own group",
+   "expected": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ],
+    [
+     [
+      "c",
+      "d"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "observed": [
+    [
+     [
+      "a",
+      "b"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ],
+    [
+     [
+      "c",
+      "d"
+     ],
+     "REPORTED_CONTRADICTION_CANDIDATE"
+    ]
+   ],
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "J01",
+   "rule": "a knowledge time outside coverage is refused",
+   "expected": "REJECT",
+   "observed": "REJECT",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "J02",
+   "rule": "claim evidence that is not a JSON object is refused",
+   "expected": "REJECT",
+   "observed": "REJECT",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "J03",
+   "rule": "a repeated field name in the evidence is refused",
+   "expected": "REJECT",
+   "observed": "REJECT",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "J04",
+   "rule": "a non-text field value is refused",
+   "expected": "REJECT",
+   "observed": "REJECT",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "J05",
+   "rule": "a source reference without a filename is refused",
+   "expected": "REJECT",
+   "observed": "REJECT",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "J06",
+   "rule": "a correction may not change the dimension",
+   "expected": "REJECT",
+   "observed": "REJECT",
+   "passed": true,
+   "author_reading": false
+  }
+ ]
+}
