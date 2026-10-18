@@ -61,3 +61,26 @@ test('a new query or closing the officer clears an old comparison; values render
     t.d.getElementById('compare-known-date').value='2026-10-05T00:00';t.d.getElementById('compare-button').click();await wait(()=>t.d.querySelector('#compare-results table'));
     t.submit('history-form');await wait(()=>t.d.getElementById('compare-results').textContent==='');
   }finally{await settle();t.dom.window.close();}});
+const period=(rank,from,until,applies)=>({rank,reported_from:from,reported_until:until,applies_at_selected_date:applies,date_meaning:'Reported event date',boundary_basis:'Display boundary',source_categories:['Personal File registry']});
+const withTimeline=rows=>({...late,rank_timeline:rows});
+test('the visual timeline draws one bar per dated rank period, highlights the date asked and keeps the table',async()=>{
+  const rows=[period('Inspector','2010-01-01','2014-12-31',false),period('Chief Inspector','2015-01-01','2019-12-31',false),period('Senior Superintendent','2020-01-01',null,true),period('Unknown start',null,null,null)];
+  const t=await setup(router({'/api/research/history':()=>response(withTimeline(rows))}));
+  try{await ask(t);const svg=t.d.querySelector('.visual-timeline svg');assert(svg);
+    const bars=[...svg.querySelectorAll('rect.tl-bar')];assert.equal(bars.length,3);
+    assert.equal(svg.querySelectorAll('rect.tl-selected').length,1);assert(bars[2].classList.contains('tl-selected')&&bars[2].classList.contains('tl-open'));
+    const xs=bars.map(b=>Number(b.getAttribute('x')));assert(xs[0]<xs[1]&&xs[1]<xs[2],'bars are ordered in time');
+    const widths=bars.map(b=>Number(b.getAttribute('width')));assert(widths.every(w=>w>0));assert(Math.abs((xs[0]+widths[0])-xs[1])<4,'a period ends where the next one starts (end is the day before the next event)');
+    const ask_line=svg.querySelector('line.tl-asked');assert(ask_line);const ax=Number(ask_line.getAttribute('x1'));assert(ax>xs[2],'the date asked (2021-01-01) lies inside the last open period');
+    assert(svg.getAttribute('aria-label').includes('3 reported rank periods')&&svg.getAttribute('aria-label').includes('2021-01-01'));
+    assert(t.d.querySelector('.visual-timeline').textContent.includes('1 reported rank without a start date cannot be placed')&&t.d.querySelector('.visual-timeline').textContent.includes('Unknown start'));
+    assert(t.d.querySelector('.rank-periods table'),'the exact table is still shown');assert(svg.querySelector('title').textContent.includes('Inspector: 2010-01-01 to 2014-12-31'));
+  }finally{await settle();t.dom.window.close();}});
+test('the timeline escapes rank text, copes with one period, and is absent without data',async()=>{
+  const t=await setup(router({'/api/research/history':()=>response(withTimeline([period('<img src=x onerror=alert(1)>','2020-01-01','2020-12-31',true)]))}));
+  try{await ask(t);const svg=t.d.querySelector('.visual-timeline svg');assert.equal(svg.querySelectorAll('rect.tl-bar').length,1);assert.equal(t.d.querySelector('.visual-timeline img'),null);
+    assert(svg.querySelector('text.tl-label').textContent.includes('<img src=x'));assert(Number(svg.querySelector('rect.tl-bar').getAttribute('width'))>3);
+  }finally{await settle();t.dom.window.close();}
+  const n=await setup(router());try{await ask(n);assert.equal(n.d.querySelector('.visual-timeline'),null);}finally{await settle();n.dom.window.close();}
+  const o=await setup(router({'/api/research/history':()=>response(withTimeline([period('Only undated',null,null,null)]))}));
+  try{await ask(o);assert.equal(o.d.querySelector('.visual-timeline svg'),null);assert(o.d.querySelector('.visual-timeline').textContent.includes('cannot be placed'));}finally{await settle();o.dom.window.close();}});
