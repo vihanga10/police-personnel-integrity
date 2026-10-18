@@ -53,3 +53,8 @@ test('integrity results clear when the officer view is closed',async()=>{
   const t=await setup(router());try{t.d.getElementById('tab-integrity').click();await wait(()=>t.d.getElementById('integrity-results').textContent.includes('Original fingerprint'));
     t.d.getElementById('logout').click();assert.equal(t.d.getElementById('integrity-results').textContent,'');await new Promise(r=>setTimeout(r,100));
   }finally{t.dom.window.close();}});
+test('a read-only account is pointed to the working review page instead of a misleading permission message',async()=>{
+  const t=await setup(router());try{await new Promise(r=>setTimeout(r,50));const note=t.d.getElementById('review-message').textContent;
+    assert(note.includes('Reviews & corrections')&&note.includes('separately provisioned protected review flow'));assert(!note.includes('separately granted reviewer identity'));
+    assert.equal(t.d.getElementById('review-button').disabled,true);
+  }finally{await new Promise(r=>setTimeout(r,60));t.dom.window.close();}});
