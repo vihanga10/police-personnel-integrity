@@ -51,8 +51,10 @@ def create_app(store, *, origin, assets=None):
     require(type(store) is ResearchStore, 'Exact configured workspace store required')
     # Reuse the established dashboard-read audit action without changing
     # the pinned accountability worker source or any private configuration.
-    from app.access.accountability import ACTION_PATHS
+    from app.access.accountability import ACTION_PATHS, ACTIONS
+    ACTIONS.add('UPLOAD_HISTORY_READ')
     ACTION_PATHS['/api/research/personnel-dashboard']='UNIT_DASHBOARD_READ'
+    ACTION_PATHS['/api/accountability/uploads']='UPLOAD_HISTORY_READ'
     service = ResearchService(store)
     from app.access.workflow_service import WorkflowService
     workflows=WorkflowService(service)
@@ -98,6 +100,17 @@ def create_app(store, *, origin, assets=None):
             from app.access.accountability_anchor import status
             await run_in_threadpool(accountability.reader,token(request))
             result=await run_in_threadpool(status,accountability)
+            await run_in_threadpool(accountability.reader,token(request))
+            return result
+
+        @api.get('/api/accountability/uploads')
+        async def upload_pipeline_history(request:Request):
+            from app.access.upload_history import history
+            await run_in_threadpool(accountability.reader,token(request))
+            sources=[]
+            if runtime is not None:sources.append((('PROMOTIONS','Promotions'),runtime.store,service.promotion_acceptance,service.promotion_analysis))
+            if datasets is not None:sources.append((None,datasets.store,service.dataset_acceptance,service.dataset_analysis))
+            result=await run_in_threadpool(history,sources)
             await run_in_threadpool(accountability.reader,token(request))
             return result
 

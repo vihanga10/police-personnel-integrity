@@ -93,3 +93,25 @@ def test_real_http_boundary_hq_cannot_review_and_igp_review_is_origin_bound(d):
     assert action_for('/api/research/intake/datasets/TRANSFER_HISTORY/batches/0') == 'DATASET_IMPORT_BATCHES'
     code, _, rows = client.request('/api/research/intake/officers/' + s['rows'][0]['officer_uid'])
     assert code == 200 and rows['current']['projection']['posting']['to_station_code'] == 'ST-002'
+
+
+def test_upload_history_lists_record_type_times_stages_and_no_row_values(d):
+    from app.access.upload_history import history
+    s = published(d, 'transfer_history.csv', [transfer(from_station_code=d['origin_station'])])
+    review(d, s)
+    s2 = published(d, 'officer_education.csv', [row('officer_education.csv', officer_nic_no=NIC, ol_year='2011')])
+    result = history([(None, d['dataset_store'], d['dataset_engine'], d['dataset_analysis'])])
+    assert result['total'] == 2 and result['record_types'] == {'Education': 1, 'Transfers': 1}
+    newest, older = result['items']
+    assert (newest['record_type'], older['record_type']) == ('EDUCATION', 'TRANSFER_HISTORY')
+    stages = [e['stage'] for e in older['events']]
+    for required in ('UPLOAD_PREVIEW_RETAINED', 'SUBMITTED_FOR_IGP_APPROVAL', 'IGP_APPROVED_PROCESSING', 'BOTH_CHAINS_VERIFIED',
+                     'CONNECTED_TO_ANALYSIS', 'ROW_EVALUATED', 'ROW_REVIEWED'):
+        assert required in stages, required
+    times = [e['at'] for e in older['events']]
+    from datetime import datetime
+    assert times == sorted(times, key=lambda t: datetime.fromisoformat(t).timestamp())
+    assert older['uploader']['username'] == 'station.one' and older['rows'] == {'total': 1, 'ready': 1, 'duplicate': 0, 'needs_review': 0}
+    assert older['acceptance']['ACCEPTED'] == 1 and older['current_stage'] in ('ROW_EVALUATED', 'ROW_REVIEWED')
+    blob = json.dumps(result)
+    assert NIC not in blob and 'Kandy' not in blob and 'ST-002' not in blob

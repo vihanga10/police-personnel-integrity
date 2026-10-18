@@ -230,6 +230,11 @@ class IntakeStore:
             c.execute('INSERT INTO worker_events VALUES(?,?,?)',(seq,batch,self.seal('WORKER_EVENT',[batch,seq],value)))
             return seq,value
 
+    def worker_history(self,batch):
+        """Every retained worker observation for one batch, oldest first."""
+        with self.transaction() as c:
+            return [self.open('WORKER_EVENT',[batch,seq],value) for seq,value in c.execute('SELECT seq,value FROM worker_events WHERE batch=? ORDER BY seq',(batch,))]
+
     def worker_status(self,batch):
         with self.transaction() as c:
             row=c.execute('SELECT seq,value FROM worker_events WHERE batch=? ORDER BY seq DESC LIMIT 1',(batch,)).fetchone()
