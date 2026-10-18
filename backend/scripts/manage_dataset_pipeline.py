@@ -395,7 +395,7 @@ def export_original_commitments(args, workspace, origin):
         status = 'ORIGINAL_COMMITMENTS_ALREADY_INSTALLED'
     sample = next(iter(entries))
     got = store.original_commitment(sample)
-    check(got is not None and got[0] == entries[sample] and got[1] == meta, 'INSTALLED_COMMITMENT_READBACK_DIFFERS')
+    check(got is not None and got[0] == json.loads(json.dumps(entries[sample])) and got[1] == meta, 'INSTALLED_COMMITMENT_READBACK_DIFFERS')
     return {'status': status, 'officers': len(entries), 'recomputed_root_matches_anchored_root': True,
             'merkle_root': meta['merkle_root'], 'keys_printed': False, 'chain_submitted': False}
 
