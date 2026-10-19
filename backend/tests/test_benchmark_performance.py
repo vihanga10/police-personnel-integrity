@@ -82,9 +82,11 @@ def test_benchmark_runs_end_to_end_on_an_isolated_copy_and_never_records_credent
         assert report['warm'][name]['same']['n'] == 2 and report['warm'][name]['same']['failures'] == 0, name
         assert report['warm'][name]['same']['min'] > 0
     for name in ('search_by_name', 'officer_identity', 'officer_workspace', 'history_query', 'authority_list', 'contradiction_list', 'integrity_view'):
-        assert report['warm'][name]['varied']['distinct_officers'] == 2 and report['warm'][name]['varied']['failures'] == 0
-    for name in ('personnel_dashboard', 'unit_dashboard'):  # the disposable corpus has no dashboard source: failures are counted, never timed
-        assert report['warm'][name]['same']['failures'] + report['warm'][name]['same']['n'] == 2 and 'varied' not in report['warm'][name]
+        assert report['warm'][name]['varied']['distinct_officers'] == 2 and report['warm'][name]['varied']['failures'] == 0, name
+    assert report['warm']['personnel_dashboard']['same']['failures'] + report['warm']['personnel_dashboard']['same']['n'] == 2 and 'varied' not in report['warm']['personnel_dashboard']
+    # no unit account supplied: the unit dashboard is reported as not measured, never as a timing or a pass
+    assert report['warm']['unit_dashboard'] == {'not_measured': 'UNIT_ACCOUNT_REQUIRED'} and report['cold']['unit_dashboard']['not_measured'] == 'UNIT_ACCOUNT_REQUIRED'
+    assert report['officers_dropped_for_unreadable_workspace'] == 0
     assert len(report['startup_seconds']) == 1 and report['startup_seconds'][0] > 0 and report['rate_limit_waits'] == 0
     text = json.dumps(report)
     for secret in (creds[0], creds[1], 'ppi-session', 'csrf'):
@@ -93,3 +95,27 @@ def test_benchmark_runs_end_to_end_on_an_isolated_copy_and_never_records_credent
     report['targets'] = B.evaluate_targets(report)
     out.write_text(json.dumps(report))
     assert json.loads(out.read_text())['targets']['routine_search_profile_warm_p95_ms']['met'] in (True, False, None)
+
+
+def test_unit_account_is_used_for_the_unit_dashboard_and_refusals_are_recorded_with_their_status(setup, monkeypatch, tmp_path):
+    d = setup
+    totp_configured(d)
+    origin = 'https://ppi-bench.example-university.edu:%d' % B.free_port()
+    bundle = d['app'].parent / 'bundle'
+    build(d['app'], bundle, origin=origin, server_root=str(bundle), server_repo=str(REPO))
+    monkeypatch.setattr(B.Client, 'PACE', {'SEARCH': 0.0, 'DASHBOARD': 0.0})
+    paths = (d['app'] / 'credentials.json', d['app'] / 'totp-enrollment-private.json')
+    work = tmp_path / 'work'
+    work.mkdir(mode=0o700)
+    # A unit-scoped SDIG account may open the unit dashboard, so it is timed with that account, not with the national one.
+    report = B.benchmark(bundle, origin, 'research.igp', B.credentials(*paths, 'research.igp'), cold_starts=1, warm_n=2, warmups=0, seed=3, directory=work,
+                         unit=('research.sdig', B.credentials(*paths, 'research.sdig')), only={'officer_identity', 'unit_dashboard'})
+    assert set(report['warm']) == {'officer_identity', 'unit_dashboard'} and report['unit_account'] == 'research.sdig'
+    assert report['warm']['unit_dashboard']['same']['n'] == 2 and report['warm']['unit_dashboard']['same']['failures'] == 0 and report['failure_statuses'] == {}
+    assert report['cold']['unit_dashboard']['n'] == 1 and report['relogins'] == 0
+    # An account that is genuinely refused (a station officer asking for the unit dashboard): refusals are counted with their status, never timed.
+    refused = B.benchmark(bundle, origin, 'research.igp', B.credentials(*paths, 'research.igp'), cold_starts=1, warm_n=2, warmups=0, seed=3, directory=work,
+                          unit=('research.oic.a', B.credentials(*paths, 'research.oic.a')), only={'unit_dashboard'})
+    entry = refused['warm']['unit_dashboard']['same']
+    assert entry['n'] == 0 and entry['failures'] == 2 and entry['median'] is None and refused['cold']['unit_dashboard']['n'] == 0 and refused['cold']['unit_dashboard']['failures'] == 1
+    assert refused['failure_statuses'] == {'unit_dashboard:403': 3}
