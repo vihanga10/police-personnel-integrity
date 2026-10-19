@@ -59,6 +59,7 @@ def action_for(path):
       (r'/api/research/officers/'+UUID_RE+r'/requests','RECENT_REQUESTS_READ'),
       (r'/api/research/officers/'+UUID_RE+r'/application-anchoring','APPLICATION_ANCHOR_READ'),
       (r'/api/research/officers/'+UUID_RE+r'/integrity','OFFICER_INTEGRITY_READ'),
+      (r'/api/research/officers/'+UUID_RE+r'/integrity/live','OFFICER_INTEGRITY_LIVE_CHECK'),
       (r'/api/research/officers/'+UUID_RE,'WORKSPACE_READ'),
       (r'/api/research/requests/'+UUID_RE,'REQUEST_STATUS_READ')]:
         if re.fullmatch(pattern,path):return action

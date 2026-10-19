@@ -155,7 +155,7 @@ def build(app_root, out, *, origin, server_root, server_repo, repo=None, check_o
     new_access = {**access, 'origin': origin, 'repository': str(server_repo), 'state_directory': str(server_root / 'state/access'),
                   'key_file': str(server_root / 'keys/access.key'), 'totp_required': True}
     require(access.get('totp_required') is True, 'The source workspace must already require TOTP')
-    new_workspace = {k: v for k, v in workspace.items() if k not in UPLOAD_AND_CHAIN_WRITERS}
+    new_workspace = {k: v for k, v in workspace.items() if k not in UPLOAD_AND_CHAIN_WRITERS + ('live_check_config',)}
     new_workspace.update(access_config=str(server_root / 'private/access-config.json'), state_directory=str(server_root / 'state/workspace'),
                          key_file=str(server_root / 'keys/workspace.key'))
     new_accountability = None

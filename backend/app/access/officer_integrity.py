@@ -99,7 +99,9 @@ def officer_integrity(service, officer):
             errors.append(getattr(error, 'code', 'VERIFICATION_ERROR'))
     checkpoints = chain(base['leaf_sha256'] if base else None, uploads)
     everything_ok = not errors and all(u['root_matches_published'] and u['all_rows_included'] for u in uploads) and (base is None or base['inclusion_verified'])
+    live = getattr(getattr(service, 'store', None), 'live_check', None) is not None and base is not None
     return {'policy': POLICY, 'original': base, 'original_available': base is not None,
+            'live_check_available': live,
             'uploads': sorted(uploads, key=lambda u: u['activated_at']), 'checkpoint_chain': checkpoints,
             'all_recomputed_checks_passed': everything_ok, 'verification_errors': sorted(set(errors)), 'basis': 'RECOMPUTED_FROM_RETAINED_ENCRYPTED_EVIDENCE',
             'fresh_chain_reads': False,

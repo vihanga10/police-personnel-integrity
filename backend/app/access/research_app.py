@@ -22,7 +22,7 @@ LOG_ASSETS = {'/accountability': ('accountability.html', 'text/html; charset=utf
 def configured(config_file, *, create=False):
     file = private(config_file); config = json.loads(file.read_text())
     fields = {'policy','access_config','state_directory','key_file','presentation_keys'}
-    require(type(config) is dict and fields<=set(config)<=fields|{'accountability_config','workflow_assessment_keys','review_workflow_keys','promotion_intake_config','personnel_intake_config','intake_read_only'}, 'Workspace config fields differ')
+    require(type(config) is dict and fields<=set(config)<=fields|{'accountability_config','workflow_assessment_keys','review_workflow_keys','promotion_intake_config','personnel_intake_config','intake_read_only','live_check_config'}, 'Workspace config fields differ')
     require(config['policy'] == 'RESEARCH_WEB_CONFIG_V1', 'Workspace config policy differs')
     access, origin = configured_store(config['access_config'])
     private(file, repo=access.repo)
@@ -46,6 +46,11 @@ def configured(config_file, *, create=False):
     # Public demonstration copies load the retained intake stores for reading only: no worker, database or chain connection.
     require(type(config.get('intake_read_only',False)) is bool,'Intake read-only flag differs')
     store.intake_read_only=config.get('intake_read_only',False)
+    store.live_check=None
+    if 'live_check_config' in config:
+        require(not store.intake_read_only,'Live chain checks are never enabled on a public read-only copy')
+        from app.access.live_check import configured as configured_live_check
+        store.live_check=configured_live_check(config['live_check_config'],access.repo)
     store.promotion_intake_config=config.get('promotion_intake_config')
     store.personnel_intake_config=config.get('personnel_intake_config')
     return store, origin
@@ -55,7 +60,7 @@ def create_app(store, *, origin, assets=None):
     # Reuse the established dashboard-read audit action without changing
     # the pinned accountability worker source or any private configuration.
     from app.access.accountability import ACTION_PATHS, ACTIONS
-    ACTIONS.add('UPLOAD_HISTORY_READ');ACTIONS.add('OFFICER_INTEGRITY_READ')
+    ACTIONS.add('UPLOAD_HISTORY_READ');ACTIONS.add('OFFICER_INTEGRITY_READ');ACTIONS.add('OFFICER_INTEGRITY_LIVE_CHECK')
     ACTION_PATHS['/api/research/personnel-dashboard']='UNIT_DASHBOARD_READ'
     ACTION_PATHS['/api/accountability/uploads']='UPLOAD_HISTORY_READ'
     service = ResearchService(store)
@@ -170,6 +175,20 @@ def create_app(store, *, origin, assets=None):
         if datasets is not None:
             datasets.check_pins()
             result['uploaded_records']=await run_in_threadpool(datasets.service.officer_rows,token(request),officer_uid)
+        return result
+
+    @api.post('/api/research/officers/{officer_uid}/integrity/live')
+    async def officer_integrity_live(officer_uid:str, request:Request):
+        from app.access import live_check
+        await body(request,set())
+        csrf=request.headers.get('x-csrf-token','')
+        await run_in_threadpool(service.authorized, token(request), officer_uid, csrf=csrf, charge=False)
+        if getattr(store,'live_check',None) is None: raise AccessError(503,'LIVE_CHECK_NOT_CONFIGURED')
+        analysis=getattr(service,'dataset_analysis',None)
+        found=analysis.intake.original_commitment(officer_uid) if analysis is not None else None
+        if found is None: raise AccessError(409,'ORIGINAL_FINGERPRINT_NOT_INSTALLED')
+        result=await run_in_threadpool(live_check.check, store.live_check, store.repo, found[0], found[1])
+        await run_in_threadpool(service.authorized, token(request), officer_uid, csrf=csrf, charge=False)
         return result
 
     @api.get('/api/research/officers/{officer_uid}/integrity')

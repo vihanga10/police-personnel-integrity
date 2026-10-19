@@ -17,7 +17,8 @@ def source_files(repo,roots=PROMOTION_ROOTS,clients=('promotions-',)):
         'backend/app/access/full_source_profiles.py','backend/app/access/research_store.py','backend/app/access/store.py',
         'backend/app/access/policy.py','backend/app/access/research_policy.py','backend/app/access/accountability.py',
         'blockchain/fabric/client/block-identity.js','blockchain/public/sepolia-wallet.js','blockchain/public/deployment-files.js',
-        'blockchain/public/rpc-read-recovery.js','blockchain/public/rpc-read-batch.js','blockchain/public/rpc-read-pacing.js'])
+        'blockchain/public/rpc-read-recovery.js','blockchain/public/rpc-read-batch.js','blockchain/public/rpc-read-pacing.js',
+        'blockchain/public/live-original-check.js'])
     # Include local CommonJS dependencies recursively. Never guess the content
     # of packages installed by npm; their exact lockfiles are pinned separately.
     import re

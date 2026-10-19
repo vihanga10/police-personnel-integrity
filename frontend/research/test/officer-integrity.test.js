@@ -58,3 +58,47 @@ test('a read-only account is pointed to the working review page instead of a mis
     assert(note.includes('Reviews & corrections')&&note.includes('separately provisioned protected review flow'));assert(!note.includes('separately granted reviewer identity'));
     assert.equal(t.d.getElementById('review-button').disabled,true);
   }finally{await new Promise(r=>setTimeout(r,60));t.dom.window.close();}});
+
+const liveBase=path_=>'/api/research/officers/'+uid+'/integrity'+path_;
+const withLive=(available=true)=>({...view,live_check_available:available});
+const liveResult=(over={})=>({basis:'FRESH_READ_NOW',overall:'PASSED',checked_at:'2026-10-19T00:30:00.000Z',transactions_submitted:0,
+  fabric:{status:'READ',organizations:['Org1MSP','Org2MSP'],each_organization_matches:{Org1MSP:true,Org2MSP:true},organizations_agree:true,batch_root_matches:true,batch_officer_count_matches:true,network_identity_verified:true,passed:true},
+  sepolia:{status:'READ',finalized_block:11944555,officer_value_matches_commitment:true,batch_root_present:true,batch_officer_count:6596,batch_sealed:true,officer_count_matches:true,sealed_block_is_finalized:true,passed:true},
+  limits:['A passing check shows the chains currently return the stored commitment for this officer; it does not show the record is true.'],...over});
+async function openIntegrity(t){t.d.getElementById('tab-integrity').click();await wait(()=>t.d.getElementById('integrity-results').textContent.includes('Original fingerprint'));}
+const quiet=()=>new Promise(r=>setTimeout(r,80));
+test('live check: the button reads the chains, shows a plain pass and guards against double clicks',async()=>{
+  let resolve,calls=0;const t=await setup(router({[liveBase('')]:()=>response(withLive()),[liveBase('/live')]:()=>{calls++;return new Promise(r=>{resolve=()=>r(response(liveResult()));});}}));
+  try{await openIntegrity(t);const button=t.d.getElementById('live-check');assert.ok(button);assert(t.d.getElementById('integrity-results').textContent.includes('makes no transaction'));
+    button.click();button.click();await wait(()=>button.disabled);assert(t.d.getElementById('live-result').textContent.includes('Reading Fabric and Sepolia'));
+    resolve();await wait(()=>t.d.getElementById('live-result').textContent.includes('Live chain check'));
+    const text=t.d.getElementById('live-result').textContent;assert.equal(calls,1);assert.equal(button.disabled,false);
+    for(const expected of ['Passed','Fabric organization 1 returned this officer’s stored commitment: yes','Fabric organization 2 returned this officer’s stored commitment: yes','The two organizations agree with each other: yes','The Sepolia contract returned this officer’s stored commitment: yes','sealed with 6596 officers: yes','finalized block 11944555: yes','Both chains currently return the stored commitment','made no transaction'])assert(text.includes(expected),expected);
+    assert(!text.includes('NO'));const post=t.calls.find(([u])=>u.endsWith('/integrity/live'));assert.equal(post[0],liveBase('/live'));assert.deepEqual(JSON.parse(post[1].body),{});assert.equal(t.dom.window.localStorage.length,0);
+  }finally{await quiet();t.dom.window.close();}});
+test('live check: a mismatch is shown as not confirmed, never as passed',async()=>{
+  const bad=liveResult({overall:'FAILED',fabric:{...liveResult().fabric,each_organization_matches:{Org1MSP:true,Org2MSP:false},organizations_agree:false,passed:false}});
+  const t=await setup(router({[liveBase('')]:()=>response(withLive()),[liveBase('/live')]:()=>response(bad)}));
+  try{await openIntegrity(t);t.d.getElementById('live-check').click();await wait(()=>t.d.getElementById('live-result').textContent.includes('Does not match'));
+    const text=t.d.getElementById('live-result').textContent;assert(text.includes('organization 2 returned this officer’s stored commitment: NO')&&text.includes('The two organizations agree with each other: NO')&&text.includes('is not confirmed by this check'));
+    assert(!text.includes('Both chains currently return'));assert.equal(t.d.querySelector('#live-result .pill').className.includes('red'),true);
+  }finally{await quiet();t.dom.window.close();}});
+test('live check: an unreadable chain says it proves nothing and shows only a short code',async()=>{
+  const down=liveResult({overall:'UNAVAILABLE',fabric:{status:'UNAVAILABLE',reason:'NETWORK_ERROR'},passed:false});
+  const t=await setup(router({[liveBase('')]:()=>response(withLive()),[liveBase('/live')]:()=>response(down)}));
+  try{await openIntegrity(t);t.d.getElementById('live-check').click();await wait(()=>t.d.getElementById('live-result').textContent.includes('Could not be read'));
+    const text=t.d.getElementById('live-result').textContent;assert(text.includes('Fabric could not be read (NETWORK_ERROR). Nothing is claimed about it.')&&text.includes('proves nothing either way'));
+    assert(!text.includes('Both chains currently return')&&!/\bPassed\b/.test(text.replace('Passed','')));assert.equal(t.d.querySelector('#live-result .pill').className.includes('amber'),true);
+  }finally{await quiet();t.dom.window.close();}});
+test('live check: a server refusal is shown and the button works again; not-enabled servers show a plain note instead',async()=>{
+  const t=await setup(router({[liveBase('')]:()=>response(withLive()),[liveBase('/live')]:()=>response({error:'LIVE_CHECK_NOT_CONFIGURED'},503)}));
+  try{await openIntegrity(t);const button=t.d.getElementById('live-check');button.click();await wait(()=>t.d.getElementById('live-result').textContent.length>0&&!button.disabled);
+    assert(t.d.getElementById('live-result').textContent.length>5);assert(!t.d.getElementById('live-result').textContent.includes('Passed'));assert.equal(button.disabled,false);
+  }finally{await quiet();t.dom.window.close();}
+  const n=await setup(router({[liveBase('')]:()=>response(withLive(false))}));
+  try{await openIntegrity(n);assert.equal(n.d.getElementById('live-check'),null);assert(n.d.getElementById('integrity-results').textContent.includes('Live chain check: not enabled on this server'));assert(n.d.getElementById('integrity-results').textContent.includes('not a read of the chains'));}finally{await quiet();n.dom.window.close();}});
+test('live check: a late answer after the officer view is closed is discarded and the result is cleared',async()=>{
+  let resolve;const t=await setup(router({[liveBase('')]:()=>response(withLive()),[liveBase('/live')]:()=>new Promise(r=>{resolve=()=>r(response(liveResult()));})}));
+  try{await openIntegrity(t);t.d.getElementById('live-check').click();await wait(()=>!!resolve);t.d.getElementById('logout').click();assert.equal(t.d.getElementById('integrity-results').textContent,'');
+    resolve();await quiet();assert.equal(t.d.getElementById('integrity-results').textContent,'');assert.equal(t.d.getElementById('live-result'),null);
+  }finally{await quiet();t.dom.window.close();}});

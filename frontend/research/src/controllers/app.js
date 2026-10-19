@@ -200,6 +200,31 @@ export default function initialize(){
   }
   let integritySequence=0;
   function yes(ok){return ok?'Passed':'FAILED';}
+  const yn=ok=>ok?'yes':'NO';
+  function renderLiveResult(out,r){
+    out.replaceChildren();const label={PASSED:'Passed',FAILED:'Does not match',UNAVAILABLE:'Could not be read'}[r.overall]||'Unknown';
+    const head=node('div',null,'section-heading');head.append(node('h4','Live chain check \u00b7 read just now'),node('span',label,'pill '+(r.overall==='PASSED'?'green':r.overall==='FAILED'?'red':'amber')));
+    out.append(head,node('p','Checked '+time(r.checked_at)+'. This read the chains now and made no transaction.','small muted'));
+    const f=r.fabric,p=r.sepolia,list=node('ul',null,'live-list');
+    if(f.status==='READ')for(const t of ['Fabric organization 1 returned this officer\u2019s stored commitment: '+yn(f.each_organization_matches?.Org1MSP),'Fabric organization 2 returned this officer\u2019s stored commitment: '+yn(f.each_organization_matches?.Org2MSP),'The two organizations agree with each other: '+yn(f.organizations_agree),'The batch root and the officer count match the stored values: '+yn(f.batch_root_matches&&f.batch_officer_count_matches),'The network identity was verified: '+yn(f.network_identity_verified)])list.append(node('li',t));
+    else list.append(node('li','Fabric could not be read ('+(f.reason||'unknown')+'). Nothing is claimed about it.'));
+    if(p.status==='READ')for(const t of ['The Sepolia contract returned this officer\u2019s stored commitment: '+yn(p.officer_value_matches_commitment),'The batch root is recorded on the contract: '+yn(p.batch_root_present),'The batch is sealed with '+p.batch_officer_count+' officers: '+yn(p.batch_sealed&&p.officer_count_matches),'The sealing block is behind the finalized block '+p.finalized_block+': '+yn(p.sealed_block_is_finalized)])list.append(node('li',t));
+    else list.append(node('li','Sepolia could not be read ('+(p.reason||'unknown')+'). Nothing is claimed about it.'));
+    out.append(list,node('p',r.overall==='PASSED'?'Both chains currently return the stored commitment for this officer.':r.overall==='FAILED'?'At least one chain does not match the stored commitment, so this officer\u2019s original fingerprint is not confirmed by this check.':'A chain could not be read, so this check proves nothing either way.','notice'));
+    for(const text of r.limits||[])out.append(node('p',text,'small muted'));
+  }
+  function renderLiveCheck(card,v){
+    const box=node('div',null,'live-check');
+    if(!v.live_check_available){box.append(node('p','Live chain check: not enabled on this server. The values above are the stored originals and recomputed proofs, not a read of the chains.','small muted'));card.append(box);return;}
+    const button=node('button','Check on the chains now','secondary');button.type='button';button.id='live-check';const out=node('div',null,'live-result');out.id='live-result';out.setAttribute('aria-live','polite');
+    box.append(node('h4','Live chain check'),node('p','Asks Fabric (both organizations) and Sepolia right now for this officer\u2019s original commitment. It reads only, makes no transaction, and can take up to a minute.','small muted'),button,out);
+    button.addEventListener('click',async()=>{
+      if(button.disabled||!state.officer)return;const uid=state.officer.officer_uid,epoch=state.epoch,sequence=integritySequence;button.disabled=true;out.replaceChildren(node('p','Reading Fabric and Sepolia\u2026','small muted'));
+      try{const r=await api('/api/research/officers/'+encodeURIComponent(uid)+'/integrity/live',{});if(epoch!==state.epoch||state.officer?.officer_uid!==uid||sequence!==integritySequence)return;renderLiveResult(out,r);}
+      catch(e){if(epoch===state.epoch&&state.officer?.officer_uid===uid&&sequence===integritySequence)out.replaceChildren(node('p',e.message,'notice error'));}
+      finally{if(epoch===state.epoch)button.disabled=false;}});
+    card.append(box);
+  }
   function renderIntegrity(v){
     const root=$('integrity-results');root.replaceChildren();
     $('integrity-summary').textContent=v.all_recomputed_checks_passed?'All recomputed fingerprint checks passed. This was recomputed from retained evidence, not read from the chains just now.':'At least one recomputed check did not pass'+(v.verification_errors?.length?' ('+v.verification_errors.join(', ')+')':'')+'. Treat the affected record as unverified and inform the operator.';
@@ -220,6 +245,7 @@ export default function initialize(){
           [node('p','The saved original chain receipts have not been installed yet.','notice')]),
         node('p','Sepolia contract '+o.sepolia_contract+' \u00b7 sealed in block '+o.sepolia_sealing_block+' \u00b7 Fabric channel '+o.fabric_channel+', chaincode '+o.fabric_chaincode+' \u00b7 verified '+o.verified_on+'.','small muted'));
     }
+    if(o)renderLiveCheck(card,v);
     root.append(card);
     const up=node('article',null,'card');up.append(node('h3','Uploads that mention this officer'));
     if(!v.uploads.length)up.append(node('p','No verified upload mentions this officer yet. Original records are unchanged.'));

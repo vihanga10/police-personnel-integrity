@@ -45,6 +45,8 @@ def problems(workspace, access, accountability=None, intake_runtimes=()):
         # Retained intake stores may be loaded for reading only; the workers that upload and publish must not exist.
         if name in workspace and workspace.get('intake_read_only') is not True:
             found.append('UPLOADS_AND_CHAIN_WRITES_MUST_BE_OFF:' + name)
+    if 'live_check_config' in workspace:
+        found.append('LIVE_CHAIN_CHECK_MUST_BE_OFF')
     for runtime in intake_runtimes:
         for name in CHAIN_AND_DATABASE_FIELDS:
             if name in runtime:
