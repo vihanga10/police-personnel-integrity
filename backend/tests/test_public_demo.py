@@ -390,3 +390,16 @@ def test_public_copy_serves_the_stored_fingerprint_and_receipts_from_a_read_only
     # Still no way to upload or publish from the public copy.
     status, _, body = asgi(app, 'GET', '/api/research/intake/capabilities', host='demo.university.edu', cookie=token)
     assert status == 200 and json.loads(body)['configured'] is False and json.loads(body)['can_upload'] is False
+
+
+def test_check_only_validates_everything_and_writes_nothing(tmp_path):
+    root = make_app_root(tmp_path)
+    out = tmp_path / 'never-created'
+    summary = build(root, out, origin=ORIGIN, server_root='/srv/ppi', server_repo='/srv/ppi/repo', check_only=True)
+    assert summary['check_only'] is True and summary['nothing_written'] is True and summary['intake_stores_read_only'] == ['dataset', 'promotion']
+    assert summary['sources'] > 6 and summary['megabytes'] >= 0 and not out.exists()
+    (root / 'workspace-state' / 'wallet.json').write_bytes(b'x')
+    (root / 'workspace-state' / 'wallet.json').chmod(0o600)
+    with pytest.raises(ValueError, match='refused'):
+        build(root, out, origin=ORIGIN, server_root='/srv/ppi', server_repo='/srv/ppi/repo', check_only=True)
+    assert not out.exists()

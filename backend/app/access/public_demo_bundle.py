@@ -104,7 +104,7 @@ def write_private(path, value):
     return path
 
 
-def build(app_root, out, *, origin, server_root, server_repo, repo=None):
+def build(app_root, out, *, origin, server_root, server_repo, repo=None, check_only=False):
     """Returns a secret-free summary. `out` must not exist; `server_root` is where the bundle will live on the server."""
     app_root, out, server_root = Path(app_root).resolve(), Path(out), Path(server_root)
     require(not out.exists(), 'Output folder must not exist')
@@ -171,6 +171,15 @@ def build(app_root, out, *, origin, server_root, server_repo, repo=None):
     found = problems(new_workspace, new_access, new_accountability, rewritten_runtimes)
     require(not found, 'Result would not be a safe public demonstration: ' + ', '.join(found))
     sources = [(vet(src, app_root), rel) for src, rel in plan]
+    if check_only:
+        # Everything above has been validated against the real configuration; nothing is created or copied.
+        def size(path):
+            path = Path(path)
+            return sum(f.stat().st_size for f in path.rglob('*') if f.is_file()) if path.is_dir() else path.stat().st_size
+        planned = [src for src, _ in sources] + [src for src, _ in intake_plan]
+        return {'policy': SUMMARY, 'check_only': True, 'origin': origin, 'sources': len(planned), 'megabytes': round(sum(size(x) for x in planned) / 1e6, 1),
+                'intake_stores_read_only': sorted(v[6] for v in intake_configs.values()), 'keys_printed': False, 'chain_keys_included': False,
+                'uploads_and_chain_writes': 'OFF', 'log_anchoring': 'OFF', 'nothing_written': True}
     out.mkdir(mode=0o700)
     (out / 'private').mkdir(mode=0o700)
     copied = [(copy(src, out / rel), rel) for src, rel in sources]

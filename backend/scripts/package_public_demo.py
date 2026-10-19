@@ -23,13 +23,14 @@ def main():
     p.add_argument('--origin', required=True)
     p.add_argument('--server-root', type=Path, required=True)
     p.add_argument('--server-repo', type=Path, required=True)
+    p.add_argument('--check', action='store_true', help='validate everything and report counts; copy and write nothing')
     a = p.parse_args()
     local_origin = json.loads(Path(json.loads((a.app_root / 'workspace-config.json').read_text())['access_config']).read_text())['origin']
     url = urlsplit(local_origin)
     with socket.socket() as s:
         s.settimeout(2)
         require(s.connect_ex((url.hostname, url.port or 443)) != 0, 'Stop the application before packaging')
-    print(json.dumps(build(a.app_root.expanduser(), a.out.expanduser(), origin=a.origin, server_root=a.server_root, server_repo=a.server_repo), indent=1))
+    print(json.dumps(build(a.app_root.expanduser(), a.out.expanduser(), origin=a.origin, server_root=a.server_root, server_repo=a.server_repo, repo=Path(__file__).resolve().parents[2], check_only=a.check), indent=1))
 
 
 if __name__ == '__main__':
