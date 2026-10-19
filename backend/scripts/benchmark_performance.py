@@ -282,10 +282,10 @@ def benchmark(bundle, origin, username, creds, *, cold_starts, warm_n, warmups, 
                 self.waits_before += self.client.waits
             self.client = Client(self.server.port, host)
             counters[self.name] = self.client.login(self.name, *self.secrets, counters.get(self.name))
-            self.created = time.monotonic()
+            self.created = time.time()  # wall clock: the server's 30-minute expiry also runs while the laptop sleeps
 
         def current(self):
-            if time.monotonic() - self.created > self.MAX_AGE:
+            if time.time() - self.created > self.MAX_AGE:
                 report['relogins'] += 1
                 self._login()
             return self.client
