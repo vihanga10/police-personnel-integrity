@@ -12,6 +12,7 @@ from urllib.parse import urlsplit
 
 LABEL = re.compile(r'^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$')
 UPLOAD_AND_CHAIN_WRITERS = ('promotion_intake_config', 'personnel_intake_config')
+CHAIN_AND_DATABASE_FIELDS = ('chains', 'postgres_credentials', 'mongo_credentials')
 PRIVATE_NAME_PARTS = ('wallet', 'mnemonic', 'fabric', 'sepolia', 'intake', 'promotion', 'credentials', 'enrollment', 'recovery',
                       'identity-keys', 'commitment')
 
@@ -32,7 +33,7 @@ def public_dns_name(origin):
             and not host.endswith('.in-addr.arpa'))
 
 
-def problems(workspace, access, accountability=None):
+def problems(workspace, access, accountability=None, intake_runtimes=()):
     """Stable, secret-free reasons a configuration may not run as a public demonstration."""
     found = []
     origin = access.get('origin', '')
@@ -41,8 +42,13 @@ def problems(workspace, access, accountability=None):
     if access.get('totp_required') is not True:
         found.append('MANDATORY_TOTP_REQUIRED')
     for name in UPLOAD_AND_CHAIN_WRITERS:
-        if name in workspace:
+        # Retained intake stores may be loaded for reading only; the workers that upload and publish must not exist.
+        if name in workspace and workspace.get('intake_read_only') is not True:
             found.append('UPLOADS_AND_CHAIN_WRITES_MUST_BE_OFF:' + name)
+    for runtime in intake_runtimes:
+        for name in CHAIN_AND_DATABASE_FIELDS:
+            if name in runtime:
+                found.append('INTAKE_RUNTIME_MUST_NOT_HOLD:' + name)
     if accountability is not None and 'anchor_config' in accountability:
         found.append('LOG_ANCHORING_MUST_BE_OFF:anchor_config')
     return found

@@ -22,7 +22,7 @@ LOG_ASSETS = {'/accountability': ('accountability.html', 'text/html; charset=utf
 def configured(config_file, *, create=False):
     file = private(config_file); config = json.loads(file.read_text())
     fields = {'policy','access_config','state_directory','key_file','presentation_keys'}
-    require(type(config) is dict and fields<=set(config)<=fields|{'accountability_config','workflow_assessment_keys','review_workflow_keys','promotion_intake_config','personnel_intake_config'}, 'Workspace config fields differ')
+    require(type(config) is dict and fields<=set(config)<=fields|{'accountability_config','workflow_assessment_keys','review_workflow_keys','promotion_intake_config','personnel_intake_config','intake_read_only'}, 'Workspace config fields differ')
     require(config['policy'] == 'RESEARCH_WEB_CONFIG_V1', 'Workspace config policy differs')
     access, origin = configured_store(config['access_config'])
     private(file, repo=access.repo)
@@ -43,6 +43,9 @@ def configured(config_file, *, create=False):
         require(store.accountability is not None,'Review accountability required')
         from app.access.review_workflow import initialize
         initialize(store)
+    # Public demonstration copies load the retained intake stores for reading only: no worker, database or chain connection.
+    require(type(config.get('intake_read_only',False)) is bool,'Intake read-only flag differs')
+    store.intake_read_only=config.get('intake_read_only',False)
     store.promotion_intake_config=config.get('promotion_intake_config')
     store.personnel_intake_config=config.get('personnel_intake_config')
     return store, origin
@@ -229,14 +232,14 @@ def create_app(store, *, origin, assets=None):
 
     from app.intake.promotion_pipeline.http import register as register_promotions
     runtime=None
-    if getattr(store,'promotion_intake_config',None):
+    if getattr(store,'promotion_intake_config',None) and not getattr(store,'intake_read_only',False):
         require(accountability is not None,'Promotion accountability required')
         from app.intake.promotion_pipeline.runtime import Runtime
         runtime=Runtime(store,service,store.promotion_intake_config)
     register_promotions(api,runtime,token,body)
     from app.intake.dataset_pipeline.http import register as register_datasets
     datasets=None
-    if getattr(store,'personnel_intake_config',None):
+    if getattr(store,'personnel_intake_config',None) and not getattr(store,'intake_read_only',False):
         require(accountability is not None,'Dataset intake accountability required')
         from app.intake.dataset_pipeline.runtime import Runtime as DatasetRuntime
         datasets=DatasetRuntime(store,service,store.personnel_intake_config)

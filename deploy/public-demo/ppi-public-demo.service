@@ -22,7 +22,7 @@ ProtectHome=true
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
-ReadWritePaths=/srv/ppi/state
+ReadWritePaths=/srv/ppi/state /srv/ppi/intake
 ReadOnlyPaths=/srv/ppi/keys /srv/ppi/private /srv/ppi/grants /srv/ppi/tls /srv/ppi/repo
 
 [Install]

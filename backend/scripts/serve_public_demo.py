@@ -10,7 +10,7 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.access.policy import require
-from app.access.public_demo import problems, read_json
+from app.access.public_demo import UPLOAD_AND_CHAIN_WRITERS, problems, read_json
 from app.access.store import private
 
 ACKNOWLEDGEMENT = '--accept-public-synthetic-demo'
@@ -24,7 +24,8 @@ def prepare(config, certificate, tls_key, acknowledged):
     require(workspace.get('policy') == 'RESEARCH_WEB_CONFIG_V1', 'Workspace configuration required')
     access = read_json(private(workspace['access_config']))
     accountability = read_json(private(workspace['accountability_config'])) if 'accountability_config' in workspace else None
-    found = problems(workspace, access, accountability)
+    runtimes = [read_json(private(workspace[name])) for name in UPLOAD_AND_CHAIN_WRITERS if name in workspace]
+    found = problems(workspace, access, accountability, runtimes)
     require(not found, 'Not a safe public demonstration configuration: ' + ', '.join(found))
     repo = Path(access['repository'])
     cert, key = private(certificate, repo=repo), private(tls_key, repo=repo)

@@ -30,7 +30,32 @@ def test_problems_list_every_unsafe_setting_and_nothing_secret():
                      'LOG_ANCHORING_MUST_BE_OFF:anchor_config']
 
 
-def make_app_root(tmp_path, *, totp=True, extra_workspace=None, anchor=True, extra_file=None):
+def make_intake(tmp_path, folder, database):
+    """An intake folder like the real one: the allowlisted files plus the credentials and chain material that must never leave."""
+    state, backup = tmp_path / folder, tmp_path / (folder + '-backup')
+    for d in (state, backup, state / 'analysis-v1', state / 'approval-v1', state / 'fabric-deployment', state / 'chain-jobs'):
+        d.mkdir(mode=0o700)
+    def put(p, data):
+        p.write_bytes(data)
+        p.chmod(0o600)
+        return str(p)
+    key = os.urandom(32)
+    put(state / 'intake.key', key); put(backup / 'intake.key', key)
+    for rel in (database, 'worker.lock', 'analysis-v1/availability.sqlite3', 'approval-v1/decisions.sqlite3'):
+        put(state / rel, b'synthetic-store')
+    for rel in ('postgres-writer.json', 'mongo-writer.json', 'chain-recovery.key', 'fabric-deployment/channel.json', 'chain-jobs/job.json', 'runtime-before-repin-1.json'):
+        put(state / rel, b'SECRET-NEVER-COPY')
+    analysis, approval, runtime = state / 'analysis-config.json', state / 'approval-config.json', state / 'runtime.json'
+    put(analysis, json.dumps({'policy': 'A', 'intake_config': str(runtime), 'analysis_root': str(state / 'analysis-v1')}).encode())
+    put(approval, json.dumps({'policy': 'P', 'decision_root': str(state / 'approval-v1'), 'legacy_queued': {}, 'reviewer_ids': ['r']}).encode())
+    put(runtime, json.dumps({'policy': 'PERSONNEL_INTAKE_RUNTIME_V1', 'analysis_config': str(analysis), 'approval_config': str(approval), 'backup_key_file': str(backup / 'intake.key'),
+        'key_file': str(state / 'intake.key'), 'state_root': str(state), 'baseline_source_set_sha256': 'b' * 64, 'importer_ids': ['i'], 'source_pins': {'backend/x.py': 'c' * 64},
+        'chains': {'fabric': {'gateway': '/laptop/gw'}, 'sepolia': {'wallet': '/laptop/wallet'}}, 'postgres_credentials': str(state / 'postgres-writer.json'),
+        'mongo_credentials': str(state / 'mongo-writer.json')}).encode())
+    return str(runtime)
+
+
+def make_app_root(tmp_path, *, totp=True, extra_workspace=None, anchor=True, extra_file=None, intake=True):
     root = tmp_path / 'research-app-v1'
     root.mkdir(mode=0o700)
     def put(rel, data=b'synthetic'):
@@ -53,7 +78,8 @@ def make_app_root(tmp_path, *, totp=True, extra_workspace=None, anchor=True, ext
         log['anchor_config'] = '/laptop/anchor.json'
     workspace = {'access_config': put('access-config.json', json.dumps(access).encode()), 'accountability_config': put('accountability-config.json', json.dumps(log).encode()),
                  'key_file': str(root / 'keys/workspace.key'), 'policy': 'RESEARCH_WEB_CONFIG_V1', 'presentation_keys': {'p': 'AAAA'},
-                 'state_directory': str(root / 'workspace-state'), 'promotion_intake_config': '/laptop/runtime.json', 'personnel_intake_config': '/laptop/runtime.json',
+                 'state_directory': str(root / 'workspace-state'), **({'personnel_intake_config': make_intake(tmp_path, 'application-intake-v1', 'personnel-intake.sqlite3'),
+                 'promotion_intake_config': make_intake(tmp_path, 'application-promotions-v1', 'promotion-intake.sqlite3')} if intake else {}),
                  'review_workflow_keys': {'r': 'AAAA'}, 'workflow_assessment_keys': {'w': 'AAAA'}, **(extra_workspace or {})}
     put('workspace-config.json', json.dumps(workspace).encode())
     if extra_file:
@@ -69,12 +95,27 @@ def test_bundle_copies_only_what_the_web_app_needs_and_rewrites_the_configs(tmp_
     workspace = json.loads((out / 'private/workspace-config.json').read_text())
     access = json.loads((out / 'private/access-config.json').read_text())
     log = json.loads((out / 'private/accountability-config.json').read_text())
-    assert 'promotion_intake_config' not in workspace and 'personnel_intake_config' not in workspace and 'anchor_config' not in log
+    assert workspace['intake_read_only'] is True and 'anchor_config' not in log
     assert access['origin'] == ORIGIN and access['totp_required'] is True and access['repository'] == '/srv/ppi/repo'
     assert workspace['state_directory'] == '/srv/ppi/state/workspace' and workspace['key_file'] == '/srv/ppi/keys/workspace.key'
     assert workspace['access_config'] == '/srv/ppi/private/access-config.json' and log['reader_grants'] == ['/srv/ppi/grants/grant-hq.json']
-    assert problems(workspace, access, log) == []
-    assert all('laptop' not in json.dumps(v) for v in (workspace, access, log))
+    runtimes = {k: json.loads((out / 'private' / (k + '-runtime.json')).read_text()) for k in ('dataset', 'promotion')}
+    for kind, runtime in runtimes.items():
+        assert not {'chains', 'postgres_credentials', 'mongo_credentials'} & set(runtime), kind
+        assert runtime['source_pins'] == {'backend/x.py': 'c' * 64} and runtime['state_root'] == '/srv/ppi/intake/%s/state' % kind
+        analysis = json.loads((out / 'private' / (kind + '-analysis-config.json')).read_text())
+        approval = json.loads((out / 'private' / (kind + '-approval-config.json')).read_text())
+        assert runtime['analysis_config'] == '/srv/ppi/private/%s-analysis-config.json' % kind and analysis['intake_config'] == '/srv/ppi/private/%s-runtime.json' % kind
+        assert analysis['analysis_root'] == '/srv/ppi/intake/%s/analysis' % kind and approval['decision_root'] == '/srv/ppi/intake/%s/decisions' % kind
+        assert (out / 'intake' / kind / 'keys/intake.key').read_bytes() == (out / 'intake' / kind / 'keys/intake-backup.key').read_bytes()
+        assert (out / 'intake' / kind / 'analysis/availability.sqlite3').exists() and (out / 'intake' / kind / 'decisions/decisions.sqlite3').exists()
+    assert workspace['personnel_intake_config'] == '/srv/ppi/private/dataset-runtime.json' and workspace['promotion_intake_config'] == '/srv/ppi/private/promotion-runtime.json'
+    assert summary['intake_stores_read_only'] == ['dataset', 'promotion']
+    assert problems(workspace, access, log, list(runtimes.values())) == []
+    assert all('laptop' not in json.dumps(v) for v in (workspace, access, log, *runtimes.values()))
+    for forbidden in ('postgres-writer', 'mongo-writer', 'chain-recovery', 'fabric-deployment', 'chain-jobs', 'runtime-before-repin', 'SECRET-NEVER-COPY'):
+        assert not any(forbidden in str(p.relative_to(out)) for p in out.rglob('*')), forbidden
+        assert not any(forbidden.encode() in p.read_bytes() for p in out.rglob('*') if p.is_file() and p.stat().st_size < 10_000), forbidden
     for p in [out, *out.rglob('*')]:
         assert not (p.stat().st_mode & 0o077), p
     manifest = json.loads((out / 'MANIFEST.json').read_text())
@@ -136,10 +177,18 @@ def test_launcher_preflight_refuses_unsafe_configurations_and_needs_the_acknowle
         launcher.prepare(config, cert, key, False)
     configfile, origin, c, k = launcher.prepare(config, cert, key, True)
     assert origin == ORIGIN and c == cert.resolve() and k == key.resolve()
-    unsafe = json.loads(config.read_text())
-    unsafe['promotion_intake_config'] = '/x'
+    original = config.read_text()
+    unsafe = json.loads(original)
+    unsafe['intake_read_only'] = False
     config.write_text(json.dumps(unsafe))
     with pytest.raises(Exception, match='UPLOADS_AND_CHAIN_WRITES_MUST_BE_OFF'):
+        launcher.prepare(config, cert, key, True)
+    config.write_text(original)
+    runtime_file = out / 'private/dataset-runtime.json'
+    runtime = json.loads(runtime_file.read_text())
+    runtime['chains'] = {'fabric': {}}
+    runtime_file.write_text(json.dumps(runtime))
+    with pytest.raises(Exception, match='INTAKE_RUNTIME_MUST_NOT_HOLD:chains'):
         launcher.prepare(config, cert, key, True)
 
 
@@ -233,3 +282,111 @@ def test_bundle_boots_as_a_public_app_with_totp_and_without_uploads_or_chain_wri
         assert status in (400, 503), (path, status, body)
         assert b'COMMITTED' not in body and b'ACCEPTED' not in body
     assert asgi(app, 'GET', '/api/auth/session', host='demo.university.edu')[0] == 401
+
+
+def test_bundle_refuses_an_intake_folder_that_is_incomplete_or_has_misplaced_keys(tmp_path):
+    root = make_app_root(tmp_path)
+    runtime_file = Path(json.loads((root / 'workspace-config.json').read_text())['personnel_intake_config'])
+    runtime = json.loads(runtime_file.read_text())
+    (Path(runtime['state_root']) / 'personnel-intake.sqlite3').unlink()
+    with pytest.raises(ValueError, match='Intake database missing'):
+        build(root, tmp_path / 'b1', origin=ORIGIN, server_root='/srv/ppi', server_repo='/srv/ppi/repo')
+    assert not (tmp_path / 'b1').exists()
+    (tmp_path / 'again').mkdir()
+    root = make_app_root(tmp_path / 'again')
+    runtime_file = Path(json.loads((root / 'workspace-config.json').read_text())['personnel_intake_config'])
+    runtime = json.loads(runtime_file.read_text())
+    stray = tmp_path / 'again' / 'elsewhere.key'
+    stray.write_bytes(Path(runtime['key_file']).read_bytes()); stray.chmod(0o600)
+    runtime['backup_key_file'] = str(stray)
+    runtime_file.write_text(json.dumps(runtime))
+    with pytest.raises(ValueError, match='Intake key locations differ'):
+        build(root, tmp_path / 'b2', origin=ORIGIN, server_root='/srv/ppi', server_repo='/srv/ppi/repo')
+    assert not (tmp_path / 'b2').exists()
+
+
+def test_bundle_refuses_stale_intake_pins_when_a_repository_is_given(tmp_path):
+    root = make_app_root(tmp_path)
+    with pytest.raises(Exception, match='pins out of date|source pins'):
+        build(root, tmp_path / 'b', origin=ORIGIN, server_root='/srv/ppi', server_repo='/srv/ppi/repo', repo=Path(__file__).resolve().parents[2])
+    assert not (tmp_path / 'b').exists()
+
+
+# ---- End-to-end with a real on-disk intake (real classes, real config chain), loaded read-only from the bundle.
+def real_intake(d, officer, repo):
+    import hashlib
+    from app.intake.dataset_pipeline import merkle_proof as M
+    from app.intake.dataset_pipeline.acceptance import DatasetApprovals, POLICY as APPROVAL_POLICY
+    from app.intake.dataset_pipeline.analysis import DatasetAnalysis, POLICY as ANALYSIS_POLICY
+    from app.intake.dataset_pipeline.configuration import source_pins
+    from app.intake.dataset_pipeline.store import DatasetStore
+    base = d['app'].parent
+    state, backup = base / 'application-intake-v1', base / 'application-intake-v1-backup'
+    for folder in (state, backup, state / 'analysis-v1', state / 'approval-v1'):
+        folder.mkdir(mode=0o700)
+    key = os.urandom(32)
+    for f in (state / 'intake.key', backup / 'intake.key'):
+        f.write_bytes(key)
+        f.chmod(0o600)
+    store = DatasetStore(state, state / 'intake.key', backup / 'intake.key', repo=repo, create=True)
+    nodes = [M.leaf_node(hashlib.sha256(('officer-%d' % i).encode()).digest()) for i in range(5)]
+    entry = {'publication_id': 'a' * 64, 'commitment': 'b' * 64, 'leaf_index': 2, 'leaf_sha256': nodes[2].hex(), 'proof': M.proof(nodes, 2)}
+    meta = {'policy': 'OFFICER_PROTECTED_COMMITMENT_V1', 'key_version': 'commit-v1', 'merkle_root': M.root(nodes), 'batch_publication_id': 'c' * 64, 'batch_commitment': 'd' * 64,
+            'public_payload_sha256': 'e' * 64, 'officers': 1, 'leaves': 5, 'sepolia_contract': '0x' + '1' * 40, 'sepolia_chain_id': 11155111, 'sepolia_sealing_block': '0x1',
+            'sepolia_sealing_block_hash': '0x2', 'fabric_channel': 'personnel', 'fabric_chaincode': 'officer-evidence-v1', 'verified_on': '2026-10-09', 'verification_basis': 'TEST'}
+    store.install_original_commitments(meta, {officer: entry})
+    store.install_original_receipts({'batch_publication_id': 'c' * 64, 'merkle_root': meta['merkle_root'], 'chunk_size': 100,
+        'fabric': {**{'chunk-%03d' % i: {'transaction_id': '%064x' % (i + 1), 'block_number': 10 + i, 'validation_code': 0} for i in range(66)},
+                   'batch': {'transaction_id': 'f' * 64, 'block_number': 5, 'validation_code': 0}, 'seal': {'transaction_id': 'e' * 64, 'block_number': 99, 'validation_code': 0}},
+        'sepolia': [{'transaction_hash': '0x%064x' % (i + 1), 'block': hex(1000 + i), 'block_hash': '0x' + '9' * 64} for i in range(68)]})
+    runtime, analysis_file, approval_file = state / 'runtime.json', state / 'analysis-config.json', state / 'approval-config.json'
+    for f, value in ((analysis_file, {'policy': ANALYSIS_POLICY, 'intake_config': str(runtime), 'analysis_root': str(state / 'analysis-v1')}),
+                     (approval_file, {'policy': APPROVAL_POLICY, 'decision_root': str(state / 'approval-v1'), 'reviewer_ids': [str(__import__('uuid').uuid4())], 'legacy_queued': {}}),
+                     (runtime, {'policy': 'PERSONNEL_INTAKE_RUNTIME_V1', 'analysis_config': str(analysis_file), 'approval_config': str(approval_file),
+                                'backup_key_file': str(backup / 'intake.key'), 'key_file': str(state / 'intake.key'), 'state_root': str(state),
+                                'baseline_source_set_sha256': 'a' * 64, 'source_public_sha256': 'a' * 64, 'importer_ids': [str(__import__('uuid').uuid4())],
+                                'source_pins': source_pins(repo), 'chains': {'fabric': {}, 'sepolia': {}},
+                                'postgres_credentials': str(state / 'postgres-writer.json'), 'mongo_credentials': str(state / 'mongo-writer.json')})):
+        f.write_text(json.dumps(value))
+        f.chmod(0o600)
+    for secret in ('postgres-writer.json', 'mongo-writer.json', 'chain-recovery.key'):
+        (state / secret).write_bytes(b'SECRET-NEVER-COPY')
+        (state / secret).chmod(0o600)
+    analysis = DatasetAnalysis(d['w'], analysis_file, create=True)
+    DatasetApprovals(d['w'], analysis, approval_file, create=True)
+    return runtime
+
+
+def test_public_copy_serves_the_stored_fingerprint_and_receipts_from_a_read_only_intake(setup, monkeypatch):
+    import time
+    from app.access import totp
+    from app.access.research_app import application
+    repo = Path(__file__).resolve().parents[2]
+    d = setup
+    totp_configured(d)
+    officer = d['members'][0]['officer_uid']
+    seeds = {p['username']: p['secret'] for p in json.loads((d['app'] / 'totp-enrollment-private.json').read_text())['accounts']}
+    runtime = real_intake(d, officer, repo)
+    workspace_file = d['app'] / 'workspace-config.json'
+    workspace = json.loads(workspace_file.read_text())
+    workspace['personnel_intake_config'] = str(runtime)
+    workspace_file.write_text(json.dumps(workspace))
+    out = d['app'].parent / 'bundle'
+    summary = build(d['app'], out, origin=ORIGIN, server_root=str(out), server_repo=str(repo), repo=repo)
+    assert summary['intake_stores_read_only'] == ['dataset']
+    assert not any('postgres' in str(p) or 'mongo' in str(p) or 'chain-recovery' in str(p) for p in out.rglob('*'))
+    monkeypatch.setenv('PPI_RESEARCH_CONFIG', str(out / 'private/workspace-config.json'))
+    app = application()
+    status, headers, _ = asgi(app, 'POST', '/api/auth/login', host='demo.university.edu', origin=ORIGIN, body={
+        'username': 'research.hq', 'password': 'invented-private-fixture-password', 'totp_code': totp.code(seeds['research.hq'], int(time.time()) // 30)})
+    assert status == 200
+    token = headers['set-cookie'].split(';')[0]
+    status, _, body = asgi(app, 'GET', '/api/research/officers/%s/integrity' % officer, host='demo.university.edu', cookie=token)
+    assert status == 200, body
+    view = json.loads(body)
+    assert view['original_available'] is True and view['original']['inclusion_verified'] is True and view['original']['commitment'] == 'b' * 64
+    assert view['original']['anchors']['fabric']['transaction_id'] == '%064x' % 1 and view['original']['anchors']['sepolia']['transaction_hash'] == '0x%064x' % 2
+    assert view['all_recomputed_checks_passed'] is True and view['fresh_chain_reads'] is False
+    # Still no way to upload or publish from the public copy.
+    status, _, body = asgi(app, 'GET', '/api/research/intake/capabilities', host='demo.university.edu', cookie=token)
+    assert status == 200 and json.loads(body)['configured'] is False and json.loads(body)['can_upload'] is False
