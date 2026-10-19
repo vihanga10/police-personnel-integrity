@@ -1,0 +1,40 @@
+{
+  "policy": "RESEARCH_RECORDING_RUNTIME_V1",
+  "registry_root": "/ABSOLUTE/PRIVATE/recording-registry",
+  "journal_root": "/ABSOLUTE/PRIVATE/recording-journal",
+  "journal_anchor": "ACTUAL_JOURNAL_ANCHOR",
+  "registry_id": "ACTUAL_RECORDING_REGISTRY_ID",
+  "registry_crypto": {
+    "primary": "/ABSOLUTE/PRIVATE/registry-primary.json",
+    "backup": "/ABSOLUTE/PRIVATE/registry-backup.json"
+  },
+  "journal_crypto": {
+    "primary": "/ABSOLUTE/PRIVATE/primary.json",
+    "backup": "/ABSOLUTE/PRIVATE/backup.json"
+  },
+  "signing_key": "/ABSOLUTE/OFFLINE/recording-registry.key",
+  "key_id": "ACTUAL_KEY_ID",
+  "registry_keys": {
+    "ACTUAL_KEY_ID": "BASE64_ACTUAL_ED25519_PUBLIC_KEY"
+  },
+  "recorder_keys": {
+    "ACTUAL_RECORDER_KEY_ID": "BASE64_ACTUAL_RECORDER_PUBLIC_KEY"
+  },
+  "observation_keys": {
+    "ACTUAL_OBSERVATION_KEY_ID": "BASE64_ACTUAL_OBSERVATION_PUBLIC_KEY"
+  },
+  "recovery_keys": {
+    "ACTUAL_RECOVERY_KEY_ID": "BASE64_ACTUAL_RECOVERY_PUBLIC_KEY"
+  },
+  "witness": {
+    "witness_id": "ACTUAL_WITNESS_ID",
+    "witness_keys": {
+      "ACTUAL_KEY_ID": "BASE64_ACTUAL_ED25519_PUBLIC_KEY"
+    },
+    "profile": "/ABSOLUTE/PRIVATE/witness-profile.json",
+    "profile_sha256": "ACTUAL_64_HEX_PROFILE_HASH",
+    "ca_certificate": "/ABSOLUTE/PRIVATE/witness-ca.pem",
+    "client_certificate": "/ABSOLUTE/PRIVATE/witness-client.pem",
+    "client_key": "/ABSOLUTE/PRIVATE/witness-client-key.pem"
+  }
+}

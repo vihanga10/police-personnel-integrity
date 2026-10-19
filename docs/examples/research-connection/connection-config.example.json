@@ -1,0 +1,26 @@
+{
+  "policy": "OPERATIONAL_RESEARCH_CONNECTION_V1",
+  "repository": "/ABSOLUTE/REPOSITORY/police-personnel-integrity",
+  "source": {
+    "key_file": "/ABSOLUTE/PRIVATE/key-file.json",
+    "backup_key_file": "/ABSOLUTE/PRIVATE/backup-key-file.json",
+    "commitment_key_file": "/ABSOLUTE/PRIVATE/commitment-key-file.json",
+    "backup_commitment_key_file": "/ABSOLUTE/PRIVATE/backup-commitment-key-file.json",
+    "bundle_attempt": "/ABSOLUTE/PRIVATE/bundle-attempt",
+    "binding_attempt": "/ABSOLUTE/PRIVATE/binding-attempt",
+    "commitment_attempt": "/ABSOLUTE/PRIVATE/commitment-attempt",
+    "audit_gate_attempt": "/ABSOLUTE/PRIVATE/audit-gate-attempt"
+  },
+  "access_config": "/ABSOLUTE/PRIVATE/access-config.json",
+  "workspace_config": "/ABSOLUTE/PRIVATE/workspace-config.json",
+  "data_authorization": "/ABSOLUTE/PRIVATE/data-use-signed.json",
+  "authorization_keys": {
+    "ACTUAL_CUSTODIAN_KEY_ID": "BASE64_ACTUAL_CUSTODIAN_PUBLIC_KEY"
+  },
+  "officers": {
+    "ACTUAL_AUTHORIZED_OFFICER_UUID": {
+      "recording_config": "/ABSOLUTE/PRIVATE/recording-runtime.json",
+      "findings_config": null
+    }
+  }
+}

@@ -1,0 +1,17 @@
+FROM node:24-bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends openssl python3 python3-cryptography && rm -rf /var/lib/apt/lists/*
+WORKDIR /work/fabric/integration
+COPY integration/package.json integration/package-lock.json ./
+RUN npm ci --ignore-scripts --no-audit --no-fund
+WORKDIR /work/public/findings
+COPY public/findings/package.json public/findings/package-lock.json ./
+RUN npm ci --ignore-scripts --no-audit --no-fund
+COPY public/findings/ /work/public/findings/
+COPY client/ /work/fabric/client/
+COPY findings-chaincode/ /work/fabric/findings-chaincode/
+COPY integration/ /work/fabric/integration/
+COPY backend/ /work/backend/
+RUN mkdir -p /work/fabric/blockchain/fabric/integration && cp -a /work/fabric/client /work/fabric/blockchain/fabric/client && cp -a /work/fabric/findings-chaincode /work/fabric/blockchain/fabric/findings-chaincode && cp -a /work/fabric/integration/node_modules /work/fabric/blockchain/fabric/integration/node_modules
+RUN python3 -m py_compile /work/backend/app/identity/findings_backend_gate.py /work/backend/app/identity/findings_backend_service.py /work/fabric/integration/backend-service-fixture.py
+WORKDIR /work/fabric/integration
+ENV NODE_PATH=/work/fabric/integration/node_modules:/work/public/findings/node_modules

@@ -1,0 +1,14 @@
+FROM node:24-bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
+WORKDIR /work/fabric/integration
+COPY integration/package.json integration/package-lock.json ./
+RUN npm ci --ignore-scripts --no-audit --no-fund
+WORKDIR /work/public/findings
+COPY public/findings/package.json public/findings/package-lock.json ./
+RUN npm ci --ignore-scripts --no-audit --no-fund
+COPY public/findings/ /work/public/findings/
+COPY client/ /work/fabric/client/
+COPY findings-chaincode/ /work/fabric/findings-chaincode/
+COPY integration/ /work/fabric/integration/
+WORKDIR /work/fabric/integration
+ENV NODE_PATH=/work/fabric/integration/node_modules:/work/public/findings/node_modules

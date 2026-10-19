@@ -1,0 +1,15 @@
+{
+  "policy": "RESEARCH_DATA_USE_AUTHORIZATION_V1",
+  "kind": "DATA_USE",
+  "issued_at": "REPLACE_WITH_CURRENT_UNIX_INTEGER",
+  "expires_at": "REPLACE_WITH_REVIEWED_UNIX_INTEGER_WITHIN_24_HOURS",
+  "source_public_sha256": "EXACT_ORIGINAL_PUBLIC_PAYLOAD_SHA256",
+  "code_revision": "CURRENT_CLEAN_COMMITTED_HEAD",
+  "purpose": "SCOPED_RESEARCH_UI",
+  "directory_all_officers": true,
+  "detail_officer_uids": [
+    "ACTUAL_AUTHORIZED_OFFICER_UUID"
+  ],
+  "review_reference": "ACTUAL_DATA_USE_APPROVAL_REFERENCE",
+  "custodian_reference": "ACTUAL_CUSTODIAN_AUTHORITY_REFERENCE"
+}

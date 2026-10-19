@@ -1,0 +1,976 @@
+{
+ "total": 47,
+ "passed": 47,
+ "failed": [],
+ "cases": [
+  {
+   "id": "R01",
+   "rule": "latest dated rank event on or before the date",
+   "expected": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "R02",
+   "rule": "an event after the query date is not a candidate",
+   "expected": {
+    "rank": {
+     "candidates": [],
+     "future": [
+      "A"
+     ],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [],
+     "future": [
+      "A"
+     ],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "R03",
+   "rule": "latest of two dated events",
+   "expected": {
+    "rank": {
+     "candidates": [
+      "B"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [
+      "B"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "R04",
+   "rule": "an earlier query date selects the earlier event",
+   "expected": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [
+      "B"
+     ],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [
+      "B"
+     ],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "R05",
+   "rule": "the event day itself counts",
+   "expected": {
+    "rank": {
+     "candidates": [
+      "B"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [
+      "B"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "R06",
+   "rule": "the day before an event keeps the previous rank",
+   "expected": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [
+      "B"
+     ],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [
+      "B"
+     ],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "R07",
+   "rule": "same-day ties are all retained",
+   "expected": {
+    "rank": {
+     "candidates": [
+      "B",
+      "C"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [
+      "B",
+      "C"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "R08",
+   "rule": "three-step chain, middle selected",
+   "expected": {
+    "rank": {
+     "candidates": [
+      "B"
+     ],
+     "future": [
+      "C"
+     ],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [
+      "B"
+     ],
+     "future": [
+      "C"
+     ],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "R09",
+   "rule": "a query before every event has no candidate",
+   "expected": {
+    "rank": {
+     "candidates": [],
+     "future": [
+      "A",
+      "B"
+     ],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [],
+     "future": [
+      "A",
+      "B"
+     ],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "R10",
+   "rule": "no evidence gives no candidate (absence proves nothing)",
+   "expected": {
+    "rank": {
+     "candidates": [],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "B01",
+   "rule": "a late arrival is invisible before it is recorded, despite its old effective date",
+   "expected": {
+    "rank": {
+     "candidates": [],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "B02",
+   "rule": "the same late arrival is visible once recorded",
+   "expected": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "B03",
+   "rule": "a version recorded exactly at known_at is included",
+   "expected": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "B04",
+   "rule": "one microsecond earlier it is not included",
+   "expected": {
+    "rank": {
+     "candidates": [],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "B05",
+   "rule": "a correction applies only from its recording time (before)",
+   "expected": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "B06",
+   "rule": "a correction applies from its recording time (at)",
+   "expected": {
+    "rank": {
+     "candidates": [
+      "B"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [
+      "B"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "B07",
+   "rule": "the corrected value stays after the correction",
+   "expected": {
+    "rank": {
+     "candidates": [
+      "B"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [
+      "B"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "B08",
+   "rule": "a correction changing the effective date recomputes from the replacement interval (before)",
+   "expected": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "B09",
+   "rule": "a correction changing the effective date recomputes from the replacement interval (after)",
+   "expected": {
+    "rank": {
+     "candidates": [],
+     "future": [
+      "A"
+     ],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [],
+     "future": [
+      "A"
+     ],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "B10",
+   "rule": "an explicit withdrawal removes the candidate (before)",
+   "expected": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "B11",
+   "rule": "an explicit withdrawal removes the candidate (after)",
+   "expected": {
+    "rank": {
+     "candidates": [],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "B12",
+   "rule": "a later version naming the withdrawn predecessor reinstates",
+   "expected": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "B13",
+   "rule": "between withdrawal and reinstatement the candidate stays removed",
+   "expected": {
+    "rank": {
+     "candidates": [],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "B14",
+   "rule": "independent source claims are both retained",
+   "expected": {
+    "rank": {
+     "candidates": [
+      "A",
+      "B"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [
+      "A",
+      "B"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "B15",
+   "rule": "a later arrival does not change an earlier query result",
+   "expected": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "P01",
+   "rule": "inside the reported interval",
+   "expected": {
+    "police_number": {
+     "candidates": [
+      "N1"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "police_number": {
+     "candidates": [
+      "N1"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "P02",
+   "rule": "the end day is included as a candidate",
+   "expected": {
+    "police_number": {
+     "candidates": [
+      "N1"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "police_number": {
+     "candidates": [
+      "N1"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "P03",
+   "rule": "the day after the end is expired",
+   "expected": {
+    "police_number": {
+     "candidates": [],
+     "future": [],
+     "expired": [
+      "N1"
+     ]
+    }
+   },
+   "observed": {
+    "police_number": {
+     "candidates": [],
+     "future": [],
+     "expired": [
+      "N1"
+     ]
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "P04",
+   "rule": "before the start is future",
+   "expected": {
+    "police_number": {
+     "candidates": [],
+     "future": [
+      "N1"
+     ],
+     "expired": []
+    }
+   },
+   "observed": {
+    "police_number": {
+     "candidates": [],
+     "future": [
+      "N1"
+     ],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "P05",
+   "rule": "the start day is included",
+   "expected": {
+    "police_number": {
+     "candidates": [
+      "N1"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "police_number": {
+     "candidates": [
+      "N1"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "P06",
+   "rule": "an open end is a candidate but never proves continuing validity",
+   "expected": {
+    "police_number": {
+     "candidates": [
+      "N1"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "police_number": {
+     "candidates": [
+      "N1"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "P07",
+   "rule": "overlapping numbers are both retained",
+   "expected": {
+    "police_number": {
+     "candidates": [
+      "N1",
+      "N2"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "police_number": {
+     "candidates": [
+      "N1",
+      "N2"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "X01",
+   "rule": "concurrent restrictions are retained as a set",
+   "expected": {
+    "restrictions": {
+     "candidates": [
+      "RA",
+      "RB"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "restrictions": {
+     "candidates": [
+      "RA",
+      "RB"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "X02",
+   "rule": "no restriction evidence never establishes unrestricted",
+   "expected": {
+    "restrictions": {
+     "candidates": [],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "restrictions": {
+     "candidates": [],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "X03",
+   "rule": "an ended restriction is expired, not current",
+   "expected": {
+    "restrictions": {
+     "candidates": [],
+     "future": [],
+     "expired": [
+      "RA"
+     ]
+    }
+   },
+   "observed": {
+    "restrictions": {
+     "candidates": [],
+     "future": [],
+     "expired": [
+      "RA"
+     ]
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "M01",
+   "rule": "a rank claim never appears under posting",
+   "expected": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [],
+     "expired": []
+    },
+    "posting": {
+     "candidates": [
+      "S1"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "rank": {
+     "candidates": [
+      "A"
+     ],
+     "future": [],
+     "expired": []
+    },
+    "posting": {
+     "candidates": [
+      "S1"
+     ],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "M02",
+   "rule": "a snapshot is never backdated to an earlier date",
+   "expected": {
+    "service_status": {
+     "candidates": [],
+     "future": [],
+     "expired": []
+    }
+   },
+   "observed": {
+    "service_status": {
+     "candidates": [],
+     "future": [],
+     "expired": []
+    }
+   },
+   "passed": true
+  },
+  {
+   "id": "J01",
+   "rule": "a query before coverage starts is rejected",
+   "expected": {
+    "reject": true
+   },
+   "observed": {
+    "reject": true
+   },
+   "passed": true
+  },
+  {
+   "id": "J02",
+   "rule": "a query after coverage ends is rejected",
+   "expected": {
+    "reject": true
+   },
+   "observed": {
+    "reject": true
+   },
+   "passed": true
+  },
+  {
+   "id": "J03",
+   "rule": "a same-time correction is rejected",
+   "expected": {
+    "reject": true
+   },
+   "observed": {
+    "reject": true
+   },
+   "passed": true
+  },
+  {
+   "id": "J04",
+   "rule": "a fork (two corrections of one version) is rejected",
+   "expected": {
+    "reject": true
+   },
+   "observed": {
+    "reject": true
+   },
+   "passed": true
+  },
+  {
+   "id": "J05",
+   "rule": "a correction with a missing predecessor is rejected",
+   "expected": {
+    "reject": true
+   },
+   "observed": {
+    "reject": true
+   },
+   "passed": true
+  },
+  {
+   "id": "J06",
+   "rule": "a correction cannot change the dimension",
+   "expected": {
+    "reject": true
+   },
+   "observed": {
+    "reject": true
+   },
+   "passed": true
+  },
+  {
+   "id": "J07",
+   "rule": "a repeated version identifier is rejected",
+   "expected": {
+    "reject": true
+   },
+   "observed": {
+    "reject": true
+   },
+   "passed": true
+  },
+  {
+   "id": "J08",
+   "rule": "a baseline cannot be a withdrawal of an unseen claim",
+   "expected": {
+    "reject": true
+   },
+   "observed": {
+    "reject": true
+   },
+   "passed": true
+  },
+  {
+   "id": "J09",
+   "rule": "a version outside the coverage window is rejected",
+   "expected": {
+    "reject": true
+   },
+   "observed": {
+    "reject": true
+   },
+   "passed": true
+  },
+  {
+   "id": "J10",
+   "rule": "a withdrawal must keep its predecessor claim unchanged",
+   "expected": {
+    "reject": true
+   },
+   "observed": {
+    "reject": true
+   },
+   "passed": true
+  }
+ ]
+}

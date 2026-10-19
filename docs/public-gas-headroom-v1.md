@@ -1,0 +1,11 @@
+# Bounded gas headroom for Sepolia publication
+
+Both live providers estimated the first 100-officer chunk at 15,633,360 gas. A fixed 20% margin produced 18,760,032 and was correctly rejected by the 16,777,216 transaction cap. The original createBatch transaction is preserved; no officer transaction had been confirmed in the supplied diagnostic. Both providers reported matching batch metadata and officer count zero.
+
+Use the larger provider estimate and the smaller of the two observed block limits and the fixed transaction cap. Retain a preferred 20% margin when it fits. Otherwise use the effective cap only when it still permits at least 5% headroom, rounded upward. Insufficient headroom, a zero estimate or cap violation stops before signing. This is a bounded engineering policy; an estimate is not a guarantee against out-of-gas failure. Failed original receipts still stop publication without changing signed bytes or replacing transactions.
+
+For the reported estimate the selected gas limit is 16,777,216, with 1,143,856 gas headroom (about 7.32%). At the unchanged 2 gwei maximum fee this reserves 0.033554432 test ETH for that operation. The existing 0.025 cumulative publication budget therefore remains insufficient. Budgets can be reviewed explicitly through --publication-fee-budget-eth; installation never changes them, the deployment configuration or the fee caps. Existing prepared transactions retain their original bytes and fee bindings.
+
+The validation summary now includes raw_gas_estimate, gas_headroom and effective_gas_cap. Insufficient balance or budget still produces FUNDING_OR_BUDGET_REQUIRED before another transaction is prepared. A READY result only quotes the next eligible state-dependent operation. Full-batch fees cannot be inferred as an exact quote from one chunk.
+
+No contract, Merkle proof, officer commitment, chunk size, authorization freshness, transaction recovery or receipt rule changes. Local fixture and EVM tests do not demonstrate real Sepolia upload completion. Follow with a fresh guarded validation before submission. More faucet test ETH will be needed for full publication at the observed cost; no real ETH purchase is required by this research testnet workflow.

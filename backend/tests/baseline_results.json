@@ -1,0 +1,291 @@
+{
+ "authority": {
+  "evaluable_cases": 65,
+  "integrated": {
+   "accuracy": {
+    "correct": 65,
+    "percent": 100.0,
+    "total": 65,
+    "wilson95": [
+     0.9442,
+     1.0
+    ]
+   },
+   "classes_with_undefined_f1": [],
+   "confusion_matrix_expected_by_observed": {
+    "CANNOT_VERIFY": {
+     "CANNOT_VERIFY": 33,
+     "INVALID": 0,
+     "VALID": 0
+    },
+    "INVALID": {
+     "CANNOT_VERIFY": 0,
+     "INVALID": 23,
+     "VALID": 0
+    },
+    "VALID": {
+     "CANNOT_VERIFY": 0,
+     "INVALID": 0,
+     "VALID": 9
+    }
+   },
+   "macro_f1": 1.0,
+   "per_class_f1": {
+    "CANNOT_VERIFY": 1.0,
+    "INVALID": 1.0,
+    "VALID": 1.0
+   }
+  },
+  "paired": {
+   "both_correct": 20,
+   "neither_correct": [],
+   "only_baseline_correct": [],
+   "only_integrated_correct": [
+    "D02",
+    "D03",
+    "D04",
+    "D05",
+    "D06",
+    "D07",
+    "D08",
+    "D09",
+    "D10",
+    "D11",
+    "D13",
+    "D14",
+    "D15",
+    "D16",
+    "D17",
+    "D18",
+    "D19",
+    "D20",
+    "D21",
+    "D22",
+    "D23",
+    "D24",
+    "D25",
+    "D28",
+    "D29",
+    "D30",
+    "D31",
+    "D32",
+    "D33",
+    "D34",
+    "D35",
+    "D36",
+    "G01",
+    "G04",
+    "G05",
+    "G07",
+    "G14",
+    "G17",
+    "G18",
+    "G19",
+    "G20",
+    "G21",
+    "H01",
+    "H05",
+    "H06"
+   ]
+  },
+  "rank_only": {
+   "accuracy": {
+    "correct": 20,
+    "percent": 30.8,
+    "total": 65,
+    "wilson95": [
+     0.2089,
+     0.428
+    ]
+   },
+   "classes_with_undefined_f1": [],
+   "confusion_matrix_expected_by_observed": {
+    "CANNOT_VERIFY": {
+     "CANNOT_VERIFY": 0,
+     "INVALID": 13,
+     "VALID": 20
+    },
+    "INVALID": {
+     "CANNOT_VERIFY": 0,
+     "INVALID": 16,
+     "VALID": 7
+    },
+    "VALID": {
+     "CANNOT_VERIFY": 0,
+     "INVALID": 5,
+     "VALID": 4
+    }
+   },
+   "macro_f1": 0.25380116959064325,
+   "per_class_f1": {
+    "CANNOT_VERIFY": 0.0,
+    "INVALID": 0.5614035087719298,
+    "VALID": 0.2
+   }
+  },
+  "reference_mix": {
+   "CANNOT_VERIFY": 33,
+   "INVALID": 23,
+   "VALID": 9
+  },
+  "refusal_cases": {
+   "baseline_refused": 0,
+   "count": 5,
+   "integrated_refused": 5
+  }
+ },
+ "contradiction": {
+  "evaluable_cases": 51,
+  "expected_pairs": 56,
+  "integrated": {
+   "candidate_class": {
+    "f1": 1.0,
+    "fn": 0,
+    "fp": 0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "tp": 25
+   },
+   "case_accuracy": {
+    "correct": 51,
+    "percent": 100.0,
+    "total": 51,
+    "wilson95": [
+     0.93,
+     1.0
+    ]
+   }
+  },
+  "paired": {
+   "both_correct": 19,
+   "neither_correct": [],
+   "only_baseline_correct": [],
+   "only_integrated_correct": [
+    "K03",
+    "K04",
+    "K05",
+    "K06",
+    "K07",
+    "K09",
+    "K12",
+    "K15",
+    "K16",
+    "K17",
+    "K18",
+    "T01",
+    "T03",
+    "T05",
+    "T07",
+    "T09",
+    "T10",
+    "N03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N09",
+    "N10",
+    "N12",
+    "X01",
+    "X04",
+    "X05",
+    "X06",
+    "S01",
+    "S02",
+    "S03"
+   ]
+  },
+  "refusal_cases": {
+   "baseline_refused": 0,
+   "count": 6,
+   "integrated_refused": 6
+  },
+  "value_only": {
+   "candidate_class": {
+    "f1": 0.575,
+    "fn": 2,
+    "fp": 32,
+    "precision": 0.41818181818181815,
+    "recall": 0.92,
+    "tp": 23
+   },
+   "case_accuracy": {
+    "correct": 19,
+    "percent": 37.3,
+    "total": 51,
+    "wilson95": [
+     0.2532,
+     0.5098
+    ]
+   },
+   "expected_pairs_given_the_expected_status": {
+    "correct": 28,
+    "percent": 50.0,
+    "total": 56,
+    "wilson95": [
+     0.3733,
+     0.6267
+    ]
+   }
+  }
+ },
+ "history": {
+  "current_only_candidate_values_only": {
+   "correct": 21,
+   "percent": 56.8,
+   "total": 37,
+   "wilson95": [
+    0.4091,
+    0.7133
+   ]
+  },
+  "current_only_exact": {
+   "correct": 21,
+   "percent": 56.8,
+   "total": 37,
+   "wilson95": [
+    0.4091,
+    0.7133
+   ]
+  },
+  "evaluable_cases": 37,
+  "integrated": {
+   "correct": 37,
+   "percent": 100.0,
+   "total": 37,
+   "wilson95": [
+    0.9059,
+    1.0
+   ]
+  },
+  "paired_exact": {
+   "both_correct": 21,
+   "neither_correct": [],
+   "only_baseline_correct": [],
+   "only_integrated_correct": [
+    "R02",
+    "R04",
+    "R06",
+    "R08",
+    "R09",
+    "B01",
+    "B04",
+    "B05",
+    "B09",
+    "B10",
+    "B13",
+    "B15",
+    "P03",
+    "P04",
+    "X03",
+    "M02"
+   ]
+  },
+  "refusal_cases": {
+   "baseline_refused": 0,
+   "count": 10,
+   "integrated_refused": 10
+  }
+ },
+ "note": "Baselines were defined and committed before this run. The case sets are purposive boundary coverage, so the comparison shows what the added evidence conditions contribute, not general superiority."
+}

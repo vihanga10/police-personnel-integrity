@@ -1,0 +1,9 @@
+{
+  "name": "police-fabric-network-checker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dedicated local Fabric deployment checks with test commitments only",
+  "engines": {"node": ">=20"},
+  "scripts": {"test": "node --test test/*.test.js"},
+  "dependencies": {"@hyperledger/fabric-gateway": "1.8.0", "@grpc/grpc-js": "1.14.4"}
+}

@@ -1,0 +1,567 @@
+{
+ "total": 70,
+ "passed": 70,
+ "failed": [],
+ "cases": [
+  {
+   "id": "D01",
+   "rule": "a fully assessed matching route with complete coverage is VALID",
+   "expected": "VALID",
+   "observed": "VALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D02",
+   "rule": "an unassessed identity never authorises",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D03",
+   "rule": "an unassessed rank never authorises",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D04",
+   "rule": "an unassessed role never authorises",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D05",
+   "rule": "an unassessed service status never authorises",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D06",
+   "rule": "an unassessed scope never authorises",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D07",
+   "rule": "a conflicting identity never authorises",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D08",
+   "rule": "a conflicting rank never authorises",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D09",
+   "rule": "a conflicting role never authorises",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D10",
+   "rule": "a conflicting service status never authorises",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D11",
+   "rule": "a conflicting scope never authorises",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D12",
+   "rule": "a refuted rank with complete coverage is INVALID",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D13",
+   "rule": "a refuted role with complete coverage is INVALID",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D14",
+   "rule": "a refuted scope with complete coverage is INVALID",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D15",
+   "rule": "an inactive officer with complete coverage is INVALID",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D16",
+   "rule": "a refuted rank without complete coverage is only CANNOT_VERIFY",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D17",
+   "rule": "a refuted role without complete coverage is only CANNOT_VERIFY",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D18",
+   "rule": "a refuted scope without complete coverage is only CANNOT_VERIFY",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D19",
+   "rule": "an inactive officer without complete coverage is only CANNOT_VERIFY",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D20",
+   "rule": "a refuted action identity is unresolved, not an accusation",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D21",
+   "rule": "a refuted action date meaning is unresolved",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D22",
+   "rule": "an unassessed action identity is unresolved",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D23",
+   "rule": "an unassessed action date meaning is unresolved",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D24",
+   "rule": "a rule starting after the action date does not apply; with complete coverage the route set is refuted",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": true
+  },
+  {
+   "id": "D25",
+   "rule": "half-open interval: the action on the rule end date is outside the rule",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": true
+  },
+  {
+   "id": "D26",
+   "rule": "half-open interval: the day before the end is inside",
+   "expected": "VALID",
+   "observed": "VALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D27",
+   "rule": "the rule start day itself is inside",
+   "expected": "VALID",
+   "observed": "VALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D28",
+   "rule": "an unassessed rule never authorises",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D29",
+   "rule": "a conflicting rule never authorises",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D30",
+   "rule": "a power the rule does not grant is refuted (complete coverage)",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D31",
+   "rule": "the same without complete coverage is CANNOT_VERIFY",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D32",
+   "rule": "a target scope outside the rule is refuted (complete coverage)",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D33",
+   "rule": "the same without complete coverage is CANNOT_VERIFY",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D34",
+   "rule": "no governing rule and no assessed coverage is CANNOT_VERIFY, never invalid",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D35",
+   "rule": "actor state for a different date is not state on the action date",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D36",
+   "rule": "no actor state at all is CANNOT_VERIFY",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D37",
+   "rule": "a refuted alternative does not overturn a successful route",
+   "expected": "VALID",
+   "observed": "VALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "D38",
+   "rule": "all routes refuted with complete coverage is INVALID",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "G01",
+   "rule": "a valid delegation from an authorised issuer supports the action",
+   "expected": "VALID",
+   "observed": "VALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "G02",
+   "rule": "a delegation starting after the action date is not in force",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "G03",
+   "rule": "half-open delegation interval: the end date is outside",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "G04",
+   "rule": "the day before the delegation end is inside",
+   "expected": "VALID",
+   "observed": "VALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "G05",
+   "rule": "the delegation start day is inside",
+   "expected": "VALID",
+   "observed": "VALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "G06",
+   "rule": "revocation is effective from its own date inclusively",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "G07",
+   "rule": "a revocation the day after the action does not affect it",
+   "expected": "VALID",
+   "observed": "VALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "G08",
+   "rule": "an earlier revocation removes the delegation",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "G09",
+   "rule": "a delegation to someone else does not support this actor",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "G10",
+   "rule": "a delegation that omits the action power is refuted",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "G11",
+   "rule": "a delegation that omits the target scope is refuted",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "G12",
+   "rule": "a delegation granting more than its parent rule is unsupported",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": true
+  },
+  {
+   "id": "G13",
+   "rule": "a parent rule that forbids delegation refutes the route",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "G14",
+   "rule": "a parent rule with unassessed delegation permission is unresolved",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "G15",
+   "rule": "issuer inactive on the action date refutes the route (V1 convention)",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "G16",
+   "rule": "issuer without authority at issuance refutes the route (V1 convention)",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "G17",
+   "rule": "missing issuer state at issuance is unresolved",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "G18",
+   "rule": "an unassessed delegation never authorises",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "G19",
+   "rule": "a conflicting delegation never authorises",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "G20",
+   "rule": "a delegation whose parent is missing stays unresolved",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "G21",
+   "rule": "a refuted delegation without complete coverage is only CANNOT_VERIFY",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "H01",
+   "rule": "a two-link chain with permission at every link is VALID",
+   "expected": "VALID",
+   "observed": "VALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "H02",
+   "rule": "a middle link that cannot sub-delegate refutes the chain",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "H03",
+   "rule": "a second link granting more than its parent is unsupported",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": true
+  },
+  {
+   "id": "H04",
+   "rule": "a revoked first link breaks the chain",
+   "expected": "INVALID",
+   "observed": "INVALID",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "H05",
+   "rule": "delegations that name each other as parent form a cycle and stay unresolved",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "H06",
+   "rule": "a chain of 20 instruments exceeds the traversal bound and stays unresolved",
+   "expected": "CANNOT_VERIFY",
+   "observed": "CANNOT_VERIFY",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "J01",
+   "rule": "a delegation issued after it starts is refused",
+   "expected": "REJECT",
+   "observed": "REJECT",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "J02",
+   "rule": "a delegation ending on or before it starts is refused",
+   "expected": "REJECT",
+   "observed": "REJECT",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "J03",
+   "rule": "a rule ending on or before it starts is refused",
+   "expected": "REJECT",
+   "observed": "REJECT",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "J04",
+   "rule": "an assessed fact without evidence is refused",
+   "expected": "REJECT",
+   "observed": "REJECT",
+   "passed": true,
+   "author_reading": false
+  },
+  {
+   "id": "J05",
+   "rule": "a rule with an empty scope is refused",
+   "expected": "REJECT",
+   "observed": "REJECT",
+   "passed": true,
+   "author_reading": false
+  }
+ ]
+}
