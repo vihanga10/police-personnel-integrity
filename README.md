@@ -8,7 +8,6 @@ A research prototype for **explainable police personnel records**. It answers th
 
 It also keeps an accountable trail: scoped access, independent review, an activity log, and an upload pipeline whose approved records are committed to a private blockchain (Hyperledger Fabric) and a public test network (Ethereum Sepolia).
 
-> **Important:** all data is **synthetic**. It was generated for research (6,596 invented officers across 19 datasets). No real personal or police information is in this repository. This is an undergraduate dissertation prototype, not a production system.
 
 ## What it does
 
